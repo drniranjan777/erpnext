@@ -108,6 +108,9 @@ export const items = pgTable(
     cessRate: numeric('cess_rate', { precision: 5, scale: 2 }).notNull().default('0'),
     isNilRatedOrExempt: boolean('is_nil_rated_or_exempt').notNull().default(false),
     // Inventory behaviour
+    /** Ledger codes this item posts to (blank = the defaults for its type). */
+    incomeAccountCode: text('income_account_code'),
+    expenseAccountCode: text('expense_account_code'),
     isStockItem: boolean('is_stock_item').notNull().default(true),
     trackBatch: boolean('track_batch').notNull().default(false),
     trackSerial: boolean('track_serial').notNull().default(false),

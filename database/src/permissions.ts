@@ -68,6 +68,11 @@ export const PERMISSIONS = {
   'jobwork.challans.read': 'View job-work challans and receipts',
   'jobwork.challans.manage': 'Send material to job workers and receive it back',
   'jobwork.challans.cancel': 'Cancel job-work challans and receipts',
+  'accounting.accounts.read': 'View the chart of accounts, ledgers and trial balance',
+  'accounting.accounts.manage': 'Create and edit accounts and cost centres',
+  'accounting.journals.manage': 'Create and submit journal vouchers',
+  'accounting.journals.cancel': 'Cancel posted journal vouchers',
+  'accounting.settings.manage': 'Set up the books, lock periods and bring past documents into the ledger',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

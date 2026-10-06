@@ -153,6 +153,15 @@ export const DOC_TYPES = {
     readPermission: 'purchase.invoices.read',
     gstDocument: false,
   },
+  journal_entry: {
+    label: 'Journal Voucher',
+    code: 'JV',
+    module: 'accounting',
+    path: '/accounting/journals',
+    defaultPattern: 'JV/{FY}/{SEQ}',
+    readPermission: 'accounting.accounts.read',
+    gstDocument: false,
+  },
   stock_entry: {
     label: 'Stock Entry',
     code: 'SE',

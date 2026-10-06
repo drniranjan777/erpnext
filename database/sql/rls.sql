@@ -329,6 +329,7 @@ REVOKE DELETE ON saas_invoices FROM nextgen_app;
 REVOKE UPDATE, DELETE ON billing_events FROM nextgen_app;
 -- The stock ledger is append-only (corrections are reversal rows)
 REVOKE UPDATE, DELETE ON stock_ledger FROM nextgen_app;
+REVOKE UPDATE, DELETE ON gl_entries FROM nextgen_app;
 REVOKE UPDATE, DELETE ON gst_api_logs FROM nextgen_app;
 -- Job and delivery history is append/update only from the app's point of view
 REVOKE DELETE ON jobs FROM nextgen_app;

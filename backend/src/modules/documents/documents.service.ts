@@ -87,6 +87,8 @@ export interface DocumentHooks {
 @Injectable()
 export class DocumentsService {
   private readonly hooks = new Map<string, DocumentHooks>();
+  /** Cross-cutting followers (e.g. the general ledger) that run after the module's own hook. */
+  private readonly listeners = new Map<string, Pick<DocumentHooks, 'onApproved' | 'onCancelled'>[]>();
 
   constructor(
     private readonly database: DatabaseService,
@@ -104,6 +106,21 @@ export class DocumentsService {
 
   registerHooks(docType: DocType, hooks: DocumentHooks) {
     this.hooks.set(docType, hooks);
+  }
+
+  /** Adds a follower for a document type; it runs after the module's hook, in the same transaction. */
+  addListener(docType: DocType, listener: Pick<DocumentHooks, 'onApproved' | 'onCancelled'>) {
+    this.listeners.set(docType, [...(this.listeners.get(docType) ?? []), listener]);
+  }
+
+  private async approved(tx: Transaction, auth: AuthContext, doc: DocumentRow) {
+    await this.hooks.get(doc.docType)?.onApproved?.(tx, auth, doc);
+    for (const l of this.listeners.get(doc.docType) ?? []) await l.onApproved?.(tx, auth, doc);
+  }
+
+  private async cancelled(tx: Transaction, auth: AuthContext, doc: DocumentRow) {
+    await this.hooks.get(doc.docType)?.onCancelled?.(tx, auth, doc);
+    for (const l of this.listeners.get(doc.docType) ?? []) await l.onCancelled?.(tx, auth, doc);
   }
 
   // ---- Lifecycle (call inside the module's transaction) ---------------------------
@@ -198,7 +215,7 @@ export class DocumentsService {
       submittedBy: auth.userId,
       approvedAt: flow.required ? null : now,
     });
-    if (!flow.required) await this.hooks.get(doc.docType)?.onApproved?.(tx, auth, updated);
+    if (!flow.required) await this.approved(tx, auth, updated);
     await this.activity(
       tx,
       auth,
@@ -222,7 +239,7 @@ export class DocumentsService {
       currentStep: result.nextStep,
       approvedAt: result.status === 'approved' ? now : null,
     });
-    if (result.status === 'approved') await this.hooks.get(doc.docType)?.onApproved?.(tx, auth, updated);
+    if (result.status === 'approved') await this.approved(tx, auth, updated);
     const verb = decision === 'approved' ? 'Approved' : 'Rejected';
     await this.activity(tx, auth, doc.id, decision === 'approved' ? 'approved' : 'rejected', `${verb} level ${result.step.stepNo}: ${result.step.name}`, {
       comment: comment ?? null,
@@ -250,7 +267,7 @@ export class DocumentsService {
     }
     await this.approvals.closeOpen(tx, doc.id);
     const updated = await this.update(tx, auth, doc, { status: 'cancelled', currentStep: null, cancelledAt: new Date(), cancelReason: reason });
-    if (doc.status === 'approved') await this.hooks.get(doc.docType)?.onCancelled?.(tx, auth, updated);
+    if (doc.status === 'approved') await this.cancelled(tx, auth, updated);
     await this.activity(tx, auth, doc.id, 'cancelled', 'Cancelled', { reason });
     await this.log(tx, auth, updated, 'document.cancelled', meta, { reason });
     await this.emitWebhook(tx, auth, updated, 'document.cancelled');
