@@ -24,6 +24,8 @@ import { loadPermissions } from '../../common/guards';
 import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
 import { CustomFieldsService } from '../customization/custom-fields.service';
+import { EInvoiceService } from '../compliance/einvoice.service';
+import { assertNoActiveEwb } from '../compliance/guards';
 import { PrintService } from '../customization/print.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
 import { GST_STATE_NAME, UTGST_STATES } from '../gst/gst-engine';
@@ -52,6 +54,7 @@ export class SalesInvoicesService implements OnModuleInit {
     private readonly stock: StockService,
     private readonly orders: SalesOrdersService,
     private readonly print: PrintService,
+    private readonly einvoice: EInvoiceService,
   ) {}
 
   onModuleInit() {
@@ -279,6 +282,7 @@ export class SalesInvoicesService implements OnModuleInit {
     }
     await tx.update(salesInvoices).set({ costTotal: cost.toFixed(2) }).where(eq(salesInvoices.id, doc.id));
     for (const orderId of await this.ordersOf(tx, lines)) await this.orders.syncStatus(tx, auth, orderId);
+    await this.einvoice.onApproved(tx, auth, doc);
   }
 
   private async unpost(tx: Transaction, auth: AuthContext, doc: DocumentRow) {
@@ -290,7 +294,8 @@ export class SalesInvoicesService implements OnModuleInit {
     if (notes.n) throw new ConflictException('Cancel the credit notes against this invoice first');
     const [inv] = await tx.select().from(salesInvoices).where(eq(salesInvoices.id, doc.id));
     if (D(inv.receivedAmount).cmp(ZERO) > 0) throw new ConflictException('Payment has been received against this invoice');
-    if (inv.irn) throw new ConflictException('This invoice has an IRN: cancel the e-invoice first (within 24 hours) or issue a credit note');
+    await this.einvoice.assertCancellable(tx, doc.id, DOC_TYPE);
+    await assertNoActiveEwb(tx, doc.id);
     const lines = await tx.select().from(salesInvoiceLines).where(eq(salesInvoiceLines.invoiceId, doc.id));
     const stockItems = new Set((await tx.select({ id: items.id }).from(items).where(and(inArray(items.id, lines.map((l) => l.itemId)), eq(items.isStockItem, true)))).map((i) => i.id));
     await this.stock.reverseVoucher(tx, auth, { id: doc.id, type: DOC_TYPE, number: doc.number, companyId: doc.companyId, postingDate: doc.docDate });
@@ -524,6 +529,7 @@ export class SalesInvoicesService implements OnModuleInit {
       lines: view.lines,
       hsnSummary: [...hsn.values()].map((h) => ({ hsn: h.hsn, gstRate: h.gstRate, taxable: h.taxable.toFixed(2), cgst: h.cgst.toFixed(2), sgst: h.sgst.toFixed(2), igst: h.igst.toFixed(2), cess: h.cess.toFixed(2), total: h.cgst.add(h.sgst).add(h.igst).add(h.cess).toFixed(2) })),
       stateTaxLabel: view.stateTaxLabel,
+      einvoice: view.irn && view.irnStatus === 'generated' ? { irn: view.irn, ackNo: view.ackNo, ackDate: view.ackDate?.toISOString(), qr: await this.einvoice.qrDataUri(view.signedQr) } : null,
       printedBy: printer?.name ?? '',
       printedAt: new Date().toISOString(),
     };

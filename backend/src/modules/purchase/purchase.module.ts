@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { InventoryModule } from '../inventory/inventory.module';
+import { BillsOfEntryService } from './bills-of-entry.service';
+import { BillCaptureService } from './capture/bill-capture.service';
 import { DebitNotesService } from './debit-notes.service';
+import { ImportsTradeController } from './imports-trade.controller';
 import { InvoicesController } from './invoices.controller';
 import { InvoicesService } from './invoices.service';
 import { LandedCostsService } from './landed-costs.service';
@@ -17,7 +20,7 @@ import { VendorPerformanceService } from './vendor-performance.service';
 /** Procure-to-pay: requisitions, RFQs, purchase orders, goods receipts, bills, debit notes, landed cost. */
 @Module({
   imports: [InventoryModule],
-  controllers: [RequisitionsController, OrdersController, ReceiptsController, InvoicesController, RfqsController],
-  providers: [RequisitionsService, OrdersService, ReceiptsService, InvoicesService, DebitNotesService, LandedCostsService, RfqsService, VendorPerformanceService],
+  controllers: [RequisitionsController, OrdersController, ReceiptsController, InvoicesController, RfqsController, ImportsTradeController],
+  providers: [RequisitionsService, OrdersService, ReceiptsService, InvoicesService, DebitNotesService, LandedCostsService, RfqsService, VendorPerformanceService, BillsOfEntryService, BillCaptureService],
 })
 export class PurchaseModule {}

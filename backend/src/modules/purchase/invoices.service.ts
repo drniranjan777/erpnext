@@ -433,7 +433,7 @@ export class InvoicesService implements OnModuleInit {
       const exp = expected[i];
       const v = exp ? D(pl.taxableValue).sub(D(D(lines[i].qty).mul(D(exp)).toFixed(2))) : ZERO;
       variance = variance.add(v);
-      return { ...pl, itcEligible: lines[i].itcEligible, grnLineId: lines[i].grnLineId ?? null, poLineId: lines[i].poLineId, expectedRate: exp, rateVariance: v.toFixed(2), remarks: lines[i].remarks };
+      return { ...pl, itcEligible: lines[i].itcEligible, grnLineId: lines[i].grnLineId ?? null, poLineId: lines[i].poLineId, expectedRate: exp, rateVariance: v.toFixed(2), remarks: lines[i].remarks, foreignRate: lines[i].foreignRate ?? null };
     });
 
     const kinds = new Set(out.map((l) => (l.grnLineId ? 'three_way' : l.poLineId ? 'two_way' : 'none')));
@@ -464,6 +464,9 @@ export class InvoicesService implements OnModuleInit {
         netPayable: D(tax.totals.grandTotal).sub(D(tds)).toFixed(2),
         dueDate: due.dueDate,
         rateTolerancePct: input.rateTolerancePct ?? '1',
+        currency: input.currency,
+        exchangeRate: input.exchangeRate ?? '1',
+        capture: input.capture ?? null,
         rateVariance: variance.toFixed(2),
         varianceNote: input.varianceNote,
         notes: input.notes,
@@ -514,6 +517,7 @@ export class InvoicesService implements OnModuleInit {
         conversionFactor: l.conversionFactor,
         baseQty: l.baseQty,
         rate: l.rate,
+        foreignRate: l.foreignRate,
         discountPct: l.discountPct ?? '0',
         hsnCode: l.hsnCode,
         gstRate: l.gstRate,

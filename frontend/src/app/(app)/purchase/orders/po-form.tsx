@@ -54,7 +54,7 @@ function fromExisting(po?: PurchaseOrder): Line[] {
     uomId: l.uomId,
     description: l.description,
     qty: String(Number(l.qty)),
-    rate: String(Number(l.rate)),
+    rate: String(Number(po && po.currency !== "INR" && l.foreignRate ? l.foreignRate : l.rate)),
     discountPct: Number(l.discountPct) ? String(Number(l.discountPct)) : "",
     deliveryDate: l.deliveryDate ?? "",
     requisitionLineId: l.requisitionLineId,
@@ -83,6 +83,8 @@ export function PoForm({ existing }: { existing?: PurchaseOrder }) {
     creditDays: existing?.creditDays?.toString() ?? "",
     tolerancePct: existing && Number(existing.tolerancePct) ? String(Number(existing.tolerancePct)) : "",
     reverseCharge: existing?.reverseCharge ?? false,
+    currency: existing?.currency ?? "INR",
+    exchangeRate: existing?.exchangeRate && existing.currency !== "INR" ? String(Number(existing.exchangeRate)) : "",
     terms: existing?.terms ?? "",
     notes: existing?.notes ?? "",
   });
@@ -100,9 +102,12 @@ export function PoForm({ existing }: { existing?: PurchaseOrder }) {
   const unitsFor = (it: Item) => [{ uomId: it.baseUomId, uom: uomCode(it.baseUomId), factor: "1" }, ...it.conversions];
 
   // Live GST: re-priced on the server (same engine as saving) shortly after each change.
-  const pricable = vendor && lines.length > 0 && lines.every((l) => num(l.qty) && Number(l.qty) > 0 && num(l.rate) && (!l.discountPct || num(l.discountPct)));
+  const foreign = h.currency !== "INR";
+  const fx = foreign ? Number(h.exchangeRate) || 0 : 1;
+  const inr = (rate: string) => (foreign ? String(Math.round(Number(rate) * fx * 10000) / 10000) : rate);
+  const pricable = vendor && (!foreign || fx > 0) && lines.length > 0 && lines.every((l) => num(l.qty) && Number(l.qty) > 0 && num(l.rate) && (!l.discountPct || num(l.discountPct)));
   const payload = pricable
-    ? { vendorId: vendor!.id, reverseCharge: h.reverseCharge, lines: lines.map((l) => ({ itemId: l.itemId, uomId: l.uomId, qty: l.qty, rate: l.rate, discountPct: l.discountPct || null })) }
+    ? { vendorId: vendor!.id, reverseCharge: h.reverseCharge, lines: lines.map((l) => ({ itemId: l.itemId, uomId: l.uomId, qty: l.qty, rate: inr(l.rate), discountPct: l.discountPct || null })) }
     : null;
   const [debounced, setDebounced] = useState(payload);
   const payloadKey = JSON.stringify(payload);
@@ -147,6 +152,8 @@ export function PoForm({ existing }: { existing?: PurchaseOrder }) {
       creditDays: h.creditDays ? Number(h.creditDays) : null,
       tolerancePct: h.tolerancePct || null,
       reverseCharge: h.reverseCharge,
+      currency: h.currency,
+      exchangeRate: foreign ? h.exchangeRate || null : null,
       terms: h.terms || null,
       notes: h.notes || null,
       customFields: custom,
@@ -156,7 +163,8 @@ export function PoForm({ existing }: { existing?: PurchaseOrder }) {
         uomId: l.uomId,
         description: l.description || null,
         qty: l.qty,
-        rate: l.rate,
+        rate: inr(l.rate),
+        foreignRate: foreign ? l.rate : null,
         discountPct: l.discountPct || null,
         deliveryDate: l.deliveryDate || null,
         requisitionLineId: l.requisitionLineId,
@@ -251,6 +259,14 @@ export function PoForm({ existing }: { existing?: PurchaseOrder }) {
           <Field label="Over-receipt allowed (%)" error={errors.tolerancePct} hint="GRNs may exceed the order by this much">
             {(p) => <Input {...p} inputMode="decimal" value={h.tolerancePct} onChange={(e) => setH({ ...h, tolerancePct: e.target.value })} />}
           </Field>
+          <Field label="Currency" hint="Import orders: enter rates in this currency">
+            {(p) => <Input {...p} className="uppercase" maxLength={3} value={h.currency} onChange={(e) => setH({ ...h, currency: e.target.value.toUpperCase() || "INR" })} />}
+          </Field>
+          {foreign && (
+            <Field label={`Exchange rate (₹ per ${h.currency})`} required error={errors.exchangeRate}>
+              {(p) => <Input {...p} inputMode="decimal" value={h.exchangeRate} onChange={(e) => setH({ ...h, exchangeRate: e.target.value })} />}
+            </Field>
+          )}
           <div className="flex items-end pb-2">
             <Checkbox label="Reverse charge" description="We pay the GST to the government" checked={h.reverseCharge} onChange={(e) => setH({ ...h, reverseCharge: e.target.checked })} />
           </div>
@@ -282,7 +298,7 @@ export function PoForm({ existing }: { existing?: PurchaseOrder }) {
                   <th className="min-w-64 px-2 py-2 font-medium">Item</th>
                   <th className="w-28 px-2 py-2 text-right font-medium">Qty</th>
                   <th className="w-28 px-2 py-2 font-medium">Unit</th>
-                  <th className="w-32 px-2 py-2 text-right font-medium">Rate (₹)</th>
+                  <th className="w-32 px-2 py-2 text-right font-medium">Rate ({foreign ? h.currency : "₹"})</th>
                   <th className="w-20 px-2 py-2 text-right font-medium">Disc %</th>
                   <th className="w-20 px-2 py-2 text-right font-medium">GST</th>
                   <th className="w-32 px-2 py-2 text-right font-medium">Amount</th>

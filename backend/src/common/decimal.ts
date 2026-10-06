@@ -62,6 +62,15 @@ export class Decimal {
     return this.units === o.units ? 0 : this.units < o.units ? -1 : 1;
   }
 
+  abs(): Decimal {
+    return this.units < 0n ? new Decimal(-this.units) : this;
+  }
+
+  /** Rounded half-up to `dp` decimals. */
+  round(dp: number): Decimal {
+    return Decimal.from(this.toFixed(dp));
+  }
+
   /** Fixed-point string with `dp` decimals (half-up), e.g. toFixed(2) → "1234.50". */
   toFixed(dp: number): string {
     const divisor = 10n ** BigInt(SCALE - dp);

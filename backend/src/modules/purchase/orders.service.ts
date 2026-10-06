@@ -263,6 +263,7 @@ export class OrdersService implements OnModuleInit {
           deliveryDate: l.requiredBy,
           requisitionLineId: l.id,
           remarks: l.remarks,
+          foreignRate: null,
         };
       });
       return this.createTx(
@@ -280,6 +281,8 @@ export class OrdersService implements OnModuleInit {
           notes: pr.number ? `Against requisition ${pr.number}` : null,
           tolerancePct: null,
           reverseCharge: false,
+          currency: 'INR',
+          exchangeRate: '1',
           lines,
         },
         meta,
@@ -376,6 +379,8 @@ export class OrdersService implements OnModuleInit {
       paymentTerms: input.paymentTerms ?? vendor.paymentTerms,
       creditDays: input.creditDays ?? vendor.creditDays,
       tolerancePct: input.tolerancePct ?? '0',
+      currency: input.currency,
+      exchangeRate: input.exchangeRate ?? '1',
       terms: input.terms,
       notes: input.notes,
     };
@@ -437,6 +442,7 @@ export class OrdersService implements OnModuleInit {
         conversionFactor: p.conversionFactor,
         baseQty: p.baseQty,
         rate: l.rate,
+        foreignRate: l.foreignRate ?? null,
         discountPct: l.discountPct ?? '0',
         hsnCode: p.hsnCode,
         gstRate: p.gstRate,

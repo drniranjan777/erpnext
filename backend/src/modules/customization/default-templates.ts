@@ -253,9 +253,11 @@ export const DEFAULT_TEMPLATES: Record<string, string> = {
     <h2>{{title}}</h2>
     <div>Invoice no. <span class="mono">{{doc.number}}</span></div>
     <div>Date: {{date doc.docDate}}</div>
-    {{#if doc.irn}}<div class="muted" style="font-size:9px;word-break:break-all">IRN: {{doc.irn}}</div><div class="muted">Ack {{doc.ackNo}} · {{datetime doc.ackDate}}</div>{{/if}}
+    {{#if doc.ewayBillNo}}<div>e-Way bill: <span class="mono">{{doc.ewayBillNo}}</span></div>{{/if}}
   </div>
+  {{#if einvoice}}<div style="text-align:center;margin-left:12px"><img src="{{einvoice.qr}}" alt="e-Invoice QR" style="width:110px;height:110px"></div>{{/if}}
 </div>
+{{#if einvoice}}<div class="muted" style="font-size:9px;word-break:break-all;margin:-6px 0 8px">IRN: <span class="mono">{{einvoice.irn}}</span> · Ack no. {{einvoice.ackNo}} · Ack date {{datetime einvoice.ackDate}}</div>{{/if}}
 
 <div class="parties">
   <div class="box">
@@ -316,7 +318,9 @@ export const DEFAULT_TEMPLATES: Record<string, string> = {
   credit_note: `<div class="header">
   <div><h1>{{company.legalName}}</h1>{{#if company.gstin}}<div>GSTIN: <span class="mono">{{company.gstin}}</span></div>{{/if}}</div>
   <div class="right"><h2>Credit Note</h2><div class="mono">{{doc.number}}</div><div>Date: {{date doc.docDate}}</div></div>
+  {{#if einvoice}}<div style="text-align:center;margin-left:12px"><img src="{{einvoice.qr}}" alt="e-Invoice QR" style="width:100px;height:100px"></div>{{/if}}
 </div>
+{{#if einvoice}}<div class="muted" style="font-size:9px;word-break:break-all;margin:-6px 0 8px">IRN: <span class="mono">{{einvoice.irn}}</span> · Ack no. {{einvoice.ackNo}} · Ack date {{datetime einvoice.ackDate}}</div>{{/if}}
 <div class="parties">
   <div class="box"><div class="label">Issued to</div><strong>{{customer.name}}</strong>{{#if customer.gstin}}<div>GSTIN: <span class="mono">{{customer.gstin}}</span></div>{{/if}}</div>
   <div class="box"><div class="label">Against invoice</div><strong class="mono">{{invoice.number}}</strong> dated {{date invoice.docDate}}<div>Reason: {{doc.reason}}</div><div>Place of supply: {{doc.placeOfSupply}}</div></div>
@@ -369,6 +373,25 @@ export const DEFAULT_TEMPLATES: Record<string, string> = {
 </table>
 <table class="totals"><tr><td>Value before GST</td><td class="right">{{money doc.taxableTotal}}</td></tr><tr><td>GST</td><td class="right">{{money doc.taxTotal}}</td></tr><tr class="grand"><td>Order total</td><td class="right">{{money doc.grandTotal}}</td></tr></table>
 {{#if doc.terms}}<p><strong>Terms</strong><br>{{doc.terms}}</p>{{/if}}
+<div class="footer">Printed by {{printedBy}} on {{datetime printedAt}} · NextGen ERP</div>`,
+  job_work_challan: `<div class="header">
+  <div><h1>{{company.legalName}}{{#unless company.legalName}}{{company.name}}{{/unless}}</h1>{{#if company.gstin}}<div>GSTIN: <span class="mono">{{company.gstin}}</span></div>{{/if}}</div>
+  <div class="right"><h2>Delivery Challan</h2><div>(for job work — Rule 55)</div><div class="mono">{{doc.number}}</div><div>Date: {{date doc.docDate}}</div>{{#if doc.ewayBillNo}}<div>e-Way bill: <span class="mono">{{doc.ewayBillNo}}</span></div>{{/if}}</div>
+</div>
+<div class="parties">
+  <div class="box"><div class="label">Job worker</div><strong>{{doc.jobWorker.name}}</strong><div>{{doc.jobWorkerAddress.line1}}</div><div>{{doc.jobWorkerAddress.city}}{{#if doc.jobWorkerAddress.pincode}} – {{doc.jobWorkerAddress.pincode}}{{/if}}</div>{{#if doc.jobWorker.gstin}}<div>GSTIN: <span class="mono">{{doc.jobWorker.gstin}}</span></div>{{else}}<div class="muted">Unregistered</div>{{/if}}</div>
+  <div class="box"><div class="label">Purpose</div><strong>{{doc.process}}</strong><div>Sent from {{doc.warehouse.name}}</div>{{#if doc.expectedReturnDate}}<div>Expected back by {{date doc.expectedReturnDate}}</div>{{/if}}<div>{{doc.transporter}} {{doc.vehicleNo}}</div></div>
+</div>
+<table class="lines">
+  <thead><tr><th>#</th><th>Description</th><th>HSN</th><th>Batch</th><th class="num">Qty</th><th>Unit</th><th class="num">Value</th><th>Goods</th><th>Return by</th></tr></thead>
+  <tbody>{{#each lines}}<tr><td>{{lineNo}}</td><td>{{description}}<div class="muted mono">{{itemCode}}</div></td><td class="mono">{{hsnCode}}</td><td class="mono">{{batchNo}}</td><td class="num">{{qty qty}}</td><td>{{uomCode}}</td><td class="num">{{money value}}</td><td>{{#if (eq goodsType "capital_goods")}}Capital goods{{else}}Inputs{{/if}}</td><td>{{date dueBy}}</td></tr>{{/each}}</tbody>
+  <tfoot><tr><td colspan="6" class="num">Total value</td><td class="num">{{money doc.totalValue}}</td><td colspan="2"></td></tr></tfoot>
+</table>
+<p class="muted">Goods sent for job work under section 143 of the CGST Act; no supply, no GST payable. To be returned within one year (inputs) / three years (capital goods).</p>
+<div class="signatures">
+  <div><div style="height:36px"></div><div class="line"><strong>&nbsp;</strong><div class="label">For {{company.name}}</div></div></div>
+  <div><div style="height:36px"></div><div class="line"><strong>&nbsp;</strong><div class="label">Received by job worker</div></div></div>
+</div>
 <div class="footer">Printed by {{printedBy}} on {{datetime printedAt}} · NextGen ERP</div>`,
   delivery_note: `<div class="header">
   <div><h1>{{company.name}}</h1>{{#if company.gstin}}<div class="muted">GSTIN: {{company.gstin}}</div>{{/if}}</div>

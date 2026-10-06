@@ -119,6 +119,9 @@ export const purchaseOrders = pgTable(
     creditDays: integer('credit_days'),
     /** Over-receipt allowed per line, as a % of the ordered quantity. */
     tolerancePct: numeric('tolerance_pct', { precision: 5, scale: 2 }).notNull().default('0'),
+    /** Import orders / bills: rates entered in this currency, converted to INR at the exchange rate. */
+    currency: char('currency', { length: 3 }).notNull().default('INR'),
+    exchangeRate: numeric('exchange_rate', { precision: 18, scale: 6 }).notNull().default('1'),
     terms: text('terms'),
     notes: text('notes'),
     ...taxHeaderColumns(),
@@ -150,6 +153,8 @@ export const purchaseOrderLines = pgTable(
     baseQty: numeric('base_qty', { precision: 18, scale: 4 }).notNull(),
     /** Price per line unit, before discount and GST. */
     rate: numeric('rate', { precision: 18, scale: 4 }).notNull(),
+    /** Rate in the order's foreign currency (import orders). */
+    foreignRate: numeric('foreign_rate', { precision: 18, scale: 4 }),
     discountPct: numeric('discount_pct', { precision: 5, scale: 2 }).notNull().default('0'),
     ...taxLineColumns(),
     deliveryDate: date('delivery_date', { mode: 'string' }),
@@ -287,6 +292,11 @@ export const purchaseInvoices = pgTable(
     supplierInvoiceNo: text('supplier_invoice_no').notNull(),
     supplierInvoiceDate: date('supplier_invoice_date', { mode: 'string' }).notNull(),
     poId: uuid('po_id').references(() => purchaseOrders.id, { onDelete: 'restrict' }),
+    /** Import orders / bills: rates entered in this currency, converted to INR at the exchange rate. */
+    currency: char('currency', { length: 3 }).notNull().default('INR'),
+    exchangeRate: numeric('exchange_rate', { precision: 18, scale: 6 }).notNull().default('1'),
+    /** Captured from an uploaded bill (OCR / AI): file name, extractor, confidence, warnings. */
+    capture: jsonb('capture').$type<Record<string, unknown>>(),
     matchType: matchType('match_type').notNull().default('none'),
     ...taxHeaderColumns(),
     /** GST we can claim as input tax credit, and what we can't (it becomes part of the cost). */
@@ -329,6 +339,7 @@ export const purchaseInvoiceLines = pgTable(
     conversionFactor: numeric('conversion_factor', { precision: 18, scale: 6 }).notNull().default('1'),
     baseQty: numeric('base_qty', { precision: 18, scale: 4 }).notNull(),
     rate: numeric('rate', { precision: 18, scale: 4 }).notNull(),
+    foreignRate: numeric('foreign_rate', { precision: 18, scale: 4 }),
     discountPct: numeric('discount_pct', { precision: 5, scale: 2 }).notNull().default('0'),
     ...taxLineColumns(),
     itcEligible: boolean('itc_eligible').notNull().default(true),

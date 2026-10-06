@@ -59,6 +59,8 @@ export const companies = pgTable(
     address: jsonb('address').$type<Address>().notNull().default({}),
     baseCurrency: char('base_currency', { length: 3 }).notNull().default('INR'),
     fyStartMonth: smallint('fy_start_month').notNull().default(4),
+    /** e-Invoice / e-Way bill settings (see compliance.ts → GstSettings). */
+    gstSettings: jsonb('gst_settings').$type<{ einvoice?: boolean; autoIrn?: boolean; ewayThreshold?: number }>().notNull().default({}),
     ...auditColumns(),
     ...softDelete(),
   },

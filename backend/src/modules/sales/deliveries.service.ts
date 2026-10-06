@@ -21,6 +21,7 @@ import { todayIST } from '../../common/fiscal-year';
 import { loadPermissions } from '../../common/guards';
 import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
+import { assertNoActiveEwb } from '../compliance/guards';
 import { PrintService } from '../customization/print.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
 import { StockService, type StockMove } from '../inventory/stock.service';
@@ -198,6 +199,7 @@ export class DeliveriesService implements OnModuleInit {
       .innerJoin(documents, eq(documents.id, salesInvoiceLines.invoiceId))
       .where(and(inArray(salesInvoiceLines.dlvLineId, lines.map((l) => l.id)), ne(documents.status, 'cancelled')));
     if (billed.n) throw new ConflictException('This delivery has been invoiced. Cancel the invoice first.');
+    await assertNoActiveEwb(tx, doc.id);
     const [dn] = await tx.select().from(deliveryNotes).where(eq(deliveryNotes.id, doc.id));
     await this.stock.reverseVoucher(tx, auth, { id: doc.id, type: DOC_TYPE, number: doc.number, companyId: doc.companyId, postingDate: doc.docDate });
     for (const l of lines) await tx.update(salesOrderLines).set({ deliveredQty: sql`${salesOrderLines.deliveredQty} - ${l.qty}::numeric` }).where(eq(salesOrderLines.id, l.soLineId));

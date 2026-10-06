@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { decimalSchema, optionalText } from '../../common/validators';
+import { applyCurrency, currencyFields, foreignRateField } from './currency';
 
 const isoDate = z.iso.date();
 const amount = (label: string) =>
@@ -25,6 +26,7 @@ export const piLineSchema = z.object({
   /** False for blocked credits (s.17(5): vehicles, food, personal use...). */
   itcEligible: z.boolean().default(true),
   remarks: optionalText(300),
+  ...foreignRateField,
 });
 export type PiLineInput = z.infer<typeof piLineSchema>;
 
@@ -36,6 +38,7 @@ const piHeader = {
   supplierInvoiceNo: z.string().trim().min(1, 'Enter the supplier invoice number').max(16, 'GST invoice numbers have at most 16 characters'),
   supplierInvoiceDate: isoDate,
   reverseCharge: z.boolean().default(false),
+  ...currencyFields,
   tdsSection: optionalText(20),
   /** Overrides the section's default rate (lower-deduction certificate etc.). */
   tdsRate: decimalSchema(3, 'TDS rate'),
@@ -43,12 +46,14 @@ const piHeader = {
   rateTolerancePct: decimalSchema(2, 'Rate tolerance'),
   varianceNote: optionalText(500),
   notes: optionalText(2000),
+  /** Set when the bill was captured from a file (OCR / AI). */
+  capture: z.object({ fileName: z.string().max(200), extractor: z.enum(['ai', 'text']), confidence: z.number().min(0).max(1), warnings: z.array(z.string().max(300)).max(50) }).nullable().optional(),
   lines: z.array(piLineSchema).min(1, 'Add at least one line').max(300),
   customFields: z.record(z.string(), z.unknown()).optional(),
 };
-export const createPiSchema = z.object(piHeader);
+export const createPiSchema = z.object(piHeader).transform(applyCurrency);
 export type CreatePiInput = z.infer<typeof createPiSchema>;
-export const updatePiSchema = z.object({ ...piHeader, version: z.number().int() });
+export const updatePiSchema = z.object({ ...piHeader, version: z.number().int() }).transform(applyCurrency);
 export type UpdatePiInput = z.infer<typeof updatePiSchema>;
 
 export const listPiSchema = z.object({

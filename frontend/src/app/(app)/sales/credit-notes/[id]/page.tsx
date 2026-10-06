@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { DocumentActions } from "@/components/documents/document-actions";
 import { DocPageHeader, DocStatusAlerts, Info } from "@/components/documents/doc-page";
 import { ActivityFeed } from "@/components/documents/document-parts";
+import { EInvoicePanel } from "@/components/gst/e-invoice-panel";
 import { TaxSummary } from "@/components/documents/tax-summary";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -31,6 +32,7 @@ export default function CreditNotePage() {
         actions={<DocumentActions doc={d} apiBase={S.credits} routeBase={S.credits} printHref={`/print/sales/${d.id}`} queryKey={key} hideEdit />}
       />
       <DocStatusAlerts doc={d} approvedNote={d.kind === "return" ? `Posted. Goods came back into ${d.warehouse?.code ?? "stock"} at the cost they left at.` : "Posted. The customer owes less on the invoice."} />
+      {d.status === "approved" && <EInvoicePanel documentId={d.id} />}
       <Card>
         <dl className="grid gap-4 px-5 py-4 text-sm sm:grid-cols-3">
           <Info label="Invoice" value={<Link href={`${S.invoices}/${d.invoice.id}`} className="text-primary hover:underline">{d.invoice.number}</Link>} />

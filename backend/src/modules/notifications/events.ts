@@ -178,6 +178,21 @@ ${d.items}
 Kindly reply by ${d.dueDate}, quoting ${d.number}. ${d.contact}`,
     }),
   },
+  'jobwork.return_due': {
+    label: 'Job-work return deadline',
+    description: 'Material at a job worker is close to (or past) the 1-year / 3-year return limit',
+    group: 'Documents',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    render: (d: { number: string; jobWorker: string; dueDate: string; pending: string; overdue: string; link: string }) => ({
+      title: d.overdue === 'yes' ? `Job work ${d.number}: return deadline passed` : `Job work ${d.number}: material due back by ${d.dueDate}`,
+      body:
+        d.overdue === 'yes'
+          ? `Material sent to ${d.jobWorker} on challan ${d.number} was not received back by ${d.dueDate}. Under section 143 it is now treated as a supply on the day it was sent: pay GST on it, or record the receipt if it came back. Pending: ${d.pending}.`
+          : `Material sent to ${d.jobWorker} on challan ${d.number} must come back by ${d.dueDate}, or it is treated as a supply. Pending: ${d.pending}.`,
+      link: d.link,
+      action: 'Open the challan',
+    }),
+  },
 } satisfies Record<string, EventDefinition<any>>;
 
 export type NotificationEvent = keyof typeof NOTIFICATION_EVENTS;

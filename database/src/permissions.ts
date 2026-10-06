@@ -62,6 +62,12 @@ export const PERMISSIONS = {
   'sales.invoices.read': 'View sales invoices, credit notes and receivables',
   'sales.invoices.manage': 'Create and submit sales invoices and credit notes',
   'sales.invoices.cancel': 'Cancel sales invoices and credit notes',
+  'gst.einvoice.manage': 'Generate and cancel e-invoices (IRN) and e-way bills',
+  'gst.reports.read': 'View GST reports: HSN summary, documents issued, ITC-04, e-invoice status',
+  'gst.settings.manage': 'Change e-invoice and e-way bill settings',
+  'jobwork.challans.read': 'View job-work challans and receipts',
+  'jobwork.challans.manage': 'Send material to job workers and receive it back',
+  'jobwork.challans.cancel': 'Cancel job-work challans and receipts',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

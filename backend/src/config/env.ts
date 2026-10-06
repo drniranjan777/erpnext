@@ -49,6 +49,11 @@ const envSchema = z.object({
     .transform((v) => v === 'true'),
   /** WhatsApp provider: "log" (dev) until a Meta/BSP account is configured. */
   WHATSAPP_PROVIDER: z.enum(['log', 'disabled']).default('log'),
+  /** GST Suvidha Provider for e-invoice / e-way bill: "sandbox" simulates the NIC APIs locally. */
+  GSP_PROVIDER: z.enum(['sandbox']).default('sandbox'),
+  /** Anthropic API key for AI document capture (purchase bills). Empty = text-only capture. */
+  ANTHROPIC_API_KEY: z.string().optional().default(''),
+  AI_MODEL: z.string().default('claude-sonnet-5-5'),
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),

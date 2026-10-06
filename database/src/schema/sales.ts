@@ -24,6 +24,18 @@ const customerSnapshot = () => ({
   withLut: boolean('with_lut').notNull().default(false),
 });
 
+/** e-Invoice (IRN) registration of an invoice or credit note. */
+const einvoiceColumns = () => ({
+  irn: text('irn'),
+  ackNo: text('ack_no'),
+  ackDate: timestamp('ack_date', { withTimezone: true }),
+  signedQr: text('signed_qr'),
+  /** pending (auto-generation queued / failed) | generated | cancelled */
+  irnStatus: text('irn_status'),
+  irnError: text('irn_error'),
+  irnCancelledAt: timestamp('irn_cancelled_at', { withTimezone: true }),
+});
+
 /** Selling line: list price, the price given, discount, cost at the time (for margin). */
 const sellingLine = () => ({
   lineNo: smallint('line_no').notNull(),
@@ -238,11 +250,8 @@ export const salesInvoices = pgTable(
     transporter: text('transporter'),
     vehicleNo: text('vehicle_no'),
     lrNo: text('lr_no'),
-    // e-Invoice / e-Way Bill (filled in Sprint 3.4)
-    irn: text('irn'),
-    ackNo: text('ack_no'),
-    ackDate: timestamp('ack_date', { withTimezone: true }),
-    signedQr: text('signed_qr'),
+    // e-Invoice / e-Way Bill
+    ...einvoiceColumns(),
     ewayBillNo: text('eway_bill_no'),
     ewayBillDate: timestamp('eway_bill_date', { withTimezone: true }),
     ewayValidUntil: timestamp('eway_valid_until', { withTimezone: true }),
@@ -294,6 +303,7 @@ export const creditNotes = pgTable(
     warehouseId: uuid('warehouse_id').references(() => warehouses.id, { onDelete: 'restrict' }),
     reason: text('reason').notNull(),
     ...taxHeaderColumns(),
+    ...einvoiceColumns(),
     notes: text('notes'),
   },
   (t) => [index('cn_invoice_idx').on(t.invoiceId)],

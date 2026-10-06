@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { DocumentActions } from "@/components/documents/document-actions";
 import { DocPageHeader, DocStatusAlerts, Info } from "@/components/documents/doc-page";
 import { ActivityFeed } from "@/components/documents/document-parts";
+import { EwayBillPanel } from "@/components/gst/eway-bill-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -49,6 +50,7 @@ export default function DeliveryPage() {
         }
       />
       <DocStatusAlerts doc={d} approvedNote={`Dispatched from ${d.warehouse.code}. Stock was reduced at cost.`} />
+      {(d.status === "approved" || d.status === "completed") && <EwayBillPanel documentId={d.id} />}
       <Card>
         <dl className="grid gap-4 px-5 py-4 text-sm sm:grid-cols-4">
           <Info label="Ship to" value={address(d.shippingAddress)} />

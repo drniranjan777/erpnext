@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { decimalSchema, optionalText } from '../../common/validators';
+import { applyCurrency, currencyFields, foreignRateField } from './currency';
 
 const isoDate = z.iso.date();
 
@@ -23,6 +24,7 @@ export const poLineSchema = z.object({
   deliveryDate: isoDate.nullable().optional(),
   requisitionLineId: z.uuid().nullable().optional(),
   remarks: optionalText(300),
+  ...foreignRateField,
 });
 export type PoLineInput = z.infer<typeof poLineSchema>;
 
@@ -39,16 +41,17 @@ const header = {
   creditDays: z.number().int().min(0).max(365).nullable().optional(),
   tolerancePct: decimalSchema(2, 'Tolerance %').refine((v) => v === null || Number(v) <= 100, 'At most 100%'),
   reverseCharge: z.boolean().default(false),
+  ...currencyFields,
   terms: optionalText(4000),
   notes: optionalText(2000),
   lines: z.array(poLineSchema).min(1, 'Add at least one item').max(300),
   customFields: z.record(z.string(), z.unknown()).optional(),
 };
 
-export const createPoSchema = z.object(header);
+export const createPoSchema = z.object(header).transform(applyCurrency);
 export type CreatePoInput = z.infer<typeof createPoSchema>;
 
-export const updatePoSchema = z.object({ ...header, version: z.number().int() });
+export const updatePoSchema = z.object({ ...header, version: z.number().int() }).transform(applyCurrency);
 export type UpdatePoInput = z.infer<typeof updatePoSchema>;
 
 export const listPoSchema = z.object({

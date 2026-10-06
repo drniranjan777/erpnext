@@ -57,23 +57,60 @@ function fromExisting(pi?: PurchaseInvoice): Line[] {
 }
 
 /** Vendor bill: pick received (GRN) or ordered (service) lines, or add expense items directly. */
-export function PiForm({ existing, prefill }: { existing?: PurchaseInvoice; prefill?: { vendor?: PickedParty; grnId?: string } }) {
+export interface CapturedBill {
+  fileName: string;
+  extractor: "ai" | "text";
+  confidence: number;
+  warnings: string[];
+  vendor: { id: string; code: string; name: string; gstin: string | null } | null;
+  draft: { vendorId: string; supplierInvoiceNo: string; supplierInvoiceDate: string; reverseCharge: boolean } | null;
+  lines: { description: string; itemId: string | null; item: { id: string; code: string; name: string } | null; grnLineId: string | null; poLineId: string | null; qty: string; rate: string; discountPct: string | null; matchedBy: string | null }[];
+}
+
+function fromCapture(c: CapturedBill): Line[] {
+  return c.lines
+    .filter((l) => l.item)
+    .map((l) => ({
+      key: key(),
+      grnLineId: l.grnLineId,
+      poLineId: l.grnLineId ? null : l.poLineId,
+      itemId: l.item!.id,
+      itemCode: l.item!.code,
+      description: l.description,
+      uomId: null,
+      uomCode: "",
+      qty: String(Number(l.qty)),
+      rate: String(Number(l.rate)),
+      discountPct: l.discountPct ? String(Number(l.discountPct)) : "",
+      expectedRate: null,
+      maxQty: null,
+      source: l.grnLineId ? "GRN (read from bill)" : l.poLineId ? "Order (read from bill)" : "Read from bill",
+      itcEligible: true,
+    }));
+}
+
+export function PiForm({ existing, prefill }: { existing?: PurchaseInvoice; prefill?: { vendor?: PickedParty; grnId?: string; capture?: CapturedBill } }) {
+  const capture = prefill?.capture;
   const router = useRouter();
   const qc = useQueryClient();
   const [vendor, setVendor] = useState<PickedParty | null>(
-    existing ? { id: existing.vendor.id, code: existing.vendor.code, name: existing.vendor.name, gstin: existing.vendor.gstin, stateCode: existing.vendor.stateCode, creditDays: null } : (prefill?.vendor ?? null),
+    existing
+      ? { id: existing.vendor.id, code: existing.vendor.code, name: existing.vendor.name, gstin: existing.vendor.gstin, stateCode: existing.vendor.stateCode, creditDays: null }
+      : capture?.vendor
+        ? { ...capture.vendor, stateCode: capture.vendor.gstin?.slice(0, 2) ?? null, creditDays: null }
+        : (prefill?.vendor ?? null),
   );
   const [h, setH] = useState({
-    supplierInvoiceNo: existing?.supplierInvoiceNo ?? "",
-    supplierInvoiceDate: existing?.supplierInvoiceDate ?? todayIST(),
+    supplierInvoiceNo: existing?.supplierInvoiceNo ?? capture?.draft?.supplierInvoiceNo ?? "",
+    supplierInvoiceDate: existing?.supplierInvoiceDate ?? capture?.draft?.supplierInvoiceDate ?? todayIST(),
     docDate: existing?.docDate ?? todayIST(),
-    reverseCharge: existing?.reverseCharge ?? false,
+    reverseCharge: existing?.reverseCharge ?? capture?.draft?.reverseCharge ?? false,
     tdsSection: existing?.tdsSection ?? "",
     tdsRate: existing && Number(existing.tdsRate) ? String(Number(existing.tdsRate)) : "",
     varianceNote: existing?.varianceNote ?? "",
     notes: existing?.notes ?? "",
   });
-  const [lines, setLines] = useState<Line[]>(fromExisting(existing));
+  const [lines, setLines] = useState<Line[]>(capture ? fromCapture(capture) : fromExisting(existing));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -119,6 +156,7 @@ export function PiForm({ existing, prefill }: { existing?: PurchaseInvoice; pref
       tdsRate: h.tdsRate || null,
       varianceNote: h.varianceNote || null,
       notes: h.notes || null,
+      capture: capture ? { fileName: capture.fileName, extractor: capture.extractor, confidence: capture.confidence, warnings: capture.warnings.slice(0, 50) } : null,
       lines: lines.map((l) => ({ grnLineId: l.grnLineId, poLineId: l.poLineId, itemId: l.itemId, uomId: l.uomId, description: l.description, qty: l.qty, rate: l.rate, discountPct: l.discountPct || null, itcEligible: l.itcEligible })),
     };
     try {

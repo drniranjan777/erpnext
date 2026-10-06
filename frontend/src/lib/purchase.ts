@@ -87,6 +87,7 @@ export interface TaxTotals {
 
 export interface PoLine {
   id: string;
+  foreignRate?: string | null;
   lineNo: number;
   itemId: string;
   itemCode: string;
@@ -125,6 +126,8 @@ export interface PoLine {
 
 export interface PurchaseOrder extends DocumentHeader, TaxTotals {
   poType: "standard" | "service";
+  /** Import orders: rates are entered in `currency` (from the header) at this rate. */
+  exchangeRate?: string;
   vendor: { id: string; code: string; name: string; email: string | null; phone: string | null; gstin: string | null; stateCode: string | null; registration: string; address: { line1?: string; line2?: string; city?: string; stateCode?: string; pincode?: string } };
   deliveryWarehouse: { id: string; code: string; name: string } | null;
   ourGstin: string | null;

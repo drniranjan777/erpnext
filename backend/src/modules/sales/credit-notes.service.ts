@@ -22,6 +22,7 @@ import { todayIST } from '../../common/fiscal-year';
 import { loadPermissions } from '../../common/guards';
 import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
+import { EInvoiceService } from '../compliance/einvoice.service';
 import { PrintService } from '../customization/print.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
 import { UTGST_STATES, type RegistrationType } from '../gst/gst-engine';
@@ -46,6 +47,7 @@ export class CreditNotesService implements OnModuleInit {
     private readonly documents: DocumentsService,
     private readonly stock: StockService,
     private readonly print: PrintService,
+    private readonly einvoice: EInvoiceService,
   ) {}
 
   onModuleInit() {
@@ -59,7 +61,9 @@ export class CreditNotesService implements OnModuleInit {
       const view = await this.view(tx, auth, doc);
       const [company] = await tx.select({ name: companies.name, legalName: companies.legalName, gstin: companies.gstin, address: companies.address }).from(companies).where(eq(companies.id, doc.companyId));
       const [printer] = await tx.select({ name: users.fullName }).from(users).where(eq(users.id, auth.userId));
-      return { company: { ...company, gstin: view.ourGstin ?? company?.gstin }, doc: view, customer: view.customer, invoice: view.invoice, lines: view.lines, stateTaxLabel: view.stateTaxLabel, printedBy: printer?.name ?? '', printedAt: new Date().toISOString() };
+      const [cn] = await tx.select({ irn: creditNotes.irn, ackNo: creditNotes.ackNo, ackDate: creditNotes.ackDate, signedQr: creditNotes.signedQr, irnStatus: creditNotes.irnStatus }).from(creditNotes).where(eq(creditNotes.id, id));
+      const einvoice = cn.irn && cn.irnStatus === 'generated' ? { irn: cn.irn, ackNo: cn.ackNo, ackDate: cn.ackDate?.toISOString(), qr: await this.einvoice.qrDataUri(cn.signedQr) } : null;
+      return { company: { ...company, gstin: view.ourGstin ?? company?.gstin }, doc: view, customer: view.customer, invoice: view.invoice, lines: view.lines, stateTaxLabel: view.stateTaxLabel, einvoice, printedBy: printer?.name ?? '', printedAt: new Date().toISOString() };
     });
   }
 
@@ -194,9 +198,11 @@ export class CreditNotesService implements OnModuleInit {
       for (const l of lines) await tx.update(salesInvoiceLines).set({ returnedQty: sql`${salesInvoiceLines.returnedQty} + ${l.qty}::numeric` }).where(eq(salesInvoiceLines.id, l.invoiceLineId));
     }
     await tx.update(salesInvoices).set({ creditedAmount: sql`${salesInvoices.creditedAmount} + ${cn.grandTotal}::numeric` }).where(eq(salesInvoices.id, cn.invoiceId));
+    await this.einvoice.onApproved(tx, auth, doc);
   }
 
   private async unpost(tx: Transaction, auth: AuthContext, doc: DocumentRow) {
+    await this.einvoice.assertCancellable(tx, doc.id, DOC_TYPE);
     const [cn] = await tx.select().from(creditNotes).where(eq(creditNotes.id, doc.id));
     await this.stock.reverseVoucher(tx, auth, { id: doc.id, type: DOC_TYPE, number: doc.number, companyId: doc.companyId, postingDate: doc.docDate });
     if (cn.kind === 'return') {

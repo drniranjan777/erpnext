@@ -27,6 +27,8 @@ import { OrgModule } from './modules/org/org.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { PurchaseModule } from './modules/purchase/purchase.module';
 import { SalesModule } from './modules/sales/sales.module';
+import { ComplianceModule } from './modules/compliance/compliance.module';
+import { JobWorkModule } from './modules/jobwork/jobwork.module';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { SalesModule } from './modules/sales/sales.module';
     ImportsModule,
     PurchaseModule,
     SalesModule,
+    ComplianceModule,
+    JobWorkModule,
     AdminModule,
     PrivacyModule,
   ],

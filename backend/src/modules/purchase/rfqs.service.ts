@@ -282,10 +282,12 @@ export class RfqsService {
             notes: `Awarded from ${doc.number}`,
             tolerancePct: null,
             reverseCharge: false,
+            currency: 'INR',
+            exchangeRate: '1',
             lines: awards.map((a) => {
               const l = lines.find((x) => x.id === a.rfqLineId)!;
               const q = quotes.find((x) => x.rfqVendorId === v.id && x.rfqLineId === l.id)!;
-              return { itemId: l.itemId, uomId: l.uomId, description: l.description, qty: l.qty, rate: q.rate, discountPct: q.discountPct, deliveryDate: l.requiredBy, requisitionLineId: l.requisitionLineId, remarks: null };
+              return { itemId: l.itemId, uomId: l.uomId, description: l.description, qty: l.qty, rate: q.rate, discountPct: q.discountPct, deliveryDate: l.requiredBy, requisitionLineId: l.requisitionLineId, remarks: null, foreignRate: null };
             }),
           },
           meta,
