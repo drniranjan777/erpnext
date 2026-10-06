@@ -217,7 +217,7 @@ export class NotificationsService implements OnModuleInit {
         .select()
         .from(notificationPreferences)
         .where(eq(notificationPreferences.userId, auth.userId));
-      return Object.entries(NOTIFICATION_EVENTS).map(([event, def]) => ({
+      return Object.entries(NOTIFICATION_EVENTS).filter(([, def]) => def.group !== 'Vendors').map(([event, def]) => ({
         event,
         label: def.label,
         description: def.description,

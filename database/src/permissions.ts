@@ -44,6 +44,11 @@ export const PERMISSIONS = {
   'purchase.receipts.read': 'View goods receipts (GRN)',
   'purchase.receipts.manage': 'Create and submit goods receipts (GRN)',
   'purchase.receipts.cancel': 'Cancel posted goods receipts',
+  'purchase.invoices.read': 'View purchase invoices, debit notes and landed costs',
+  'purchase.invoices.manage': 'Create and submit purchase invoices, debit notes and landed costs',
+  'purchase.invoices.cancel': 'Cancel posted purchase invoices, debit notes and landed costs',
+  'purchase.rfq.read': 'View requests for quotation and comparisons',
+  'purchase.rfq.manage': 'Create RFQs, record vendor quotes and award orders',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

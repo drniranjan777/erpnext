@@ -2,16 +2,16 @@
 
 | | |
 |---|---|
-| **Status** | Sprint 3.1 done (6 Oct 2026): GST engine, purchase orders, goods receipts, PR → PO, reorder → PR |
+| **Status** | Sprints 3.1 (6 Oct 2026) and 3.2 (7 Oct 2026) done: procure-to-pay complete |
 | **Code** | `backend/src/modules/{gst,purchase}/`, `database/src/schema/purchase.ts`, `frontend/src/app/(app)/purchase/` |
-| **Tests** | `backend/test/unit/gst-engine.test.ts`, `backend/test/e2e/purchase.e2e.test.ts` |
+| **Tests** | `backend/test/unit/{gst-engine,valuation}.test.ts`, `backend/test/e2e/{purchase,billing}.e2e.test.ts` |
 
 ## Sprint plan
 
 | Sprint | Scope |
 |---|---|
 | **3.1** ✅ | GST engine · company GSTIN editing · purchase order (goods / services, amend with revisions, tolerance, short-close) · GRN against PO (accept / reject, batches, serials) · requisition → PO · reorder list → requisition · PO and GRN print formats |
-| 3.2 | Purchase invoice with 2-/3-way match (PO–GRN–invoice), ITC eligibility, RCM, TDS · purchase return & debit note · landed cost · MSME 45-day payment tracking · RFQ & comparative statement · vendor rating |
+| **3.2** ✅ | Purchase invoice with 2-/3-way match (PO–GRN–invoice), ITC eligibility, RCM, TDS · purchase return & debit note · landed cost · MSME 45-day payment tracking · RFQ & comparative statement · vendor rating |
 | 3.3 | Quotation · sales order (credit-limit / overdue check, reservation, ATP) · pick, pack & delivery note · tax invoice / bill of supply / export / SEZ · sales return & credit note · schemes and discount approval |
 | 3.4 | e-Invoice (IRN via GSP sandbox, signed QR) · e-Way Bill · job work (ITC-04) · import PO & Bill of Entry · HSN summary · OCR purchase invoice → draft |
 
@@ -68,3 +68,62 @@ Pure functions, unit-tested for every scenario below.
 - **Unit**: the item's purchase unit, rounded up for whole-number units.
 
 `POST /purchase/orders/from-requisition` turns an approved requisition's outstanding item-linked lines into a draft PO for one vendor. The rate is taken from the requisition estimate, else the last purchase rate, else the standard cost.
+
+## 5. Purchase invoice (doc type `purchase_invoice`, `PINV/{BRANCH}/{FY}/{SEQ}`)
+
+- **Matching**:
+  - Three-way: a line bills a posted GRN line, in its unit, for at most accepted − billed.
+  - Two-way: a line bills a service PO line.
+  - None: expense or non-stock items without an order.
+  - Stock items must go through a GRN.
+
+  The document's `matchType` is the weakest of its lines.
+- **Rate variance**: per line, taxable value − quantity × the PO/GRN net rate. Above the tolerance (default 1%), submitting needs a `varianceNote`.
+- **Duplicates**: the same vendor + supplier invoice number (case-insensitive) is refused unless the earlier bill is cancelled. Bill dates can't be in the future.
+- **GST**: inward pricing as for the PO. Each line can be marked ITC-ineligible (s.17(5) blocked credits); totals are split into `itcEligibleTax` / `itcIneligibleTax`.
+- **TDS** (`gst/tds.ts`): 194C, 194J, 194J(a), 194H, 194I(a/b), 194Q.
+  - The rate depends on the 4th PAN letter (P/H = individual or HUF).
+  - TDS is worked out on the value before GST and rounded to the rupee.
+  - `netPayable` = bill total − TDS. The section defaults from the vendor and can be overridden, with a rate override for lower-deduction certificates.
+- **Due date**: invoice date + credit days (bill → PO → vendor). For micro and small enterprises it is capped at 45 days (15 days if nothing was agreed), per MSMED s.15 and Income-tax s.43B(h). The list has "To pay" and "MSME dues" views with days to due or overdue.
+- **On approval**:
+  1. The lines being billed are locked and over-billing is re-checked.
+  2. GRN and PO `billedQty` are updated.
+  3. Stock is **revalued** by the rate variance plus GST that can't be claimed (value-only ledger rows, see below).
+- **Cancel** is blocked while debit notes exist; it reverses billed quantities and the revaluation. Bills are not amendable.
+
+## 6. Debit note (doc type `debit_note`, `DN/{FY}/{SEQ}`, GST document ≤ 16 chars)
+
+- Raised against an approved bill, with the same GST treatment (vendor registration, place of supply, reverse charge).
+- **Return**: quantity ≤ billed − returned, at the bill's net rate (can be lower). Stock leaves the receiving warehouse at its current valuation, and the bill line's `returnedQty` is updated.
+- **Price adjustment**: a reduction per unit for up to the billed quantity. Stock still on hand is revalued down.
+- The printed debit note shows the original invoice reference and amount in words.
+
+## 7. Landed cost (doc type `landed_cost`)
+
+- Charges (freight, customs duty, insurance, CHA, loading, octroi, other) are entered before GST, optionally with the charging vendor and bill reference.
+- They are spread over the stock lines of one or more posted GRNs by value, quantity or net weight. Splits are exact to the paise, with the remainder on the last line.
+- **On approval**: value is added to stock. Only the share still on hand is absorbed: amount × min(1, on hand ÷ quantity received). The rest is `unabsorbed` and goes to cost of goods consumed when accounting arrives (Phase 4).
+- **Value-only stock movements**: `StockService.revalue()` writes ledger rows with qty 0. FIFO spreads the value over the layers per unit, and `reverseVoucher` undoes them.
+
+## 8. Sourcing
+
+- **RFQ** (doc type `rfq`):
+  - Items with quantities in the purchase unit, plus invited vendors. Approval = issued.
+  - **Email vendors** uses the vendor-facing notification event `purchase.rfq_sent`, hidden from user preferences.
+  - Quotes are recorded per vendor: rate, discount, lead time, credit days, terms, other charges, validity.
+- **Comparison**: net rate per line; lowest highlighted; vendor totals including other charges; terms; track record.
+  - The suggestion scores price 70% (lowest ÷ offer), acceptance 20% and on-time delivery 10%. Vendors with no history count as 100.
+- **Award**: per line. One draft PO per vendor, carrying the quote rate, discount, credit days and terms. The RFQ completes when every line is awarded.
+- **Vendor performance** (`/purchase/vendor-performance`), per vendor:
+  - orders and value;
+  - acceptance % (accepted ÷ received over GRN lines);
+  - on-time % (GRN date ≤ PO expected date) and average delay;
+  - amount billed above PO rates;
+  - score = 60% quality + 40% delivery.
+- **Approved vendor list** (`item_vendors`): maintained on the item. A PO from a vendor not on a non-empty list shows a warning; it is not blocked. PO approval records the vendor's last net rate per base unit.
+
+## Known limits
+
+- Payments, vendor ledgers and GL postings (including TDS, input tax credit, reverse-charge liability and the unabsorbed landed cost) come with accounting in Phase 4. `paidAmount` is in place for that.
+- Vendors can't yet submit quotes themselves through a portal link; quotes are entered by the buyer. Planned with the supplier portal (Phase 15).

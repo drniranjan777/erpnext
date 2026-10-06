@@ -143,3 +143,23 @@ export function reverse(pool: Pool, method: Method, qtySigned: string, valueSign
     valuationRate: rateOf(newValue, newQty, rateOf(absV, absQ)),
   };
 }
+
+/**
+ * Value-only change (landed cost, purchase price difference): quantity stays, value moves.
+ * FIFO spreads the change over the layers in proportion to their quantity.
+ * A pool with no stock can't absorb value; the caller treats it as unabsorbed.
+ */
+export function revalue(pool: Pool, method: Method, valueSigned: string): Movement {
+  const qty = D(pool.qty);
+  const change = D(v2(D(valueSigned)));
+  if (qty.isZero() || qty.isNegative()) {
+    return { pool, value: '0.00', rate: '0', valuationRate: rateOf(D(pool.value), qty) };
+  }
+  const newValue = D(pool.value).add(change);
+  let layers = pool.layers;
+  if (method === 'fifo' && pool.layers.length) {
+    const perUnit = change.div(qty);
+    layers = pool.layers.map((l) => ({ qty: l.qty, rate: r6(D(l.rate).add(perUnit)) }));
+  }
+  return { pool: { qty: pool.qty, value: v2(newValue), layers }, value: v2(change), rate: '0', valuationRate: rateOf(newValue, qty) };
+}

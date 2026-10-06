@@ -18,7 +18,7 @@ export interface Rendered {
 export interface EventDefinition<D = Record<string, string>> {
   label: string;
   description: string;
-  group: 'Approvals' | 'Documents' | 'Account & security' | 'Team';
+  group: 'Approvals' | 'Documents' | 'Account & security' | 'Team' | 'Vendors';
   defaults: Record<Channel, boolean>;
   /** Users can't turn these off (security). */
   mandatory?: boolean;
@@ -161,6 +161,21 @@ export const NOTIFICATION_EVENTS = {
       body: `Your password was changed on ${d.when} from IP ${d.ip}. Other devices were signed out. If this wasn't you, contact your administrator immediately.`,
       link: '/account',
       action: 'Review your account',
+    }),
+  },
+  /** Sent to a vendor's email (not a user), so in-app is off. */
+  'purchase.rfq_sent': {
+    label: 'Request for quotation',
+    description: 'An RFQ emailed to a vendor',
+    group: 'Vendors',
+    defaults: { in_app: false, email: true, whatsapp: false },
+    mandatory: true,
+    render: (d: { companyName: string; number: string; dueDate: string; items: string; contact: string }) => ({
+      title: `Request for quotation ${d.number} from ${d.companyName}`,
+      body: `Please quote your best rates, delivery time and terms for:
+${d.items}
+
+Kindly reply by ${d.dueDate}, quoting ${d.number}. ${d.contact}`,
     }),
   },
 } satisfies Record<string, EventDefinition<any>>;

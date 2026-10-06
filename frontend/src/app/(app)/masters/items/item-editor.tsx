@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { ItemVendors } from "./item-vendors";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CustomFieldInputs, useCustomFields } from "@/components/custom-fields";
@@ -956,6 +957,7 @@ export function ItemEditor({ item }: { item?: Item }) {
           </div>
         </Card>
       </fieldset>
+      {item && <ItemVendors itemId={item.id} readOnly={readOnly} />}
     </div>
   );
 }

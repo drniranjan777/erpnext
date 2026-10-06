@@ -61,3 +61,15 @@ describe('FIFO', () => {
     expect(back.pool).toMatchObject({ qty: '10.0000', value: '50.00', layers: [{ qty: '10.0000', rate: '5.000000' }] });
   });
 });
+
+describe('revalue (value-only)', () => {
+  it('adds landed cost to an average pool and to FIFO layers', async () => {
+    const { revalue } = await import('../../src/modules/inventory/valuation');
+    const avg = revalue({ qty: '100.0000', value: '1000.00', layers: [] }, 'weighted_average', '250');
+    expect(avg).toMatchObject({ value: '250.00', valuationRate: '12.500000', pool: { qty: '100.0000', value: '1250.00' } });
+    const fifo = revalue({ qty: '20.0000', value: '120.00', layers: [{ qty: '10.0000', rate: '5.000000' }, { qty: '10.0000', rate: '7.000000' }] }, 'fifo', '40');
+    expect(fifo.pool.layers).toEqual([{ qty: '10.0000', rate: '7.000000' }, { qty: '10.0000', rate: '9.000000' }]);
+    expect(fifo.pool.value).toBe('160.00');
+    expect(revalue({ qty: '0.0000', value: '0.00', layers: [] }, 'fifo', '40').value).toBe('0.00');
+  });
+});

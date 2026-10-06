@@ -29,6 +29,7 @@ import { PrintService } from '../customization/print.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
 import type { RegistrationType } from '../gst/gst-engine';
 import { ownGstRegistration, priceLines, taxHeader, type PricedLine } from '../gst/pricing';
+import { VendorPerformanceService } from './vendor-performance.service';
 import type { CreatePoInput, FromRequisitionInput, ListPoQuery, PoLineInput, PreviewTaxInput, UpdatePoInput } from './orders.schemas';
 
 const DOC_TYPE = 'purchase_order' as const;
@@ -44,11 +45,16 @@ export class OrdersService implements OnModuleInit {
     private readonly documents: DocumentsService,
     private readonly customFields: CustomFieldsService,
     private readonly print: PrintService,
+    private readonly performance: VendorPerformanceService,
   ) {}
 
   onModuleInit() {
     this.documents.registerHooks(DOC_TYPE, {
-      onApproved: (tx, _auth, doc) => this.syncRequisitions(tx, doc.id),
+      onApproved: async (tx, _auth, doc) => {
+        await this.syncRequisitions(tx, doc.id);
+        const [po] = await tx.select({ vendorId: purchaseOrders.vendorId }).from(purchaseOrders).where(eq(purchaseOrders.id, doc.id));
+        await this.performance.recordOrder(tx, po.vendorId, doc.id, doc.docDate);
+      },
       onAmended: (tx, _auth, doc) => this.syncRequisitions(tx, doc.id),
       onCancelled: async (tx, _auth, doc) => {
         const [received] = await tx
@@ -519,6 +525,8 @@ export class OrdersService implements OnModuleInit {
       stateTaxLabel: po.placeOfSupply && ['04', '25', '26', '31', '35', '38', '97'].includes(po.placeOfSupply) ? 'UTGST' : 'SGST',
       lines,
       receipts,
+      /** Lines whose vendor isn't on the item's approved vendor list. */
+      warnings: await this.performance.avlWarnings(tx, po.vendorId, lines),
       canReceive: doc.status === 'approved' && !po.closedAt && pending && perms.has('purchase.receipts.manage'),
       canShortClose: doc.status === 'approved' && !po.closedAt && pending && perms.has('purchase.orders.cancel'),
     };

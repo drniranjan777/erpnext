@@ -71,6 +71,7 @@ export default function PurchaseOrderPage() {
       {d.status === "cancelled" && <Alert tone="warning">Cancelled on {formatDateTime(d.cancelledAt)}: {d.cancelReason}</Alert>}
       {d.closedAt && <Alert tone="warning">Short-closed on {formatDateTime(d.closedAt)}: {d.closeReason}</Alert>}
       {d.can.approve && <Alert tone="warning">This order is waiting for your approval.</Alert>}
+      {d.warnings?.length > 0 && <Alert tone="warning">{d.warnings.join(" ")}</Alert>}
       {!d.ourGstin && <Alert tone="warning">Your company has no GSTIN yet, so GST was worked out as inter-state. Add it under Settings → Companies.</Alert>}
 
       <div className="grid gap-6 lg:grid-cols-3">

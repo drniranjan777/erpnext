@@ -10,6 +10,7 @@ import { ActivityFeed, AttachmentsPanel, StatusBadge, Tabs } from "@/components/
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { ErrorBlock, LoadingBlock, formatDateTime } from "@/components/ui/page";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, formatQty } from "@/lib/documents";
 import { GRN_API, GRN_ROUTE, grnKeys, PO_ROUTE, type GoodsReceipt } from "@/lib/purchase";
 
@@ -17,6 +18,7 @@ export default function GoodsReceiptPage() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState<"activity" | "files">("activity");
   const grn = useQuery({ queryKey: grnKeys.detail(id), queryFn: () => api<GoodsReceipt>(`${GRN_API}/${id}`) });
+  const { can } = useAuth();
 
   if (grn.isLoading) return <LoadingBlock />;
   if (grn.error) return <ErrorBlock error={grn.error} />;
@@ -42,6 +44,11 @@ export default function GoodsReceiptPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-start gap-2">
+            {d.status === "approved" && can("purchase.invoices.manage") && (
+              <Link href={`/purchase/invoices/new?vendor=${d.vendor.id}&grn=${d.id}`} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90">
+                Enter bill
+              </Link>
+            )}
             {d.status === "approved" && (
               <Link href={`/print/labels?grn=${d.id}`} target="_blank" className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-medium hover:bg-surface-muted">
                 <Barcode className="size-4" aria-hidden /> Labels

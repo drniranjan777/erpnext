@@ -13,7 +13,7 @@ import {
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { AuthContext } from '../../common/auth-context';
 import { Decimal } from '../../common/decimal';
-import { issue, receive, reverse, type Method, type Pool } from './valuation';
+import { issue, receive, revalue, reverse, type Method, type Pool } from './valuation';
 
 export const NO_BATCH = '00000000-0000-0000-0000-000000000000';
 
@@ -208,7 +208,9 @@ export class StockService {
       const item = methods.get(r.itemId)!;
       const wh = whs.get(r.warehouseId)!;
       const bucket = r.batchId ?? NO_BATCH;
-      if (!Decimal.from(r.qty).isNegative() && !wh.allowNegativeStock) {
+      // Value-only rows (landed cost, price difference) have no quantity to check.
+      const valueOnly = Decimal.from(r.qty).isZero();
+      if (!valueOnly && !Decimal.from(r.qty).isNegative() && !wh.allowNegativeStock) {
         const [bal] = await tx
           .select({ qty: stockBalances.qty })
           .from(stockBalances)
@@ -218,7 +220,10 @@ export class StockService {
         }
       }
       const [poolRow] = await tx.select().from(stockValuation).where(and(eq(stockValuation.itemId, r.itemId), eq(stockValuation.warehouseId, r.warehouseId)));
-      const result = reverse({ qty: poolRow.qty, value: poolRow.value, layers: poolRow.layers }, item.method as Method, r.qty, r.value);
+      const pool = { qty: poolRow.qty, value: poolRow.value, layers: poolRow.layers };
+      const result = valueOnly
+        ? revalue(pool, item.method as Method, Decimal.from('0').sub(Decimal.from(r.value)).toFixed(2))
+        : reverse(pool, item.method as Method, r.qty, r.value);
       await tx
         .update(stockValuation)
         .set({ qty: result.pool.qty, value: result.pool.value, layers: result.pool.layers, updatedAt: new Date() })
@@ -260,6 +265,69 @@ export class StockService {
         createdBy: auth.userId,
       });
     }
+  }
+
+  /**
+   * Adds (or removes) value without moving quantity: landed cost, purchase price differences,
+   * GST that can't be claimed back. Only the share still in stock is absorbed:
+   * value × min(1, on hand ÷ quantity it relates to). The rest is returned as unabsorbed
+   * (it goes to the cost of goods already consumed; accounting takes it in Phase 4).
+   */
+  async revalue(
+    tx: Transaction,
+    auth: AuthContext,
+    voucher: Voucher,
+    adjustments: { itemId: string; warehouseId: string; value: string; basisQty?: string | null; batchNo?: string | null }[],
+  ): Promise<{ absorbed: string; unabsorbed: string }[]> {
+    const moves = adjustments.filter((a) => !Decimal.from(a.value).isZero());
+    if (!moves.length) return adjustments.map(() => ({ absorbed: '0.00', unabsorbed: '0.00' }));
+    await this.lockPools(tx, auth.tenantId, moves);
+    const methods = new Map(
+      (await tx.select({ id: items.id, method: items.valuationMethod }).from(items).where(inArray(items.id, [...new Set(moves.map((m) => m.itemId))]))).map((i) => [i.id, i.method]),
+    );
+    const out: { absorbed: string; unabsorbed: string }[] = [];
+    for (const a of adjustments) {
+      const value = Decimal.from(a.value);
+      if (value.isZero()) {
+        out.push({ absorbed: '0.00', unabsorbed: '0.00' });
+        continue;
+      }
+      const [poolRow] = await tx.select().from(stockValuation).where(and(eq(stockValuation.itemId, a.itemId), eq(stockValuation.warehouseId, a.warehouseId)));
+      const onHand = Decimal.from(poolRow.qty);
+      let share = value;
+      if (!onHand.isNegative() && !onHand.isZero() && a.basisQty && Decimal.from(a.basisQty).cmp(onHand) > 0) {
+        share = value.mul(onHand).div(Decimal.from(a.basisQty));
+      }
+      if (onHand.isZero() || onHand.isNegative()) share = Decimal.from('0');
+      const result = revalue({ qty: poolRow.qty, value: poolRow.value, layers: poolRow.layers }, (methods.get(a.itemId) ?? 'weighted_average') as Method, share.toFixed(2));
+      const absorbed = Decimal.from(result.value);
+      out.push({ absorbed: absorbed.toFixed(2), unabsorbed: value.sub(absorbed).toFixed(2) });
+      if (absorbed.isZero()) continue;
+      await tx
+        .update(stockValuation)
+        .set({ value: result.pool.value, layers: result.pool.layers, updatedAt: new Date() })
+        .where(and(eq(stockValuation.itemId, a.itemId), eq(stockValuation.warehouseId, a.warehouseId)));
+      await tx.insert(stockLedger).values({
+        tenantId: auth.tenantId,
+        companyId: voucher.companyId,
+        postingDate: voucher.postingDate,
+        itemId: a.itemId,
+        warehouseId: a.warehouseId,
+        batchId: null,
+        serialNos: null,
+        qty: '0.0000',
+        rate: '0',
+        value: absorbed.toFixed(2),
+        balanceQty: result.pool.qty,
+        balanceValue: result.pool.value,
+        valuationRate: result.valuationRate,
+        voucherType: voucher.type,
+        voucherId: voucher.id,
+        voucherNumber: voucher.number,
+        createdBy: auth.userId,
+      });
+    }
+    return out;
   }
 
   /** Current valuation rate per base unit (for pricing issues / previews). */

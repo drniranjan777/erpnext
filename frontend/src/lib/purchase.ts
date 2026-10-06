@@ -118,6 +118,7 @@ export interface PoLine {
   requisitionLineId: string | null;
   receivedQty: string;
   rejectedQty: string;
+  billedQty: string;
   pendingQty: string;
   remarks: string | null;
 }
@@ -142,6 +143,7 @@ export interface PurchaseOrder extends DocumentHeader, TaxTotals {
   receipts: { id: string; number: string | null; status: DocumentStatus; docDate: string; amount: string | null }[];
   canReceive: boolean;
   canShortClose: boolean;
+  warnings: string[];
 }
 
 export interface PoListItem {
@@ -245,3 +247,182 @@ export const grnKeys = {
   list: (filters: Record<string, unknown>) => [GRN_ROUTE, "list", filters] as const,
   detail: (id: string) => [GRN_ROUTE, id] as const,
 };
+
+// ---- Purchase invoices, debit notes, landed cost, RFQ ----------------------------
+
+export const PI_API = "/purchase/invoices";
+export const PI_ROUTE = "/purchase/invoices";
+export const DN_API = "/purchase/debit-notes";
+export const DN_ROUTE = "/purchase/debit-notes";
+export const LC_API = "/purchase/landed-costs";
+export const LC_ROUTE = "/purchase/landed-costs";
+export const RFQ_API = "/purchase/rfqs";
+export const RFQ_ROUTE = "/purchase/rfqs";
+
+export interface PiLine {
+  id: string;
+  lineNo: number;
+  itemId: string;
+  itemCode: string;
+  isStockItem: boolean;
+  description: string;
+  uomId: string;
+  uomCode: string;
+  qty: string;
+  rate: string;
+  discountPct: string;
+  hsnCode: string | null;
+  gstRate: string;
+  taxableValue: string;
+  cgstAmount: string;
+  sgstAmount: string;
+  igstAmount: string;
+  cessAmount: string;
+  lineTotal: string;
+  itcEligible: boolean;
+  poLineId: string | null;
+  grnLineId: string | null;
+  grnNumber: string | null;
+  expectedRate: string | null;
+  rateVariance: string;
+  outOfTolerance: boolean;
+  returnedQty: string;
+  remarks: string | null;
+}
+
+export interface PurchaseInvoice extends DocumentHeader, TaxTotals {
+  vendor: { id: string; code: string; name: string; gstin: string | null; stateCode: string | null; registration: string; msme: string | null };
+  purchaseOrder: { id: string; number: string | null } | null;
+  supplierInvoiceNo: string;
+  supplierInvoiceDate: string;
+  matchType: "three_way" | "two_way" | "none";
+  itcEligibleTax: string;
+  itcIneligibleTax: string;
+  tdsSection: string | null;
+  tdsRate: string;
+  tdsAmount: string;
+  netPayable: string;
+  paidAmount: string;
+  outstanding: string;
+  dueDate: string | null;
+  daysToDue: number | null;
+  rateTolerancePct: string;
+  rateVariance: string;
+  varianceNote: string | null;
+  varianceNeedsNote: boolean;
+  notes: string | null;
+  ourGstin: string | null;
+  stateTaxLabel: "SGST" | "UTGST";
+  lines: PiLine[];
+  debitNotes: { id: string; number: string | null; status: DocumentStatus; docDate: string; amount: string | null; kind: "return" | "price_adjustment" }[];
+  canDebitNote: boolean;
+}
+
+export interface PiListItem {
+  id: string;
+  number: string | null;
+  status: DocumentStatus;
+  docDate: string;
+  vendor: { id: string; code: string; name: string };
+  supplierInvoiceNo: string;
+  supplierInvoiceDate: string;
+  matchType: string;
+  grandTotal: string;
+  tdsAmount: string;
+  netPayable: string;
+  outstanding: string;
+  dueDate: string | null;
+  daysToDue: number | null;
+  vendorMsme: string | null;
+  rateVariance: string;
+}
+
+export interface Billable {
+  grnLines: { grnLineId: string; grnId: string; grnNumber: string | null; grnDate: string; supplierInvoiceNo: string | null; poId: string; poNumber: string | null; poLineId: string; itemId: string; itemCode: string; itemName: string; uomId: string; uomCode: string; pendingQty: string; rate: string }[];
+  poLines: { poLineId: string; poId: string; poNumber: string | null; itemId: string; itemCode: string; itemName: string; description: string; uomId: string; uomCode: string; pendingQty: string; rate: string }[];
+}
+
+export interface DebitNote extends DocumentHeader, TaxTotals {
+  kind: "return" | "price_adjustment";
+  reason: string;
+  vehicleNo: string | null;
+  notes: string | null;
+  invoice: { id: string; number: string | null; supplierInvoiceNo: string; supplierInvoiceDate: string };
+  vendor: { id: string; code: string; name: string; gstin: string | null };
+  warehouse: { id: string; code: string; name: string } | null;
+  stateTaxLabel: "SGST" | "UTGST";
+  lines: { id: string; lineNo: number; piLineId: string; itemCode: string; description: string; uomCode: string; qty: string; rate: string; taxableValue: string; gstRate: string; lineTotal: string; batchNo: string | null }[];
+}
+
+export interface LandedCost extends DocumentHeader {
+  method: "value" | "qty" | "weight";
+  totalCharges: string;
+  unabsorbed: string;
+  notes: string | null;
+  receipts: { id: string; number: string | null; docDate: string }[];
+  charges: { id: string; lineNo: number; chargeType: string; description: string | null; billRef: string | null; amount: string; vendor: { id: string; name: string } | null }[];
+  allocations: { id: string; itemCode: string; itemName: string; warehouseCode: string; basis: string; amount: string; absorbed: string; unabsorbed: string }[];
+}
+
+export interface Rfq extends DocumentHeader {
+  responseDueDate: string | null;
+  deliveryWarehouse: { id: string; code: string; name: string } | null;
+  terms: string | null;
+  notes: string | null;
+  awardedAt: string | null;
+  lines: { id: string; lineNo: number; itemId: string; itemCode: string; description: string; uomId: string; uomCode: string; qty: string; requiredBy: string | null; awardedVendorId: string | null; poId: string | null }[];
+  vendors: { vendorId: string; code: string; name: string; email: string | null; sentAt: string | null; respondedAt: string | null; quoteRef: string | null }[];
+  canQuote: boolean;
+  canAward: boolean;
+}
+
+export interface VendorPerformance {
+  vendorId: string;
+  vendor: { id: string; code: string; name: string; msmeCategory: string | null };
+  orders: number;
+  orderValue: string;
+  receipts: number;
+  acceptancePct: number | null;
+  onTimePct: number | null;
+  avgDelayDays: number | null;
+  rateVariance: string;
+  score: number | null;
+}
+
+export interface Comparison {
+  lines: {
+    id: string;
+    lineNo: number;
+    itemCode: string;
+    description: string;
+    qty: string;
+    uom: string;
+    gstRate: string | null;
+    awardedVendorId: string | null;
+    lowestVendorId: string | null;
+    recommendedVendorId: string | null;
+    offers: { vendorId: string; rate: string; discountPct: string; netRate: string; amount: string; leadTimeDays: number | null; remarks: string | null; lowest: boolean; score: number }[];
+  }[];
+  vendors: {
+    rfqVendorId: string;
+    vendorId: string;
+    name: string;
+    code: string;
+    respondedAt: string | null;
+    quoteRef: string | null;
+    validUntil: string | null;
+    paymentTerms: string | null;
+    creditDays: number | null;
+    deliveryTerms: string | null;
+    otherCharges: string;
+    linesQuoted: number;
+    linesLowest: number;
+    total: string;
+    performance: Omit<VendorPerformance, "vendor"> | null;
+  }[];
+}
+
+export const piKeys = { list: (f: Record<string, unknown>) => [PI_ROUTE, "list", f] as const, detail: (id: string) => [PI_ROUTE, id] as const };
+export const dnKeys = { list: (f: Record<string, unknown>) => [DN_ROUTE, "list", f] as const, detail: (id: string) => [DN_ROUTE, id] as const };
+export const lcKeys = { list: (f: Record<string, unknown>) => [LC_ROUTE, "list", f] as const, detail: (id: string) => [LC_ROUTE, id] as const };
+export const rfqKeys = { list: (f: Record<string, unknown>) => [RFQ_ROUTE, "list", f] as const, detail: (id: string) => [RFQ_ROUTE, id] as const };

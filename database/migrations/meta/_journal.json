@@ -71,6 +71,13 @@
       "when": 1791247195139,
       "tag": "0009_purchase_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791311502709,
+      "tag": "0010_purchase_invoicing",
+      "breakpoints": true
     }
   ]
 }
