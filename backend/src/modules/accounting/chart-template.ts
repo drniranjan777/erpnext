@@ -67,7 +67,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     a('4200', 'Capital work in progress', 'asset', 'cwip', { reportLine: 'bs.nca.cwip' }),
   ]),
   g('5000', 'Current assets', 'asset', 'bs.ca', [
-    g('5100', 'Inventories', 'asset', 'bs.ca.inventories', [a('5110', 'Stock in hand', 'asset', 'stock', { manual: false })]),
+    g('5100', 'Inventories', 'asset', 'bs.ca.inventories', [a('5110', 'Stock in hand', 'asset', 'stock', { manual: false }), a('5120', 'Work in progress', 'asset', 'wip', { manual: false })]),
     g('5200', 'Trade receivables', 'asset', 'bs.ca.trade_receivables', [a('5210', 'Sundry debtors', 'asset', 'receivable', { control: true })]),
     g('5300', 'Cash and cash equivalents', 'asset', 'bs.ca.cash', [
       a('5310', 'Cash in hand', 'asset', 'cash', { type: 'cash' }),
@@ -102,6 +102,8 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     a('7200', 'Cost of goods sold', 'expense', 'cogs'),
     a('7300', 'Purchase price variance', 'expense', 'ppv'),
     a('7400', 'Stock adjustments', 'expense', 'stock_adjustment'),
+    a('7500', 'Production variances', 'expense', 'production_variance'),
+    a('7600', 'Labour and overheads absorbed', 'expense', 'production_absorbed', { manual: false }),
   ]),
   g('8000', 'Employee benefits expense', 'expense', 'pl.employee', [a('8100', 'Salaries and wages', 'expense')]),
   g('8500', 'Finance costs', 'expense', 'pl.finance', [a('8510', 'Interest expense', 'expense'), a('8520', 'Bank charges', 'expense', 'bank_charges')]),
@@ -125,6 +127,6 @@ export const REQUIRED_KEYS = [
   'gst_out_cgst', 'gst_out_sgst', 'gst_out_igst', 'gst_out_cess', 'gst_in_cgst', 'gst_in_sgst', 'gst_in_igst', 'gst_in_cess',
   'gst_rcm_cgst', 'gst_rcm_sgst', 'gst_rcm_igst', 'gst_rcm_cess', 'tds_payable', 'landed_cost_accrued', 'jobwork_accrued', 'customs_payable',
   'bank_charges', 'tds_receivable', 'bad_debts', 'cash', 'customer_advance', 'vendor_advance', 'interest_income', 'depreciation', 'accumulated_depreciation',
-  'gst_payable', 'asset_disposal', 'cwip', 'ppe_plant',
+  'gst_payable', 'asset_disposal', 'cwip', 'ppe_plant', 'wip', 'production_variance', 'production_absorbed',
 ] as const;
 export type SystemKey = (typeof REQUIRED_KEYS)[number];

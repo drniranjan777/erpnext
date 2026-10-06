@@ -83,6 +83,9 @@ export const PERMISSIONS = {
   'accounting.settings.manage': 'Set up the books, lock periods and bring past documents into the ledger',
   'manufacturing.engineering.read': 'View BOMs, routings, work centres, machines and tools',
   'manufacturing.engineering.manage': 'Create and approve BOMs and routings; maintain work centres, machines and tools',
+  'manufacturing.production.read': 'View work orders, job cards, production entries and production costs',
+  'manufacturing.production.manage': 'Create, release and close work orders; issue materials and receive output',
+  'manufacturing.shopfloor.record': 'Start and stop job cards and record good and rejected quantities',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

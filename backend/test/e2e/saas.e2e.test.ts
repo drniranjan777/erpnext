@@ -245,7 +245,7 @@ describe('API keys', () => {
     expect((await call('/auth/me')).status).toBe(403);
     const bearer = await fetch(`http://localhost:4000/api/v1${PR}`, { headers: { authorization: `Bearer ${key}` } });
     expect(bearer.status).toBe(200);
-    expect((await fetch(`http://localhost:4000/api/v1${PR}`, { headers: { 'x-api-key': `${key.slice(0, -1)}x` } })).status).toBe(401);
+    expect((await fetch(`http://localhost:4000/api/v1${PR}`, { headers: { 'x-api-key': `${key.slice(0, -1)}${key.endsWith('x') ? 'y' : 'x'}` } })).status).toBe(401);
   });
 
   it('stops working immediately when revoked', async () => {

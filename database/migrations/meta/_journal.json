@@ -148,6 +148,13 @@
       "when": 1791323275390,
       "tag": "0020_manufacturing_engineering",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791325671027,
+      "tag": "0021_manufacturing_production",
+      "breakpoints": true
     }
   ]
 }

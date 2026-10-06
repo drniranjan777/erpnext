@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, Truck, XCircle } from "lucide-react";
+import { Factory, FileText, Truck, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -38,6 +38,12 @@ export default function SalesOrderPage() {
     },
     onError: (e) => e instanceof ApiError && e.status === 403 && can("sales.orders.credit_override") && setDialog("override"),
   });
+  const [mto, setMto] = useState<string | null>(null);
+  const makeToOrder = useMutation({
+    mutationFn: () => api<{ created: { id: string; number: string }[]; skipped: { lineNo: number; reason: string }[] }>(`/manufacturing/work-orders/from-sales-order/${id}`, { body: {} }),
+    onSuccess: (r) => setMto(r.created.length ? `Draft work orders ${r.created.map((c) => c.number).join(", ")} created. Release them from Work orders.` : `Nothing to make: ${r.skipped.map((s) => `line ${s.lineNo} ${s.reason}`).join(", ")}.`),
+    onError: (e) => setMto(e instanceof ApiError ? e.message : "Could not reach the server."),
+  });
   const close = useMutation({ mutationFn: () => api(`${S.orders}/${id}/short-close`, { body: { version: so.data!.version, reason } }), onSuccess: () => { setDialog(null); refresh(); } });
 
   if (so.isLoading) return <LoadingBlock />;
@@ -64,6 +70,11 @@ export default function SalesOrderPage() {
                 <FileText className="size-4" aria-hidden /> Invoice
               </Link>
             )}
+            {d.status === "approved" && !d.closedAt && can("manufacturing.production.manage") && (
+              <Button variant="secondary" loading={makeToOrder.isPending} onClick={() => makeToOrder.mutate()}>
+                <Factory className="size-4" aria-hidden /> Make to order
+              </Button>
+            )}
             {d.canShortClose && (
               <Button variant="ghost" onClick={() => setDialog("close")}>
                 <XCircle className="size-4" aria-hidden /> Short-close
@@ -79,6 +90,7 @@ export default function SalesOrderPage() {
           </>
         }
       />
+      {mto && <Alert tone="success">{mto}</Alert>}
       <DocStatusAlerts doc={d} />
       {submit.error && !dialog && <Alert>{submit.error instanceof ApiError ? submit.error.message : "Could not submit."}</Alert>}
       {d.closedAt && <Alert tone="warning">Short-closed: {d.closeReason}</Alert>}

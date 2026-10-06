@@ -7,6 +7,7 @@ import {
   documents,
   items,
   landedCosts,
+  productionEntries,
   purchaseInvoiceLines,
   purchaseInvoices,
   salesInvoiceLines,
@@ -100,6 +101,23 @@ export class PostingRulesService implements OnModuleInit {
         { account: 'gst_in_igst', debit: D(b.igstTotal), narration: `Import IGST, BE ${b.boeNo}` },
         { account: 'gst_in_cess', debit: D(b.cessTotal) },
         { account: 'customs_payable', credit: customs.add(D(b.igstTotal)).add(D(b.cessTotal)), narration: `BE ${b.boeNo} at ${b.portCode}` },
+      ];
+    });
+
+    // Production: stock moves through work in progress; time and job work are absorbed into it,
+    // and what is left when the order closes is the production variance.
+    this.rules.set('production_entry', async (tx, doc) => {
+      const [e] = await tx.select().from(productionEntries).where(eq(productionEntries.id, doc.id));
+      const stockNet = await this.stockNet(tx, doc.id);
+      const conversion = D(e.conversionValue);
+      const subcontract = D(e.subcontractValue);
+      const variance = D(e.varianceValue);
+      return [
+        { account: 'stock', debit: stockNet },
+        { account: 'production_absorbed', credit: conversion, narration: 'Labour, machine and overheads absorbed' },
+        { account: 'jobwork_accrued', credit: subcontract, narration: 'Job-work charges' },
+        { account: 'production_variance', debit: variance },
+        { account: 'wip', debit: conversion.add(subcontract).sub(variance).sub(stockNet) },
       ];
     });
 
