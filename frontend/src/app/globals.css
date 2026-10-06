@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   NextGen ERP design tokens. Components use the semantic names only
+   (bg-surface, text-muted, border-border, bg-primary ...), never raw colours.
+   --------------------------------------------------------------------------- */
+:root {
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-muted: #f1f3f6;
+  --foreground: #111827;
+  --muted: #5b6474;
+  --border: #e3e6eb;
+  --primary: #1d4ed8;
+  --primary-hover: #1e40af;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e8efff;
+  --success: #15803d;
+  --success-soft: #e7f6ec;
+  --warning: #b45309;
+  --warning-soft: #fdf3e2;
+  --danger: #b91c1c;
+  --danger-soft: #fdecec;
+  --ring: #93b4ff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #0d1117;
+    --surface: #151b23;
+    --surface-muted: #1c232d;
+    --foreground: #e6e9ee;
+    --muted: #9aa4b2;
+    --border: #2a323d;
+    --primary: #5b8cff;
+    --primary-hover: #7aa2ff;
+    --primary-foreground: #0b1020;
+    --primary-soft: #1a2643;
+    --success: #4ade80;
+    --success-soft: #12291b;
+    --warning: #fbbf24;
+    --warning-soft: #2d2410;
+    --danger: #f87171;
+    --danger-soft: #2f1616;
+    --ring: #3b5bb5;
+  }
+}
+
+:root[data-theme="dark"] {
+  --background: #0d1117;
+  --surface: #151b23;
+  --surface-muted: #1c232d;
+  --foreground: #e6e9ee;
+  --muted: #9aa4b2;
+  --border: #2a323d;
+  --primary: #5b8cff;
+  --primary-hover: #7aa2ff;
+  --primary-foreground: #0b1020;
+  --primary-soft: #1a2643;
+  --success: #4ade80;
+  --success-soft: #12291b;
+  --warning: #fbbf24;
+  --warning-soft: #2d2410;
+  --danger: #f87171;
+  --danger-soft: #2f1616;
+  --ring: #3b5bb5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}

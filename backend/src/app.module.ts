@@ -1,0 +1,70 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
+import { AccessModule } from './common/access.module';
+import { AuthGuard, PermissionsGuard } from './common/guards';
+import { ProblemDetailsFilter } from './common/problem-details.filter';
+import { validateEnv, type Env } from './config/env';
+import { DatabaseModule } from './database/database.module';
+import { AccountModule } from './modules/account/account.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { SubscriptionGuard } from './modules/billing/subscription.guard';
+import { CustomizationModule } from './modules/customization/customization.module';
+import { DocumentsModule } from './modules/documents/documents.module';
+import { HealthController } from './modules/health/health.controller';
+import { IamModule } from './modules/iam/iam.module';
+import { IntegrationsModule } from './modules/integrations/integrations.module';
+import { JobsModule } from './modules/jobs/jobs.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ImportsModule } from './modules/imports/imports.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { MastersModule } from './modules/masters/masters.module';
+import { OrgModule } from './modules/org/org.module';
+import { PrivacyModule } from './modules/privacy/privacy.module';
+import { PurchaseModule } from './modules/purchase/purchase.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, cache: true, validate: validateEnv }),
+    JwtModule.registerAsync({
+      global: true,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) => ({
+        secret: config.get('JWT_ACCESS_SECRET', { infer: true }),
+        signOptions: { issuer: 'nextgen-erp' },
+        verifyOptions: { issuer: 'nextgen-erp' },
+      }),
+    }),
+    DatabaseModule,
+    AccessModule,
+    JobsModule,
+    AuditModule,
+    NotificationsModule,
+    BillingModule,
+    IntegrationsModule,
+    AuthModule,
+    IamModule,
+    AccountModule,
+    OrgModule,
+    DocumentsModule,
+    CustomizationModule,
+    MastersModule,
+    InventoryModule,
+    ImportsModule,
+    PurchaseModule,
+    AdminModule,
+    PrivacyModule,
+  ],
+  controllers: [HealthController],
+  providers: [
+    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: PermissionsGuard },
+    { provide: APP_GUARD, useClass: SubscriptionGuard },
+    { provide: APP_FILTER, useClass: ProblemDetailsFilter },
+  ],
+})
+export class AppModule {}

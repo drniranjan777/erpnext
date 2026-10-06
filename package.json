@@ -1,0 +1,30 @@
+{
+  "name": "nextgen-erp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NextGen AI ERP - AI-first multi-tenant SaaS ERP for Indian MSME manufacturers",
+  "workspaces": [
+    "database",
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "db:init": "npm run init -w database",
+    "db:start": "npm run start -w database",
+    "db:stop": "npm run stop -w database",
+    "db:status": "npm run status -w database",
+    "db:generate": "npm run generate -w database",
+    "db:migrate": "npm run migrate -w database",
+    "db:seed": "npm run seed -w database",
+    "db:studio": "npm run studio -w database",
+    "dev:backend": "npm run start:dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "build": "npm run build -w database && npm run build -w backend && npm run build -w frontend",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  }
+}

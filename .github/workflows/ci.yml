@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_OWNER_URL: postgres://nextgen_owner:ci_owner_pw@localhost:5432/nextgen_erp
+      DATABASE_URL: postgres://nextgen_app:ci_app_pw@localhost:5432/nextgen_erp
+      SEED_ADMIN_EMAIL: admin@demo.local
+      SEED_ADMIN_PASSWORD: ci-only-Passw0rd
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Create database roles
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE nextgen_owner LOGIN PASSWORD 'ci_owner_pw';
+          CREATE ROLE nextgen_app LOGIN PASSWORD 'ci_app_pw' NOBYPASSRLS;
+          CREATE DATABASE nextgen_erp OWNER nextgen_owner;
+          SQL
+          psql -h localhost -U postgres -d nextgen_erp -v ON_ERROR_STOP=1 <<'SQL'
+          REVOKE ALL ON SCHEMA public FROM PUBLIC;
+          ALTER SCHEMA public OWNER TO nextgen_owner;
+          GRANT USAGE ON SCHEMA public TO nextgen_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE nextgen_owner IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO nextgen_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE nextgen_owner IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO nextgen_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE nextgen_owner IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO nextgen_app;
+          SQL
+
+      - run: npm ci
+      - run: npm run build -w database
+      - run: npm run migrate -w database
+      - run: npm run seed -w database
+      - name: Tenant isolation tests (RLS)
+        run: npm run test -w database
+      - run: npm run typecheck
+      - name: Backend unit tests
+        run: npm run test -w backend
+      - run: npm run build -w backend
+      - name: API end-to-end tests
+        env:
+          NODE_ENV: test
+          PORT: 4000
+          JWT_ACCESS_SECRET: ci-only-access-secret-0123456789abcdef
+          JWT_REFRESH_SECRET: ci-only-refresh-secret-0123456789abcdef
+          DATA_ENCRYPTION_KEY: Y2ktb25seS1kYXRhLWtleS0wMTIzNDU2Nzg5YWJjZGU=
+          PLATFORM_ADMIN_EMAILS: admin@demo.local
+          WEBHOOKS_ALLOW_PRIVATE: 'true'
+        run: |
+          node backend/dist/main.js > api.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf localhost:4000/api/v1/health/ready && break; sleep 1; done
+          npm run test:e2e -w backend || (cat api.log; exit 1)
+      - run: npm run lint -w frontend
+      - run: npm run build -w frontend

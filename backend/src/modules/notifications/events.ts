@@ -1,0 +1,173 @@
+/**
+ * Notification event catalog. Each event declares which channels are on by
+ * default and how to render its message. Users can opt out per event+channel
+ * (except `mandatory` events such as security alerts).
+ */
+
+export type Channel = 'in_app' | 'email' | 'whatsapp';
+
+export interface Rendered {
+  title: string;
+  body: string;
+  /** Path inside the web app, e.g. /purchase/requisitions/<id>. */
+  link?: string;
+  /** Call-to-action label for email buttons. */
+  action?: string;
+}
+
+export interface EventDefinition<D = Record<string, string>> {
+  label: string;
+  description: string;
+  group: 'Approvals' | 'Documents' | 'Account & security' | 'Team';
+  defaults: Record<Channel, boolean>;
+  /** Users can't turn these off (security). */
+  mandatory?: boolean;
+  render(data: D): Rendered;
+}
+
+type DocData = {
+  docTypeLabel: string;
+  number: string;
+  title: string;
+  amount: string;
+  actorName: string;
+  link: string;
+  stepName?: string;
+  comment?: string;
+};
+
+const docLine = (d: DocData) => `${d.docTypeLabel} ${d.number}${d.title ? `: ${d.title}` : ''}${d.amount ? ` (${d.amount})` : ''}`;
+
+export const NOTIFICATION_EVENTS = {
+  'document.approval_requested': {
+    label: 'Approval needed',
+    description: 'A document is waiting for your approval',
+    group: 'Approvals',
+    defaults: { in_app: true, email: true, whatsapp: true },
+    render: (d: DocData) => ({
+      title: `Approval needed: ${d.number}`,
+      body: `${d.actorName} submitted ${docLine(d)} for your approval${d.stepName ? ` (${d.stepName})` : ''}.`,
+      link: d.link,
+      action: 'Review and approve',
+    }),
+  },
+  'document.approved': {
+    label: 'Your document was approved',
+    description: 'A document you submitted is fully approved',
+    group: 'Documents',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    render: (d: DocData) => ({
+      title: `Approved: ${d.number}`,
+      body: `${docLine(d)} was approved by ${d.actorName}.`,
+      link: d.link,
+      action: 'View document',
+    }),
+  },
+  'document.rejected': {
+    label: 'Your document was rejected',
+    description: 'A document you submitted was rejected',
+    group: 'Documents',
+    defaults: { in_app: true, email: true, whatsapp: true },
+    render: (d: DocData) => ({
+      title: `Rejected: ${d.number}`,
+      body: `${d.actorName} rejected ${docLine(d)}.${d.comment ? ` Reason: “${d.comment}”` : ''}`,
+      link: d.link,
+      action: 'Edit and resubmit',
+    }),
+  },
+  'document.commented': {
+    label: 'New comment',
+    description: 'Someone commented on a document you created',
+    group: 'Documents',
+    defaults: { in_app: true, email: false, whatsapp: false },
+    render: (d: DocData) => ({
+      title: `${d.actorName} commented on ${d.number}`,
+      body: d.comment ?? '',
+      link: d.link,
+      action: 'Open document',
+    }),
+  },
+  'iam.invitation': {
+    label: 'Workspace invitation',
+    description: 'Invitation email to a new team member',
+    group: 'Team',
+    defaults: { in_app: false, email: true, whatsapp: false },
+    mandatory: true,
+    render: (d: { workspace: string; inviter: string; link: string; expires: string }) => ({
+      title: `${d.inviter} invited you to ${d.workspace} on NextGen ERP`,
+      body: `You've been invited to join ${d.workspace}. The link works once and expires on ${d.expires}.`,
+      link: d.link,
+      action: 'Accept invitation',
+    }),
+  },
+  'billing.payment_received': {
+    label: 'Subscription payment received',
+    description: 'Receipt when your subscription is paid or renewed',
+    group: 'Account & security',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    render: (d: { plan: string; amount: string; invoice: string; until: string }) => ({
+      title: `Payment received: ${d.plan} plan`,
+      body: `We received ${d.amount} for your ${d.plan} plan, active until ${d.until}. GST invoice ${d.invoice} is available under Settings → Billing.`,
+      link: '/settings/billing',
+      action: 'View invoice',
+    }),
+  },
+  'account.mfa_changed': {
+    label: 'Two-step verification changed',
+    description: 'Security alert when two-step verification is turned on or off',
+    group: 'Account & security',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    mandatory: true,
+    render: (d: { action: string; when: string; ip: string }) => ({
+      title: `Two-step verification ${d.action}`,
+      body: `Two-step verification was ${d.action} for your account on ${d.when} from IP ${d.ip}. If this wasn't you, contact your administrator immediately.`,
+      link: '/account',
+      action: 'Review your account',
+    }),
+  },
+  'privacy.request_raised': {
+    label: 'Data protection request',
+    description: 'A team member raised a DPDP correction / erasure / grievance request',
+    group: 'Team',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    render: (d: { type: string }) => ({
+      title: `New data protection request (${d.type})`,
+      body: `A ${d.type} request was raised under the DPDP Act. Please review and respond.`,
+      link: '/settings/privacy',
+      action: 'Review request',
+    }),
+  },
+  'privacy.request_resolved': {
+    label: 'Your data request was answered',
+    description: 'Outcome of a data protection request you raised',
+    group: 'Account & security',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    mandatory: true,
+    render: (d: { type: string; status: string; resolution: string }) => ({
+      title: `Your ${d.type} request was ${d.status}`,
+      body: d.resolution,
+      link: '/account',
+      action: 'View details',
+    }),
+  },
+  'account.password_changed': {
+    label: 'Password changed',
+    description: 'Security alert when your password changes',
+    group: 'Account & security',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    mandatory: true,
+    render: (d: { when: string; ip: string }) => ({
+      title: 'Your NextGen ERP password was changed',
+      body: `Your password was changed on ${d.when} from IP ${d.ip}. Other devices were signed out. If this wasn't you, contact your administrator immediately.`,
+      link: '/account',
+      action: 'Review your account',
+    }),
+  },
+} satisfies Record<string, EventDefinition<any>>;
+
+export type NotificationEvent = keyof typeof NOTIFICATION_EVENTS;
+export type EventData<E extends NotificationEvent> = Parameters<(typeof NOTIFICATION_EVENTS)[E]['render']>[0];
+
+export function eventDefinition(event: string): EventDefinition<any> | undefined {
+  return (NOTIFICATION_EVENTS as Record<string, EventDefinition<any>>)[event];
+}
