@@ -189,6 +189,15 @@ export const DOC_TYPES = {
     readPermission: 'accounting.accounts.read',
     gstDocument: false,
   },
+  bom: {
+    label: 'Bill of Materials',
+    code: 'BOM',
+    module: 'manufacturing',
+    path: '/manufacturing/boms',
+    defaultPattern: 'BOM/{SEQ}',
+    readPermission: 'manufacturing.engineering.read',
+    gstDocument: false,
+  },
   stock_entry: {
     label: 'Stock Entry',
     code: 'SE',

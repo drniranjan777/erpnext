@@ -13,3 +13,4 @@ export * from './compliance';
 export * from './accounting';
 export * from './banking';
 export * from './returns';
+export * from './manufacturing';

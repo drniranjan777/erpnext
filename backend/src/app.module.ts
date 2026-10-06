@@ -30,6 +30,7 @@ import { SalesModule } from './modules/sales/sales.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
 import { JobWorkModule } from './modules/jobwork/jobwork.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
+import { ManufacturingModule } from './modules/manufacturing/manufacturing.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { AccountingModule } from './modules/accounting/accounting.module';
     ComplianceModule,
     JobWorkModule,
     AccountingModule,
+    ManufacturingModule,
     AdminModule,
     PrivacyModule,
   ],

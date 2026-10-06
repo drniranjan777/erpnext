@@ -81,6 +81,8 @@ export const PERMISSIONS = {
   'accounting.budgets.manage': 'Create budgets and set budget control',
   'accounting.close.manage': 'Close the financial year and revalue foreign-currency balances',
   'accounting.settings.manage': 'Set up the books, lock periods and bring past documents into the ledger',
+  'manufacturing.engineering.read': 'View BOMs, routings, work centres, machines and tools',
+  'manufacturing.engineering.manage': 'Create and approve BOMs and routings; maintain work centres, machines and tools',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

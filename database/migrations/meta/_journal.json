@@ -141,6 +141,13 @@
       "when": 1791322225855,
       "tag": "0019_budgets",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791323275390,
+      "tag": "0020_manufacturing_engineering",
+      "breakpoints": true
     }
   ]
 }
