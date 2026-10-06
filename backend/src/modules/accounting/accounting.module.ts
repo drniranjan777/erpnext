@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ComplianceModule } from '../compliance/compliance.module';
 import { AssetsService } from './assets.service';
+import { BudgetsService } from './budgets.service';
+import { CloseService } from './close.service';
+import { InsightsService } from './insights.service';
+import { ReportsController } from './reports.controller';
+import { StatementsService } from './statements.service';
 import { TaxAssetsController } from './tax-assets.controller';
 import { TdsService } from './tds.service';
 import { AccountingController } from './accounting.controller';
@@ -16,8 +21,8 @@ import { PostingRulesService } from './posting-rules.service';
 /** General ledger: chart of accounts, posting rules from every module, journals, trial balance. */
 @Module({
   imports: [ComplianceModule],
-  controllers: [AccountingController, MoneyController, TaxAssetsController],
-  providers: [LedgerService, PostingRulesService, JournalsService, AccountsService, MoneyService, ReceivablesService, BankService, TdsService, AssetsService],
+  controllers: [AccountingController, MoneyController, TaxAssetsController, ReportsController],
+  providers: [LedgerService, PostingRulesService, JournalsService, AccountsService, MoneyService, ReceivablesService, BankService, TdsService, AssetsService, StatementsService, CloseService, BudgetsService, InsightsService],
   exports: [LedgerService],
 })
 export class AccountingModule {}

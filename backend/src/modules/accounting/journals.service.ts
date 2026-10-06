@@ -114,11 +114,11 @@ export class JournalsService implements OnModuleInit {
     return this.database.run(auth, (tx) => this.createTx(tx, auth, input, meta));
   }
 
-  async createTx(tx: Transaction, auth: AuthContext, input: CreateJournalInput, meta: RequestMeta, extra: { reversalOfId?: string; recurredFromId?: string } = {}) {
+  async createTx(tx: Transaction, auth: AuthContext, input: CreateJournalInput, meta: RequestMeta, extra: { reversalOfId?: string; recurredFromId?: string; kind?: 'closing' } = {}) {
     const companyId = input.companyId ?? (await this.defaultCompany(tx));
     const p = await this.prepare(tx, companyId, input);
     const doc = await this.documents.create(tx, auth, { docType: DOC_TYPE, companyId, branchId: input.branchId ?? null, docDate: input.docDate ?? todayIST(), title: input.narration?.slice(0, 120) ?? null, amount: p.total.toFixed(2) });
-    await tx.insert(journals).values({ id: doc.id, tenantId: auth.tenantId, ...p.header, reversalOfId: extra.reversalOfId ?? null, recurredFromId: extra.recurredFromId ?? null });
+    await tx.insert(journals).values({ id: doc.id, tenantId: auth.tenantId, ...p.header, ...(extra.kind ? { kind: extra.kind } : {}), reversalOfId: extra.reversalOfId ?? null, recurredFromId: extra.recurredFromId ?? null });
     await tx.insert(journalLines).values(p.lines.map((l) => ({ ...l, tenantId: auth.tenantId, journalId: doc.id })));
     await this.documents.log(tx, auth, doc, 'document.created', meta, { lines: p.lines.length, amount: p.total.toFixed(2) });
     return this.view(tx, auth, doc);

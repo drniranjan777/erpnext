@@ -134,6 +134,13 @@
       "when": 1791320975943,
       "tag": "0018_returns_assets",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791322225855,
+      "tag": "0019_budgets",
+      "breakpoints": true
     }
   ]
 }

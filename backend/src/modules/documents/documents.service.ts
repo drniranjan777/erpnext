@@ -89,6 +89,8 @@ export class DocumentsService {
   private readonly hooks = new Map<string, DocumentHooks>();
   /** Cross-cutting followers (e.g. the general ledger) that run after the module's own hook. */
   private readonly listeners = new Map<string, Pick<DocumentHooks, 'onApproved' | 'onCancelled'>[]>();
+  /** Checks run when a document is submitted (budget control…); throwing stops the submission. */
+  private readonly validators = new Map<string, ((tx: Transaction, auth: AuthContext, doc: DocumentRow) => Promise<void>)[]>();
 
   constructor(
     private readonly database: DatabaseService,
@@ -111,6 +113,10 @@ export class DocumentsService {
   /** Adds a follower for a document type; it runs after the module's hook, in the same transaction. */
   addListener(docType: DocType, listener: Pick<DocumentHooks, 'onApproved' | 'onCancelled'>) {
     this.listeners.set(docType, [...(this.listeners.get(docType) ?? []), listener]);
+  }
+
+  addValidator(docType: DocType, fn: (tx: Transaction, auth: AuthContext, doc: DocumentRow) => Promise<void>) {
+    this.validators.set(docType, [...(this.validators.get(docType) ?? []), fn]);
   }
 
   private async approved(tx: Transaction, auth: AuthContext, doc: DocumentRow) {
@@ -197,6 +203,7 @@ export class DocumentsService {
   async submit(tx: Transaction, auth: AuthContext, doc: DocumentRow, meta: RequestMeta, facts: ApprovalFacts = {}): Promise<DocumentRow> {
     this.assertEditable(doc);
     if (!isDocType(doc.docType)) throw new BadRequestException('Unknown document type');
+    for (const v of this.validators.get(doc.docType) ?? []) await v(tx, auth, doc);
     let { number, fiscalYear, seriesId } = doc;
     if (!number) {
       const allocation = await this.numbering.allocate(tx, auth, { docType: doc.docType, companyId: doc.companyId, branchId: doc.branchId, docDate: doc.docDate });

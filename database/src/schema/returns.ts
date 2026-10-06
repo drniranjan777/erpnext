@@ -185,3 +185,45 @@ export const assetDepreciation = pgTable(
   },
   (t) => [index('asset_dep_asset_idx').on(t.assetId), index('asset_dep_journal_idx').on(t.journalId)],
 );
+
+// =============================================================================
+// Budgets
+// =============================================================================
+
+export const budgets = pgTable(
+  'budgets',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'restrict' }),
+    /** Financial year start, e.g. 2026 for 2026-27. */
+    fy: smallint('fy').notNull(),
+    name: text('name').notNull(),
+    /** What happens when a purchase order would exceed the budget: none | warn | block */
+    control: text('control').notNull().default('warn'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...auditColumns(),
+  },
+  (t) => [uniqueIndex('budgets_name_uq').on(t.companyId, t.fy, t.name)],
+);
+
+export const budgetLines = pgTable(
+  'budget_lines',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    budgetId: uuid('budget_id')
+      .notNull()
+      .references(() => budgets.id, { onDelete: 'cascade' }),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'restrict' }),
+    costCenterId: uuid('cost_center_id'),
+    /** Month of the financial year, 1 = April. */
+    month: smallint('month').notNull(),
+    amount: money('amount'),
+  },
+  (t) => [index('budget_lines_budget_idx').on(t.budgetId), uniqueIndex('budget_lines_uq').on(t.budgetId, t.accountId, t.costCenterId, t.month)],
+);

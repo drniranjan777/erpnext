@@ -78,6 +78,8 @@ export const PERMISSIONS = {
   'accounting.tax.manage': 'Prepare GST and TDS returns, reconcile GSTR-2B, record tax payments',
   'assets.register.read': 'View the fixed asset register and depreciation',
   'assets.register.manage': 'Add, capitalise, transfer and dispose of fixed assets; run depreciation',
+  'accounting.budgets.manage': 'Create budgets and set budget control',
+  'accounting.close.manage': 'Close the financial year and revalue foreign-currency balances',
   'accounting.settings.manage': 'Set up the books, lock periods and bring past documents into the ledger',
 } as const;
 
@@ -99,6 +101,11 @@ export const SYSTEM_ROLES: { name: string; description: string; permissions: Per
     name: 'Administrator',
     description: 'Manages users, roles and organisation setup',
     permissions: ALL_PERMISSIONS.filter((p) => p !== 'platform.settings.manage' && p !== 'platform.billing.manage'),
+  },
+  {
+    name: 'Auditor',
+    description: 'Read-only access to books, documents and the audit trail',
+    permissions: ALL_PERMISSIONS.filter((p) => p.endsWith('.read')),
   },
   {
     name: 'Viewer',

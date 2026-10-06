@@ -20,10 +20,10 @@ afterAll(async () => {
 });
 
 describe('roles', () => {
-  it('provisions the three system roles', async () => {
+  it('provisions the system roles', async () => {
     const res = await a.client.get('/iam/roles');
     expect(res.status).toBe(200);
-    expect(res.body.map((r: any) => r.name)).toEqual(['Owner', 'Administrator', 'Viewer']);
+    expect(res.body.map((r: any) => r.name).sort()).toEqual(['Administrator', 'Auditor', 'Owner', 'Viewer']);
   });
 
   it('creates a custom role', async () => {

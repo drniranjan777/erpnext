@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Sprints 4.1–4.3 (7 Oct 2026) done: general ledger; receivables, payables, cash and bank; GST and TDS returns, fixed assets |
-| **Code** | `backend/src/modules/accounting/`, `database/src/schema/{accounting,banking,returns}.ts` (migrations 0015–0018), `frontend/src/app/(app)/accounting/` |
-| **Tests** | `backend/test/e2e/{accounting,money,returns}.e2e.test.ts`, `backend/test/unit/{bank-statement,tax-assets}.test.ts` |
+| **Status** | Phase 4 complete (7 Oct 2026): sprints 4.1–4.4 |
+| **Code** | `backend/src/modules/accounting/`, `database/src/schema/{accounting,banking,returns}.ts` (migrations 0015–0019), `frontend/src/app/(app)/accounting/` |
+| **Tests** | `backend/test/e2e/{accounting,money,returns,statements}.e2e.test.ts`, `backend/test/unit/{bank-statement,tax-assets,insights}.test.ts` |
 
 ## Sprint plan
 
@@ -13,7 +13,7 @@
 | **4.1** ✅ | Chart of accounts (Schedule III) · cost centres · append-only general ledger · posting rules from every module · journal vouchers (manual, opening, reversing, recurring) · period lock · back-posting · trial balance, ledger, day book |
 | **4.2** ✅ | Receipts and payments with bill-wise allocation, advances, on-account · cash, bank and contra vouchers · cheques / PDC · bank statement import and auto-reconciliation · customer statements, dunning, interest · payment proposals (due date, MSME), bank files · bad-debt write-off |
 | **4.3** ✅ | GSTR-1 JSON, GSTR-3B, GSTR-2B reconciliation, GST set-off and challan · TDS / TCS returns (26Q / 27Q, 16A) · fixed assets: register, capitalisation, depreciation (Companies Act and Income-tax books), disposal |
-| 4.4 | P&L, Balance Sheet (Schedule III), cash flow, ratios, comparatives · year-end close · budgets and budget control on PR / PO · multi-currency revaluation · maker-checker, auditor role, close checklist · AI: journal anomalies, cash-flow forecast |
+| **4.4** ✅ | P&L, Balance Sheet (Schedule III), cash flow, ratios, comparatives · year-end close · budgets and budget control on PR / PO · multi-currency revaluation · maker-checker, auditor role, close checklist · AI: journal anomalies, cash-flow forecast |
 
 ## 1. Chart of accounts
 
@@ -260,3 +260,84 @@ Code: `accounting/assets.service.ts`, `accounting/depreciation.ts`. Pages under 
 - **Transfer**: location / custodian.
 - **Income-tax schedule** (`GET /assets/it-schedule?fy`): per block, opening WDV, additions (≥180 / <180 days), sales, depreciation, closing. Half rate applies on additions used under 180 days. Sales come off the full-rate part first. This is a report only; it is not posted.
 - System accounts *GST payable* and *Profit / loss on sale of assets* were added to the chart. Charts of existing companies get them automatically the first time a posting needs them (`LedgerService.addMissingTemplateAccounts`).
+
+## 13. Financial statements (Sprint 4.4)
+
+Code: `accounting/statements.service.ts`. Page: Accounting → Financial statements. Click a line to see its accounts, and an account to open its ledger.
+
+### Statement of Profit and Loss
+
+Schedule III Part II, over `from`–`to`, compared with the same period a year earlier.
+
+- Lines: revenue from operations; other income; cost of materials and goods; employee benefits; finance costs; depreciation; other expenses; profit before tax.
+- Year-end closing journals are left out, so a closed year still shows its P&L.
+
+### Balance Sheet
+
+Schedule III Part I, as of a date, compared with a year earlier.
+
+- Shareholders' funds include the unclosed surplus in P&L.
+- Reclassification:
+  - Customers with credit balances → *other current liabilities*.
+  - Vendors with debit balances → *short-term loans and advances*.
+  - Overdrawn banks → *short-term borrowings*.
+- Shows whether both sides agree.
+
+### Cash flow
+
+Indirect method:
+
+| Section | Built from |
+|---|---|
+| Operating | Profit before tax, plus depreciation, less profit on asset sales, plus working-capital changes |
+| Investing | Net PPE movement plus depreciation, plus profit on sales, plus the CWIP change |
+| Financing | Share capital, other reserve movements, borrowings |
+
+It reconciles to the change in cash and bank, and reports any difference.
+
+### Ratios
+
+Current, quick, debt / equity, gross and net margin, ROE, and debtor / creditor / inventory days.
+
+## 14. Close (Sprint 4.4)
+
+- **Month-end checklist** (`GET /accounting/close-checklist?period`):
+  - Approved documents not in the ledger.
+  - Drafts and pending approvals.
+  - Bank statements imported and matched.
+  - GRNI older than 30 days.
+  - Depreciation to the month end.
+  - GST set-off posted.
+  - TDS still to deposit.
+  - Postings to opening balance difference.
+  - Period lock.
+- **Revaluation** (`POST /accounting/revalue`): open foreign-currency bills restated at the closing rate. The difference goes to the payable (bill-wise) against exchange gain / loss, through a reversing journal dated the next day.
+- **Year-end** (`POST /accounting/year-end {fy, lock}`):
+  - A journal of kind `closing`, dated the last day of the year, moves every income and expense balance to retained earnings. It can optionally lock the year.
+  - Closing the same year twice is refused. Cancelling the journal reopens the year.
+
+## 15. Budgets (Sprint 4.4)
+
+- Tables `budgets` (company, FY, name, control `none | warn | block`) and `budget_lines` (account, optional cost centre, month 1 = April, amount). Annual amounts are spread evenly; the rounding goes in March.
+- **Budget vs actual** per account and month, from the ledger.
+- **Budget control** runs on purchase-order submission, through `DocumentsService.addValidator`.
+  - Only non-stock lines count, using the item's expense account or the services / expenses default.
+  - It totals this year's actual + open approved orders + this order against the annual budget.
+  - `block` refuses the submission. `warn` adds an activity note and lets it through.
+
+## 16. Controls and insights (Sprint 4.4)
+
+- **Auditor** system role: every `*.read` permission, including the audit trail.
+- Maker-checker on journals and money vouchers uses the existing approval rules: add a rule for `journal_entry`, `receipt` or `payment`.
+- **Journal anomalies** (`GET /accounting/anomalies`), over manual journal lines (not closing, reversal or repeat journals):
+  - Amount more than 3σ above the account's history.
+  - Round amounts of ₹1 lakh or more.
+  - Entered on a Sunday or outside 07:00–21:00 IST.
+  - Back-dated by more than 30 days.
+  - A user's first posting to an account (≥ ₹50,000).
+  - Also: cash payments above ₹10,000 (s.40A(3)).
+- **Cash forecast** (`GET /accounting/cash-forecast?weeks`):
+  - Starts from today's bank + cash.
+  - Open receivables are expected by due date, shifted by the customer's average payment delay. Overdue amounts fall in week 1.
+  - Open payables go out by due date.
+  - Weekly closing balance, with the lowest point flagged.
