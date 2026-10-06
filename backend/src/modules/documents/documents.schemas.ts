@@ -63,6 +63,9 @@ export const approvalRuleSchema = z
     branchId: z.uuid().nullable().optional(),
     minAmount: money.nullable().optional(),
     maxAmount: money.nullable().optional(),
+    /** Optional extra condition (see APPROVAL_CONDITIONS). */
+    condition: z.enum(['discount_above', 'margin_below', 'credit_exceeded']).nullable().optional(),
+    conditionValue: money.nullable().optional(),
     priority: z.number().int().min(0).max(10_000).default(100),
     isActive: z.boolean().default(true),
     steps: z.array(stepSchema).min(1, 'Add at least one approval level').max(6),
@@ -70,6 +73,10 @@ export const approvalRuleSchema = z
   .refine((r) => !r.minAmount || !r.maxAmount || Number(r.minAmount) <= Number(r.maxAmount), {
     message: 'Minimum amount must not exceed maximum amount',
     path: ['maxAmount'],
+  })
+  .refine((r) => !r.condition || r.condition === 'credit_exceeded' || (r.conditionValue !== null && r.conditionValue !== undefined), {
+    message: 'Enter the percentage for this condition',
+    path: ['conditionValue'],
   });
 export type ApprovalRuleInput = z.infer<typeof approvalRuleSchema>;
 

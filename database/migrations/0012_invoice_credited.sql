@@ -1,0 +1,1 @@
+ALTER TABLE "sales_invoices" ADD COLUMN "credited_amount" numeric(18, 2) DEFAULT '0' NOT NULL;

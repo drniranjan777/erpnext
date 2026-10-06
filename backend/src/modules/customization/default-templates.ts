@@ -243,6 +243,152 @@ export const DEFAULT_TEMPLATES: Record<string, string> = {
 </table>
 {{#if doc.varianceNote}}<p><strong>Rate variance:</strong> {{doc.varianceNote}}</p>{{/if}}
 <div class="footer">Printed by {{printedBy}} on {{datetime printedAt}} · NextGen ERP</div>`,
+  sales_invoice: `<div class="header">
+  <div>
+    <h1>{{company.legalName}}</h1>
+    {{#if company.address.line1}}<div>{{company.address.line1}}{{#if company.address.city}}, {{company.address.city}}{{/if}}{{#if company.address.pincode}} – {{company.address.pincode}}{{/if}}</div>{{/if}}
+    {{#if company.gstin}}<div>GSTIN: <span class="mono">{{company.gstin}}</span>{{#if company.stateName}} · State: {{company.stateName}} ({{company.stateCode}}){{/if}}</div>{{/if}}
+  </div>
+  <div class="right">
+    <h2>{{title}}</h2>
+    <div>Invoice no. <span class="mono">{{doc.number}}</span></div>
+    <div>Date: {{date doc.docDate}}</div>
+    {{#if doc.irn}}<div class="muted" style="font-size:9px;word-break:break-all">IRN: {{doc.irn}}</div><div class="muted">Ack {{doc.ackNo}} · {{datetime doc.ackDate}}</div>{{/if}}
+  </div>
+</div>
+
+<div class="parties">
+  <div class="box">
+    <div class="label">Bill to</div>
+    <strong>{{doc.billingAddress.name}}</strong>
+    <div>{{doc.billingAddress.line1}}{{#if doc.billingAddress.line2}}, {{doc.billingAddress.line2}}{{/if}}</div>
+    <div>{{doc.billingAddress.city}}{{#if doc.billingAddress.pincode}} – {{doc.billingAddress.pincode}}{{/if}}</div>
+    {{#if customer.gstin}}<div>GSTIN: <span class="mono">{{customer.gstin}}</span></div>{{else}}<div class="muted">Unregistered</div>{{/if}}
+  </div>
+  <div class="box">
+    <div class="label">Ship to</div>
+    <strong>{{doc.shippingAddress.name}}</strong>
+    <div>{{doc.shippingAddress.line1}}{{#if doc.shippingAddress.line2}}, {{doc.shippingAddress.line2}}{{/if}}</div>
+    <div>{{doc.shippingAddress.city}}{{#if doc.shippingAddress.pincode}} – {{doc.shippingAddress.pincode}}{{/if}}</div>
+    <div>Place of supply: {{doc.placeOfSupplyName}} ({{doc.placeOfSupply}})</div>
+  </div>
+</div>
+<div class="grid">
+  {{#if doc.customerPoNo}}<div><div class="label">Buyer's order</div>{{doc.customerPoNo}}{{#if doc.customerPoDate}} · {{date doc.customerPoDate}}{{/if}}</div>{{/if}}
+  <div><div class="label">Payment</div>{{#if doc.paymentTerms}}{{doc.paymentTerms}}{{else}}{{#if doc.creditDays}}{{doc.creditDays}} days{{else}}Immediate{{/if}}{{/if}} · due {{date doc.dueDate}}</div>
+  {{#if doc.vehicleNo}}<div><div class="label">Dispatch</div>{{doc.transporter}} {{doc.vehicleNo}}{{#if doc.lrNo}} · LR {{doc.lrNo}}{{/if}}</div>{{/if}}
+  {{#if doc.ewayBillNo}}<div><div class="label">e-Way Bill</div><span class="mono">{{doc.ewayBillNo}}</span></div>{{/if}}
+</div>
+
+<table class="lines">
+  <thead><tr><th>#</th><th>Description</th><th>HSN/SAC</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">Disc %</th><th class="num">Taxable value</th><th class="num">GST %</th></tr></thead>
+  <tbody>
+    {{#each lines}}
+    <tr><td>{{lineNo}}</td><td>{{description}}{{#if batchNo}}<div class="muted mono">Batch {{batchNo}}</div>{{/if}}{{#if serialNos}}<div class="muted mono">S/N {{serialNos}}</div>{{/if}}</td><td class="mono">{{hsnCode}}</td><td class="num">{{qty qty}}</td><td>{{uqc}}</td><td class="num">{{money rate}}</td><td class="num">{{#if (gt discountPct 0)}}{{discountPct}}{{/if}}</td><td class="num">{{money taxableValue}}</td><td class="num">{{gstRate}}</td></tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<table class="lines" style="margin-top:10px">
+  <thead><tr><th>HSN/SAC</th><th class="num">Taxable</th><th class="num">Rate</th>{{#if doc.interState}}<th class="num">IGST</th>{{else}}<th class="num">CGST</th><th class="num">{{stateTaxLabel}}</th>{{/if}}<th class="num">Cess</th><th class="num">Total tax</th></tr></thead>
+  <tbody>{{#each hsnSummary}}<tr><td class="mono">{{hsn}}</td><td class="num">{{money taxable}}</td><td class="num">{{gstRate}}%</td>{{#if ../doc.interState}}<td class="num">{{money igst}}</td>{{else}}<td class="num">{{money cgst}}</td><td class="num">{{money sgst}}</td>{{/if}}<td class="num">{{money cess}}</td><td class="num">{{money total}}</td></tr>{{/each}}</tbody>
+</table>
+
+<table class="totals">
+  <tr><td>Taxable value</td><td class="right">{{money doc.taxableTotal}}</td></tr>
+  {{#if (gt doc.cgstTotal 0)}}<tr><td>CGST</td><td class="right">{{money doc.cgstTotal}}</td></tr><tr><td>{{stateTaxLabel}}</td><td class="right">{{money doc.sgstTotal}}</td></tr>{{/if}}
+  {{#if (gt doc.igstTotal 0)}}<tr><td>IGST</td><td class="right">{{money doc.igstTotal}}</td></tr>{{/if}}
+  {{#if (gt doc.cessTotal 0)}}<tr><td>Cess</td><td class="right">{{money doc.cessTotal}}</td></tr>{{/if}}
+  <tr><td>Round off</td><td class="right">{{money doc.roundOff}}</td></tr>
+  <tr class="grand"><td>Invoice total</td><td class="right">{{money doc.grandTotal}}</td></tr>
+</table>
+<p><strong>{{words doc.grandTotal}}</strong></p>
+<p>Tax payable on reverse charge: {{#if doc.reverseCharge}}Yes{{else}}No{{/if}}</p>
+{{#each doc.taxNotes}}<p class="muted">{{this}}</p>{{/each}}
+{{#if doc.terms}}<p><strong>Terms</strong><br>{{doc.terms}}</p>{{/if}}
+
+<div class="signatures">
+  <div>{{#if doc.signedQr}}<div class="muted">Scan the e-invoice QR on the copy issued by the IRP</div>{{/if}}</div>
+  <div></div>
+  <div><div style="height:36px"></div><div class="line"><strong>For {{company.legalName}}</strong><div class="label">Authorised signatory</div></div></div>
+</div>
+<div class="footer">Certified that the particulars given above are true and correct. Printed by {{printedBy}} on {{datetime printedAt}} · NextGen ERP</div>`,
+  credit_note: `<div class="header">
+  <div><h1>{{company.legalName}}</h1>{{#if company.gstin}}<div>GSTIN: <span class="mono">{{company.gstin}}</span></div>{{/if}}</div>
+  <div class="right"><h2>Credit Note</h2><div class="mono">{{doc.number}}</div><div>Date: {{date doc.docDate}}</div></div>
+</div>
+<div class="parties">
+  <div class="box"><div class="label">Issued to</div><strong>{{customer.name}}</strong>{{#if customer.gstin}}<div>GSTIN: <span class="mono">{{customer.gstin}}</span></div>{{/if}}</div>
+  <div class="box"><div class="label">Against invoice</div><strong class="mono">{{invoice.number}}</strong> dated {{date invoice.docDate}}<div>Reason: {{doc.reason}}</div><div>Place of supply: {{doc.placeOfSupply}}</div></div>
+</div>
+<table class="lines">
+  <thead><tr><th>#</th><th>Description</th><th>HSN</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Taxable</th><th class="num">GST %</th><th class="num">Amount</th></tr></thead>
+  <tbody>{{#each lines}}<tr><td>{{lineNo}}</td><td>{{description}}</td><td class="mono">{{hsnCode}}</td><td class="num">{{qty qty}} {{uomCode}}</td><td class="num">{{money rate}}</td><td class="num">{{money taxableValue}}</td><td class="num">{{gstRate}}</td><td class="num">{{money lineTotal}}</td></tr>{{/each}}</tbody>
+</table>
+<table class="totals">
+  <tr><td>Taxable value</td><td class="right">{{money doc.taxableTotal}}</td></tr>
+  {{#if (gt doc.cgstTotal 0)}}<tr><td>CGST</td><td class="right">{{money doc.cgstTotal}}</td></tr><tr><td>{{stateTaxLabel}}</td><td class="right">{{money doc.sgstTotal}}</td></tr>{{/if}}
+  {{#if (gt doc.igstTotal 0)}}<tr><td>IGST</td><td class="right">{{money doc.igstTotal}}</td></tr>{{/if}}
+  <tr><td>Round off</td><td class="right">{{money doc.roundOff}}</td></tr>
+  <tr class="grand"><td>Credit note total</td><td class="right">{{money doc.grandTotal}}</td></tr>
+</table>
+<p><strong>{{words doc.grandTotal}}</strong></p>
+<div class="signatures"><div></div><div></div><div><div style="height:36px"></div><div class="line"><strong>For {{company.legalName}}</strong><div class="label">Authorised signatory</div></div></div></div>
+<div class="footer">Printed by {{printedBy}} on {{datetime printedAt}} · NextGen ERP</div>`,
+  sales_quotation: `<div class="header">
+  <div><h1>{{company.name}}</h1>{{#if company.gstin}}<div class="muted">GSTIN: {{company.gstin}}</div>{{/if}}</div>
+  <div class="right"><h2>Quotation</h2><div class="mono">{{doc.displayNumber}}</div><div>Date: {{date doc.docDate}}</div>{{#if doc.validUntil}}<div>Valid until: {{date doc.validUntil}}</div>{{/if}}</div>
+</div>
+<div class="parties">
+  <div class="box"><div class="label">To</div><strong>{{customer.name}}</strong><div>{{doc.billingAddress.line1}}</div><div>{{doc.billingAddress.city}}</div>{{#if customer.gstin}}<div>GSTIN: {{customer.gstin}}</div>{{/if}}</div>
+  <div class="box"><div class="label">Your enquiry</div>{{#if doc.customerEnquiryRef}}{{doc.customerEnquiryRef}}{{else}}—{{/if}}<div>Payment: {{#if doc.paymentTerms}}{{doc.paymentTerms}}{{else}}{{#if doc.creditDays}}{{doc.creditDays}} days{{else}}Advance{{/if}}{{/if}}</div></div>
+</div>
+<table class="lines">
+  <thead><tr><th>#</th><th>Description</th><th>HSN</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">Disc %</th><th class="num">Amount</th><th class="num">GST %</th></tr></thead>
+  <tbody>{{#each lines}}<tr><td>{{lineNo}}</td><td>{{description}}</td><td class="mono">{{hsnCode}}</td><td class="num">{{qty qty}}</td><td>{{uomCode}}</td><td class="num">{{money rate}}</td><td class="num">{{#if (gt discountPct 0)}}{{discountPct}}{{/if}}</td><td class="num">{{money taxableValue}}</td><td class="num">{{gstRate}}</td></tr>{{/each}}</tbody>
+</table>
+<table class="totals">
+  <tr><td>Value before GST</td><td class="right">{{money doc.taxableTotal}}</td></tr>
+  <tr><td>GST</td><td class="right">{{money doc.taxTotal}}</td></tr>
+  <tr class="grand"><td>Total</td><td class="right">{{money doc.grandTotal}}</td></tr>
+</table>
+{{#if doc.terms}}<p><strong>Terms</strong><br>{{doc.terms}}</p>{{/if}}
+<div class="signatures"><div></div><div></div><div><div style="height:36px"></div><div class="line"><strong>For {{company.name}}</strong><div class="label">Authorised signatory</div></div></div></div>
+<div class="footer">Printed by {{printedBy}} on {{datetime printedAt}} · NextGen ERP</div>`,
+  sales_order: `<div class="header">
+  <div><h1>{{company.name}}</h1>{{#if company.gstin}}<div class="muted">GSTIN: {{company.gstin}}</div>{{/if}}</div>
+  <div class="right"><h2>Order Confirmation</h2><div class="mono">{{doc.displayNumber}}</div><div>Date: {{date doc.docDate}}</div></div>
+</div>
+<div class="parties">
+  <div class="box"><div class="label">Customer</div><strong>{{customer.name}}</strong>{{#if customer.gstin}}<div>GSTIN: {{customer.gstin}}</div>{{/if}}{{#if doc.customerPoNo}}<div>Your PO: {{doc.customerPoNo}} {{date doc.customerPoDate}}</div>{{/if}}</div>
+  <div class="box"><div class="label">Deliver to</div>{{doc.shippingAddress.line1}}<div>{{doc.shippingAddress.city}}</div>{{#if doc.expectedDate}}<div>Expected dispatch: {{date doc.expectedDate}}</div>{{/if}}</div>
+</div>
+<table class="lines">
+  <thead><tr><th>#</th><th>Description</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">Disc %</th><th class="num">Amount</th><th class="num">GST %</th></tr></thead>
+  <tbody>{{#each lines}}<tr><td>{{lineNo}}</td><td>{{description}}</td><td class="num">{{qty qty}}</td><td>{{uomCode}}</td><td class="num">{{money rate}}</td><td class="num">{{#if (gt discountPct 0)}}{{discountPct}}{{/if}}</td><td class="num">{{money taxableValue}}</td><td class="num">{{gstRate}}</td></tr>{{/each}}</tbody>
+</table>
+<table class="totals"><tr><td>Value before GST</td><td class="right">{{money doc.taxableTotal}}</td></tr><tr><td>GST</td><td class="right">{{money doc.taxTotal}}</td></tr><tr class="grand"><td>Order total</td><td class="right">{{money doc.grandTotal}}</td></tr></table>
+{{#if doc.terms}}<p><strong>Terms</strong><br>{{doc.terms}}</p>{{/if}}
+<div class="footer">Printed by {{printedBy}} on {{datetime printedAt}} · NextGen ERP</div>`,
+  delivery_note: `<div class="header">
+  <div><h1>{{company.name}}</h1>{{#if company.gstin}}<div class="muted">GSTIN: {{company.gstin}}</div>{{/if}}</div>
+  <div class="right"><h2>Delivery Challan</h2><div class="mono">{{doc.displayNumber}}</div><div>Date: {{date doc.docDate}}</div></div>
+</div>
+<div class="parties">
+  <div class="box"><div class="label">Consignee</div><strong>{{customer.name}}</strong><div>{{doc.shippingAddress.line1}}</div><div>{{doc.shippingAddress.city}}{{#if doc.shippingAddress.pincode}} – {{doc.shippingAddress.pincode}}{{/if}}</div>{{#if customer.gstin}}<div>GSTIN: {{customer.gstin}}</div>{{/if}}</div>
+  <div class="box"><div class="label">Dispatch</div>From {{doc.warehouse.name}}<div>Order: {{doc.order.number}}{{#if doc.order.customerPoNo}} · PO {{doc.order.customerPoNo}}{{/if}}</div><div>{{doc.transporter}} {{doc.vehicleNo}}{{#if doc.lrNo}} · LR {{doc.lrNo}}{{/if}}</div>{{#if doc.packages}}<div>{{doc.packages}} packages{{#if doc.grossWeightKg}} · {{doc.grossWeightKg}} kg gross{{/if}}</div>{{/if}}</div>
+</div>
+<table class="lines">
+  <thead><tr><th>#</th><th>Item</th><th>HSN</th><th>Batch / serial</th><th class="num">Qty</th><th>Unit</th></tr></thead>
+  <tbody>{{#each lines}}<tr><td>{{lineNo}}</td><td>{{itemName}}<div class="muted mono">{{itemCode}}</div></td><td class="mono">{{hsnCode}}</td><td class="mono">{{batchNo}}{{#if serialNos}} {{serialNos}}{{/if}}</td><td class="num">{{qty qty}}</td><td>{{uomCode}}</td></tr>{{/each}}</tbody>
+</table>
+<p class="muted">Goods sent for supply against the order above. Not a tax invoice.</p>
+<div class="signatures">
+  <div><div style="height:36px"></div><div class="line"><strong>{{doc.createdBy}}</strong><div class="label">Despatched by</div></div></div>
+  <div><div style="height:36px"></div><div class="line"><strong>&nbsp;</strong><div class="label">Driver</div></div></div>
+  <div><div style="height:36px"></div><div class="line"><strong>&nbsp;</strong><div class="label">Received in good condition</div></div></div>
+</div>
+<div class="footer">Printed by {{printedBy}} on {{datetime printedAt}} · NextGen ERP</div>`,
   goods_receipt: `<div class="header">
   <div>
     <h1>{{company.name}}</h1>

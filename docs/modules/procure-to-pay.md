@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Sprints 3.1 (6 Oct 2026) and 3.2 (7 Oct 2026) done: procure-to-pay complete |
-| **Code** | `backend/src/modules/{gst,purchase}/`, `database/src/schema/purchase.ts`, `frontend/src/app/(app)/purchase/` |
-| **Tests** | `backend/test/unit/{gst-engine,valuation}.test.ts`, `backend/test/e2e/{purchase,billing}.e2e.test.ts` |
+| **Status** | Sprints 3.1 (6 Oct 2026), 3.2 and 3.3 (7 Oct 2026) done: procure-to-pay and order-to-cash complete |
+| **Code** | `backend/src/modules/{gst,purchase,sales}/`, `database/src/schema/{purchase,sales}.ts`, `frontend/src/app/(app)/{purchase,sales}/` |
+| **Tests** | `backend/test/unit/{gst-engine,valuation}.test.ts`, `backend/test/e2e/{purchase,billing,sales}.e2e.test.ts` |
 
 ## Sprint plan
 
@@ -12,7 +12,7 @@
 |---|---|
 | **3.1** ✅ | GST engine · company GSTIN editing · purchase order (goods / services, amend with revisions, tolerance, short-close) · GRN against PO (accept / reject, batches, serials) · requisition → PO · reorder list → requisition · PO and GRN print formats |
 | **3.2** ✅ | Purchase invoice with 2-/3-way match (PO–GRN–invoice), ITC eligibility, RCM, TDS · purchase return & debit note · landed cost · MSME 45-day payment tracking · RFQ & comparative statement · vendor rating |
-| 3.3 | Quotation · sales order (credit-limit / overdue check, reservation, ATP) · pick, pack & delivery note · tax invoice / bill of supply / export / SEZ · sales return & credit note · schemes and discount approval |
+| **3.3** ✅ | Quotation · sales order (credit-limit / overdue check, reservation, ATP) · pick, pack & delivery note · tax invoice / bill of supply / export / SEZ · sales return & credit note · schemes and discount approval |
 | 3.4 | e-Invoice (IRN via GSP sandbox, signed QR) · e-Way Bill · job work (ITC-04) · import PO & Bill of Entry · HSN summary · OCR purchase invoice → draft |
 
 ## 1. GST engine (`gst/gst-engine.ts`)
@@ -127,3 +127,64 @@ Pure functions, unit-tested for every scenario below.
 
 - Payments, vendor ledgers and GL postings (including TDS, input tax credit, reverse-charge liability and the unabsorbed landed cost) come with accounting in Phase 4. `paidAmount` is in place for that.
 - Vendors can't yet submit quotes themselves through a portal link; quotes are entered by the buyer. Planned with the supplier portal (Phase 15).
+
+## Order-to-cash (Sprint 3.3)
+
+Code: `backend/src/modules/sales/`, schema `database/src/schema/sales.ts` (migrations 0011, 0012), pages under `frontend/src/app/(app)/sales/`, print at `/print/sales/[id]`.
+
+### Pricing (`sales/common.ts → priceSelling`, `POST /sales/preview`)
+
+- A blank rate takes the customer's price list (`parties.price_list_id`), else the default list, picking the largest quantity break the line reaches. Tax-inclusive lists are converted to the pre-GST rate.
+- GST is outward: place of supply is the ship-to state (`96` for exports); SEZ and exports under LUT are zero-rated. The invoice type follows: tax invoice, bill of supply (composition / exempt), export, SEZ.
+- Each line keeps the list rate, the item's current cost (valuation) and the discount below list. The header keeps cost, margin % and the largest discount %. These are the facts for approval rules.
+
+### Approval conditions
+
+Approval rules gained an optional condition (`approval_rules.condition`, `condition_value`). The rule matches only when the condition holds:
+
+- `discount_above`: largest line discount below list > value %.
+- `margin_below`: document margin < value %.
+- `credit_exceeded`: the customer's credit check failed.
+
+### Quotation (`sales_quotation`, `QTN`)
+
+Priced like an order, valid until a date, approved by discount / margin rules. An approved, unexpired quotation converts once into a draft sales order (`POST /sales/quotations/:id/order`); the quotation then completes.
+
+### Sales order (`sales_order`, `SO`)
+
+- **Credit check on submit**: exposure = receivables (after credit notes) + open orders + this order, against the customer's credit limit. Any overdue bill also fails it. The result is stored on the order (`credit_check`).
+- If it fails:
+  - an approval rule with condition `credit_exceeded` routes it for approval; otherwise
+  - a user with `sales.orders.credit_override` must give a reason (403 until they do; the reason is logged in the activity); otherwise
+  - the submission is refused (409).
+- **Reservation / ATP**: approved, undelivered order quantity counts as reserved. `GET /sales/atp` returns on hand (nettable stores or one warehouse), reserved, available, on order and the next receipt date. It is shown on the order form.
+- Amend with revisions (the customer cannot change); cancel only while nothing is delivered or invoiced; short-close otherwise.
+- Status completes when every stock line is delivered and every line is invoiced.
+
+### Delivery note (`delivery_note`, `DLV`)
+
+Against an approved order, from a dispatch warehouse, with batch pick (FEFO suggested) and serials. Posting moves stock out at valuation cost (`cost_value` kept per line for margin and returns). Proof of delivery (receiver, date, note) can be recorded on a posted delivery. A delivery cannot be cancelled once invoiced.
+
+### Sales invoice (`sales_invoice`, `INV/{FY}/{SEQ}`)
+
+- Lines bill a posted delivery line, an order line (services, or goods dispatched with the invoice: **invoice-cum-challan**, stock leaves on approval from the chosen warehouse), or nothing (direct sale). `GET /sales/invoices/billable` lists what is open for a customer.
+- Due date = invoice date + credit days (invoice → order → customer). Outstanding = total − received − credited.
+- The print format is GST-compliant (rule 46): supplier and recipient GSTIN, place of supply, HSN-wise tax summary, amount in words, reverse-charge flag, signature block.
+- Cancel is refused when credit notes or receipts exist, or when an IRN was generated (Sprint 3.4).
+
+### Credit note (`credit_note`, `CN/{FY}/{SEQ}`)
+
+Against an approved invoice, using the invoice's own GST treatment:
+
+- **Return**: goods come back into a chosen warehouse (e.g. quality hold) at the cost they left at; returned quantity is tracked per invoice line.
+- **Price adjustment**: reduces what is owed, no stock.
+
+Approval adds to the invoice's `credited_amount`, which reduces outstanding and credit exposure.
+
+### Receivables
+
+`GET /sales/receivables`: outstanding per customer aged by due date (not due, 1–30, 31–60, 61–90, over 90). Page: Sales → Receivables.
+
+### Permissions
+
+`sales.quotations.read/manage`, `sales.orders.read/manage/cancel/credit_override`, `sales.deliveries.read/manage/cancel`, `sales.invoices.read/manage/cancel` (credit notes use the invoice permissions).

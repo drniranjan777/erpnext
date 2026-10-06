@@ -49,6 +49,19 @@ export const PERMISSIONS = {
   'purchase.invoices.cancel': 'Cancel posted purchase invoices, debit notes and landed costs',
   'purchase.rfq.read': 'View requests for quotation and comparisons',
   'purchase.rfq.manage': 'Create RFQs, record vendor quotes and award orders',
+  // Sales
+  'sales.quotations.read': 'View sales quotations',
+  'sales.quotations.manage': 'Create, edit and submit sales quotations',
+  'sales.orders.read': 'View sales orders',
+  'sales.orders.manage': 'Create, edit and submit sales orders',
+  'sales.orders.cancel': 'Cancel, amend and short-close sales orders',
+  'sales.orders.credit_override': 'Submit orders above the customer credit limit (with a reason)',
+  'sales.deliveries.read': 'View delivery notes',
+  'sales.deliveries.manage': 'Create and post delivery notes (dispatch)',
+  'sales.deliveries.cancel': 'Cancel posted delivery notes',
+  'sales.invoices.read': 'View sales invoices, credit notes and receivables',
+  'sales.invoices.manage': 'Create and submit sales invoices and credit notes',
+  'sales.invoices.cancel': 'Cancel sales invoices and credit notes',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

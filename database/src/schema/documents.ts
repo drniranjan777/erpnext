@@ -202,6 +202,13 @@ export const approvalRules = pgTable(
     branchId: uuid('branch_id').references(() => branches.id, { onDelete: 'cascade' }),
     minAmount: numeric('min_amount', { precision: 18, scale: 2 }),
     maxAmount: numeric('max_amount', { precision: 18, scale: 2 }),
+    /**
+     * Extra condition on facts the module supplies at submission:
+     * discount_above (max line discount % > value), margin_below (margin % < value),
+     * credit_exceeded (customer credit limit or overdue breached).
+     */
+    condition: text('condition'),
+    conditionValue: numeric('condition_value', { precision: 10, scale: 2 }),
     /** Lower runs first; the first matching rule wins. */
     priority: integer('priority').notNull().default(100),
     isActive: boolean('is_active').notNull().default(true),

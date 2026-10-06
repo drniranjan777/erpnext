@@ -20,7 +20,7 @@ import { DatabaseService } from '../../database/database.service';
 import { AuditService } from '../audit/audit.service';
 import { WebhooksService, type WebhookEvent } from '../integrations/webhooks.service';
 import { NotificationsService, type Recipient } from '../notifications/notifications.service';
-import { ApprovalsService, type ApprovalStepView } from './approvals.service';
+import { ApprovalsService, type ApprovalFacts, type ApprovalStepView } from './approvals.service';
 import { NumberingService } from './numbering.service';
 
 export type DocumentRow = typeof documents.$inferSelect;
@@ -97,6 +97,11 @@ export class DocumentsService {
     private readonly webhooks: WebhooksService,
   ) {}
 
+  /** The approval rule that would apply to a document with these facts (none = auto-approve). */
+  matchApprovalRule(tx: Transaction, doc: DocumentRow, facts: ApprovalFacts = {}) {
+    return this.approvals.matchRule(tx, doc, facts);
+  }
+
   registerHooks(docType: DocType, hooks: DocumentHooks) {
     this.hooks.set(docType, hooks);
   }
@@ -172,7 +177,7 @@ export class DocumentsService {
     return row;
   }
 
-  async submit(tx: Transaction, auth: AuthContext, doc: DocumentRow, meta: RequestMeta): Promise<DocumentRow> {
+  async submit(tx: Transaction, auth: AuthContext, doc: DocumentRow, meta: RequestMeta, facts: ApprovalFacts = {}): Promise<DocumentRow> {
     this.assertEditable(doc);
     if (!isDocType(doc.docType)) throw new BadRequestException('Unknown document type');
     let { number, fiscalYear, seriesId } = doc;
@@ -181,7 +186,7 @@ export class DocumentsService {
       ({ number, fiscalYear, seriesId } = allocation);
     }
     const withNumber = { ...doc, number, fiscalYear, seriesId };
-    const flow = await this.approvals.start(tx, auth, withNumber);
+    const flow = await this.approvals.start(tx, auth, withNumber, facts);
     const now = new Date();
     const updated = await this.update(tx, auth, doc, {
       number,

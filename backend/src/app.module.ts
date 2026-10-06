@@ -26,6 +26,7 @@ import { MastersModule } from './modules/masters/masters.module';
 import { OrgModule } from './modules/org/org.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { PurchaseModule } from './modules/purchase/purchase.module';
+import { SalesModule } from './modules/sales/sales.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { PurchaseModule } from './modules/purchase/purchase.module';
     InventoryModule,
     ImportsModule,
     PurchaseModule,
+    SalesModule,
     AdminModule,
     PrivacyModule,
   ],

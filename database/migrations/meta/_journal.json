@@ -78,6 +78,20 @@
       "when": 1791311502709,
       "tag": "0010_purchase_invoicing",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791313146215,
+      "tag": "0011_order_to_cash",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791313753009,
+      "tag": "0012_invoice_credited",
+      "breakpoints": true
     }
   ]
 }

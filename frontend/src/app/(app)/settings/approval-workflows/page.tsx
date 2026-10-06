@@ -32,6 +32,8 @@ interface Rule {
   branchName: string | null;
   minAmount: string | null;
   maxAmount: string | null;
+  condition: "discount_above" | "margin_below" | "credit_exceeded" | null;
+  conditionValue: string | null;
   priority: number;
   isActive: boolean;
   steps: Step[];
@@ -39,7 +41,14 @@ interface Rule {
 
 const KEY = ["platform", "approval-rules"];
 
-function slab(r: Pick<Rule, "minAmount" | "maxAmount">) {
+const CONDITIONS = { discount_above: "Discount above", margin_below: "Margin below", credit_exceeded: "Customer over credit limit" } as const;
+
+function slab(r: Pick<Rule, "minAmount" | "maxAmount" | "condition" | "conditionValue">) {
+  const extra = r.condition ? ` · ${CONDITIONS[r.condition]}${r.conditionValue ? ` ${Number(r.conditionValue)}%` : ""}` : "";
+  return amountSlab(r) + extra;
+}
+
+function amountSlab(r: Pick<Rule, "minAmount" | "maxAmount">) {
   if (!r.minAmount && !r.maxAmount) return "Any amount";
   if (r.minAmount && r.maxAmount) return `${formatMoney(r.minAmount)} – ${formatMoney(r.maxAmount)}`;
   return r.minAmount ? `${formatMoney(r.minAmount)} and above` : `Up to ${formatMoney(r.maxAmount)}`;
@@ -130,6 +139,8 @@ function RuleDialog({ rule, onClose }: { rule: Rule | null; onClose: () => void 
     branchId: rule?.branchId ?? "",
     minAmount: rule?.minAmount ?? "",
     maxAmount: rule?.maxAmount ?? "",
+    condition: rule?.condition ?? "",
+    conditionValue: rule?.conditionValue ?? "",
     priority: rule?.priority ?? 100,
     isActive: rule?.isActive ?? true,
     steps: rule?.steps.map((s) => ({ name: s.name, approverRoleId: s.approverRoleId, approverUserId: s.approverUserId })) ?? [
@@ -144,6 +155,8 @@ function RuleDialog({ rule, onClose }: { rule: Rule | null; onClose: () => void 
         branchId: form.branchId || null,
         minAmount: form.minAmount || null,
         maxAmount: form.maxAmount || null,
+        condition: form.condition || null,
+        conditionValue: form.condition && form.condition !== "credit_exceeded" ? form.conditionValue || null : null,
       };
       return rule ? api(`/platform/approval-rules/${rule.id}`, { method: "PUT", body }) : api("/platform/approval-rules", { body });
     },
@@ -198,6 +211,23 @@ function RuleDialog({ rule, onClose }: { rule: Rule | null; onClose: () => void 
           <Field label="Maximum amount (₹)" error={errors.maxAmount} hint="Leave empty for no upper limit">
             {(p) => <Input {...p} inputMode="decimal" value={form.maxAmount} onChange={(e) => setForm({ ...form, maxAmount: e.target.value })} />}
           </Field>
+          <Field label="Only when" hint="For quotations and sales orders: discount, margin or credit" error={errors.condition}>
+            {(p) => (
+              <Select {...p} value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value as typeof form.condition })}>
+                <option value="">Always (amount only)</option>
+                {Object.entries(CONDITIONS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          {form.condition && form.condition !== "credit_exceeded" && (
+            <Field label="Percentage" required error={errors.conditionValue}>
+              {(p) => <Input {...p} inputMode="decimal" value={form.conditionValue} onChange={(e) => setForm({ ...form, conditionValue: e.target.value })} />}
+            </Field>
+          )}
           <Field label="Branch">
             {(p) => (
               <Select {...p} value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>

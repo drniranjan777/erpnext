@@ -44,8 +44,8 @@ export class ApprovalsService {
 
   // ---- Workflow engine (inside document transactions) ---------------------------
 
-  /** Finds the first active rule matching the document (type, scope, amount slab). */
-  async matchRule(tx: Transaction, doc: DocumentRow) {
+  /** Finds the first active rule matching the document (type, scope, amount slab, condition). */
+  async matchRule(tx: Transaction, doc: DocumentRow, facts: ApprovalFacts = {}) {
     const candidates = await tx
       .select()
       .from(approvalRules)
@@ -62,7 +62,8 @@ export class ApprovalsService {
     return candidates.find(
       (r) =>
         (r.minAmount === null || amount.cmp(Decimal.from(r.minAmount)) >= 0) &&
-        (r.maxAmount === null || amount.cmp(Decimal.from(r.maxAmount)) <= 0),
+        (r.maxAmount === null || amount.cmp(Decimal.from(r.maxAmount)) <= 0) &&
+        conditionHolds(r.condition, r.conditionValue, facts),
     );
   }
 
@@ -70,14 +71,14 @@ export class ApprovalsService {
    * Snapshots the matching rule's steps onto the document for a new round.
    * Returns false when no approval is required.
    */
-  async start(tx: Transaction, auth: AuthContext, doc: DocumentRow): Promise<{ required: boolean; round: number; ruleName?: string }> {
+  async start(tx: Transaction, auth: AuthContext, doc: DocumentRow, facts: ApprovalFacts = {}): Promise<{ required: boolean; round: number; ruleName?: string }> {
     const [last] = await tx
       .select({ round: sql<number>`coalesce(max(${documentApprovals.round}), 0)` })
       .from(documentApprovals)
       .where(eq(documentApprovals.documentId, doc.id));
     const round = Number(last?.round ?? 0) + 1;
 
-    const rule = await this.matchRule(tx, doc);
+    const rule = await this.matchRule(tx, doc, facts);
     if (!rule) return { required: false, round };
     const steps = await tx.select().from(approvalRuleSteps).where(eq(approvalRuleSteps.ruleId, rule.id)).orderBy(asc(approvalRuleSteps.stepNo));
     if (!steps.length) return { required: false, round };
@@ -297,6 +298,8 @@ export class ApprovalsService {
         branchId: rule.branchId ?? null,
         minAmount: rule.minAmount ?? null,
         maxAmount: rule.maxAmount ?? null,
+        condition: rule.condition ?? null,
+        conditionValue: rule.condition && rule.condition !== 'credit_exceeded' ? (rule.conditionValue ?? null) : null,
       };
       let ruleId = id;
       if (id) {
@@ -351,5 +354,37 @@ export class ApprovalsService {
         ...meta,
       });
     });
+  }
+}
+
+
+/** Facts a module supplies at submission for rule conditions. */
+export interface ApprovalFacts {
+  /** Largest discount below list price on any line, %. */
+  maxDiscountPct?: string | null;
+  /** Gross margin of the document, %. */
+  marginPct?: string | null;
+  /** Customer credit limit exceeded or overdue invoices outstanding. */
+  creditExceeded?: boolean;
+}
+
+export const APPROVAL_CONDITIONS = {
+  discount_above: 'Discount above (%)',
+  margin_below: 'Margin below (%)',
+  credit_exceeded: 'Customer credit limit exceeded',
+} as const;
+
+/** A rule without a condition always applies; one with a condition applies only when the fact is present and met. */
+function conditionHolds(condition: string | null, value: string | null, facts: ApprovalFacts) {
+  if (!condition) return true;
+  switch (condition) {
+    case 'discount_above':
+      return facts.maxDiscountPct !== undefined && facts.maxDiscountPct !== null && Decimal.from(facts.maxDiscountPct).cmp(Decimal.from(value ?? '0')) > 0;
+    case 'margin_below':
+      return facts.marginPct !== undefined && facts.marginPct !== null && Decimal.from(facts.marginPct).cmp(Decimal.from(value ?? '0')) < 0;
+    case 'credit_exceeded':
+      return facts.creditExceeded === true;
+    default:
+      return false;
   }
 }

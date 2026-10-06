@@ -8,3 +8,4 @@ export * from './platform';
 export * from './saas';
 export * from './masters';
 export * from './inventory';
+export * from './sales';

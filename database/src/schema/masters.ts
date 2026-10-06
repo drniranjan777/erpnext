@@ -210,6 +210,8 @@ export const parties = pgTable(
     paymentTerms: text('payment_terms'),
     tdsSection: text('tds_section'),
     tcsApplicable: boolean('tcs_applicable').notNull().default(false),
+    /** Selling price list for this customer (else the default list). */
+    priceListId: uuid('price_list_id'),
     notes: text('notes'),
     isActive: boolean('is_active').notNull().default(true),
     customFields: jsonb('custom_fields').$type<Record<string, unknown>>().notNull().default({}),
