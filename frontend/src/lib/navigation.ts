@@ -186,7 +186,7 @@ export const NAVIGATION: NavSection[] = [
   {
     title: "Insights",
     items: [
-      { label: "Reports", href: "/reports", icon: BarChart3, comingInPhase: 6 },
+      { label: "Reports", href: "/reports", icon: BarChart3 },
       { label: "AI Copilot", href: "/copilot", icon: Sparkles, comingInPhase: 6 },
     ],
   },
