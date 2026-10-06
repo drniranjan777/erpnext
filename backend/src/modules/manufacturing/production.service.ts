@@ -97,6 +97,23 @@ export const stopCardSchema = z.object({
 });
 export const recordCardSchema = startCardSchema.extend(stopCardSchema.shape);
 
+/** Kiosk events, possibly replayed after a network drop; applied once per clientRef. */
+export const syncSchema = z.object({
+  events: z
+    .array(
+      z.discriminatedUnion('type', [
+        startCardSchema.extend({ type: z.literal('start'), clientRef: z.string().trim().min(8).max(64), at: z.iso.datetime({ offset: true }) }),
+        stopCardSchema.extend({ type: z.literal('stop'), clientRef: z.string().trim().min(8).max(64).optional(), cardId: z.uuid().optional(), at: z.iso.datetime({ offset: true }) }),
+      ]),
+    )
+    .min(1)
+    .max(200),
+});
+export type SyncInput = z.infer<typeof syncSchema>;
+
+/** Offline events older than this are refused (a week of shifts). */
+const MAX_EVENT_AGE_MS = 7 * 86_400_000;
+
 const OPEN = ['released', 'in_progress', 'completed'];
 
 /**
@@ -426,7 +443,7 @@ export class ProductionService implements OnModuleInit {
     return this.database.run(auth, (tx) => this.startTx(tx, auth, input));
   }
 
-  private async startTx(tx: Transaction, auth: AuthContext, input: z.infer<typeof startCardSchema>) {
+  private async startTx(tx: Transaction, auth: AuthContext, input: z.infer<typeof startCardSchema>, opts: { startedAt?: Date; clientRef?: string } = {}) {
     const op = await this.operation(tx, input.operationId);
     const wo = await this.openOrder(tx, op.workOrderId);
     if (input.machineId) {
@@ -441,7 +458,7 @@ export class ProductionService implements OnModuleInit {
     }
     const [card] = await tx
       .insert(jobCards)
-      .values({ tenantId: auth.tenantId, workOrderId: op.workOrderId, operationId: op.id, operatorId: auth.userId, operatorName, machineId: input.machineId ?? null, toolId, createdBy: auth.userId, updatedBy: auth.userId })
+      .values({ tenantId: auth.tenantId, workOrderId: op.workOrderId, operationId: op.id, operatorId: auth.userId, operatorName, machineId: input.machineId ?? null, toolId, startedAt: opts.startedAt ?? new Date(), clientRef: opts.clientRef ?? null, createdBy: auth.userId, updatedBy: auth.userId })
       .returning();
     if (op.status === 'pending') await tx.update(workOrderOperations).set({ status: 'in_progress' }).where(eq(workOrderOperations.id, op.id));
     if (wo.wo.stage === 'released') await tx.update(workOrders).set({ stage: 'in_progress' }).where(eq(workOrders.id, wo.wo.id));
@@ -453,7 +470,7 @@ export class ProductionService implements OnModuleInit {
     return this.database.run(auth, (tx) => this.stopTx(tx, auth, id, input));
   }
 
-  private async stopTx(tx: Transaction, auth: AuthContext, id: string, input: z.infer<typeof stopCardSchema>) {
+  private async stopTx(tx: Transaction, auth: AuthContext, id: string, input: z.infer<typeof stopCardSchema>, opts: { endedAt?: Date } = {}) {
     const [card] = await tx.select().from(jobCards).where(eq(jobCards.id, id)).for('update');
     if (!card) throw new NotFoundException('Job card not found');
     if (card.status !== 'running') throw new ConflictException('This job card is already stopped');
@@ -474,7 +491,8 @@ export class ProductionService implements OnModuleInit {
       throw new BadRequestException(prev ? `Only ${Number(prev.goodQty)} have come through ${prev.name}; ${Number(D(op.goodQty).add(D(op.rejectQty)))} already booked here` : `That is more than 10% over the ordered ${Number(wo.wo.qty)}`);
     }
     if (rej.cmp(ZERO) > 0 && !input.rejectReason) throw new BadRequestException('Say why the pieces were rejected');
-    const ended = new Date();
+    const ended = opts.endedAt ?? new Date();
+    if (ended < card.startedAt) throw new BadRequestException('The job card stops before it started');
     const minutes = op.isSubcontract ? '0' : (input.minutes ?? Math.max(0, (ended.getTime() - card.startedAt.getTime()) / 60000).toFixed(2));
     const [wc] = await tx.select().from(workCenters).where(eq(workCenters.id, op.workCenterId));
     const cost = op.isSubcontract ? { labour: '0.00', machine: '0.00', overhead: '0.00' } : timeCost(minutes, { labour: wc.labourRate, machine: wc.machineRate, overhead: wc.overheadRate });
@@ -508,6 +526,55 @@ export class ProductionService implements OnModuleInit {
     });
   }
 
+  /**
+   * Applies kiosk events in order, each in its own transaction so one bad event does not hold
+   * back the rest. A start whose clientRef exists, or a stop of a card already stopped, is
+   * reported as already applied.
+   */
+  async sync(auth: AuthContext, input: SyncInput) {
+    const results: { clientRef: string | null; type: string; ok: boolean; already?: boolean; cardId?: string; error?: string }[] = [];
+    for (const e of input.events) {
+      const at = new Date(e.at);
+      const ref = e.clientRef ?? null;
+      try {
+        if (Date.now() - at.getTime() > MAX_EVENT_AGE_MS) throw new BadRequestException('The event is more than a week old; book it on the work order instead');
+        if (at.getTime() - Date.now() > 5 * 60_000) throw new BadRequestException('The event is in the future; check the tablet clock');
+        const r = await this.database.run(auth, async (tx) => {
+          const [existing] = ref ? await tx.select().from(jobCards).where(eq(jobCards.clientRef, ref)) : e.type === 'stop' && e.cardId ? await tx.select().from(jobCards).where(eq(jobCards.id, e.cardId)) : [];
+          if (e.type === 'start') {
+            if (existing) return { cardId: existing.id, already: true };
+            const card = await this.startTx(tx, auth, e, { startedAt: at, clientRef: e.clientRef });
+            return { cardId: card.id, already: false };
+          }
+          if (!existing) throw new NotFoundException('No job card for this stop');
+          if (existing.status !== 'running') return { cardId: existing.id, already: true };
+          await this.stopTx(tx, auth, existing.id, e, { endedAt: at });
+          return { cardId: existing.id, already: false };
+        });
+        results.push({ clientRef: ref, type: e.type, ok: true, ...r });
+      } catch (err) {
+        results.push({ clientRef: ref, type: e.type, ok: false, error: err instanceof Error ? err.message : 'Failed' });
+      }
+    }
+    return { results };
+  }
+
+  /** A scanned code: an operation's traveller code (JC:…) or a work order number. */
+  scan(auth: AuthContext, code: string) {
+    return this.database.run(auth, async (tx) => {
+      const c = code.trim();
+      const opId = /^JC:([0-9a-f-]{36})$/i.exec(c)?.[1];
+      if (opId) {
+        const [op] = await tx.select({ id: workOrderOperations.id, workOrderId: workOrderOperations.workOrderId, workCenterId: workOrderOperations.workCenterId, seq: workOrderOperations.seq }).from(workOrderOperations).where(eq(workOrderOperations.id, opId));
+        if (!op) throw new NotFoundException('That job card code is not known here');
+        return { kind: 'operation' as const, ...op };
+      }
+      const [wo] = await tx.select({ id: documents.id }).from(documents).where(and(eq(documents.docType, 'work_order'), sql`upper(${documents.number}) = upper(${c})`));
+      if (wo) return { kind: 'work_order' as const, id: wo.id };
+      throw new NotFoundException(`Nothing found for ${c}`);
+    });
+  }
+
   /** Open operations of released orders and running job cards: the shop-floor board. */
   shopFloor(auth: AuthContext, q: { workCenterId?: string }) {
     return this.database.run(auth, async (tx) => {
@@ -536,7 +603,7 @@ export class ProductionService implements OnModuleInit {
         .where(and(inArray(workOrders.stage, ['released', 'in_progress']), eq(documents.status, 'approved'), ne(workOrderOperations.status, 'done'), q.workCenterId ? eq(workOrderOperations.workCenterId, q.workCenterId) : undefined))
         .orderBy(asc(workOrders.priority), sql`${workOrders.plannedEnd} nulls last`, asc(documents.number), asc(workOrderOperations.seq));
       const running = await tx
-        .select({ id: jobCards.id, operationId: jobCards.operationId, operatorName: jobCards.operatorName, startedAt: jobCards.startedAt, machine: machines.code, tool: tools.code })
+        .select({ id: jobCards.id, operationId: jobCards.operationId, operatorName: jobCards.operatorName, startedAt: jobCards.startedAt, clientRef: jobCards.clientRef, machine: machines.code, tool: tools.code })
         .from(jobCards)
         .leftJoin(machines, eq(machines.id, jobCards.machineId))
         .leftJoin(tools, eq(tools.id, jobCards.toolId))

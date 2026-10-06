@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCheck, PackageMinus, PackagePlus, Timer, Undo2 } from "lucide-react";
+import { CheckCheck, PackageMinus, PackagePlus, Printer, Timer, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -134,6 +134,11 @@ export default function WorkOrderPage() {
               <Button variant="secondary" onClick={() => setDialog("receive")}>
                 <PackagePlus className="size-4" aria-hidden /> Receive output
               </Button>
+            )}
+            {w.status === "approved" && w.operations.length > 0 && (
+              <Link href={`/print/work-orders/${w.id}`} target="_blank" className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-medium hover:bg-surface-muted">
+                <Printer className="size-4" aria-hidden /> Traveller
+              </Link>
             )}
             {w.canClose && (
               <Button variant="secondary" onClick={() => setDialog("close")}>

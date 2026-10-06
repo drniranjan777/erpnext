@@ -162,6 +162,13 @@
       "when": 1791327272692,
       "tag": "0022_quality",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791328407228,
+      "tag": "0023_job_card_client_ref",
+      "breakpoints": true
     }
   ]
 }

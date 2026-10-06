@@ -355,9 +355,11 @@ export const jobCards = pgTable(
     jobWorkChallanId: uuid('job_work_challan_id').references(() => jobWorkChallans.id, { onDelete: 'set null' }),
     rejectReason: text('reject_reason'),
     notes: text('notes'),
+    /** Set by the shop-floor kiosk so events replayed after a network drop are applied once. */
+    clientRef: text('client_ref'),
     ...auditColumns(),
   },
-  (t) => [index('job_cards_wo_idx').on(t.workOrderId), index('job_cards_status_idx').on(t.tenantId, t.status)],
+  (t) => [index('job_cards_wo_idx').on(t.workOrderId), index('job_cards_status_idx').on(t.tenantId, t.status), uniqueIndex('job_cards_client_ref_uq').on(t.tenantId, t.clientRef)],
 );
 
 /** Material issue / return, production receipt and close of a work order (doc type "production_entry"). */

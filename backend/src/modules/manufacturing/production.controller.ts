@@ -7,7 +7,8 @@ import { requestMeta } from '../../common/request-meta';
 import { optionalText } from '../../common/validators';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { cancelSchema, type CancelInput } from '../documents/documents.schemas';
-import { issueSchema, ProductionService, receiptSchema, recordCardSchema, returnSchema, startCardSchema, stopCardSchema, type IssueInput, type ReceiptInput } from './production.service';
+import { issueSchema, ProductionService, receiptSchema, recordCardSchema, returnSchema, startCardSchema, stopCardSchema, syncSchema, type IssueInput, type ReceiptInput, type SyncInput } from './production.service';
+import { ScrapInsightsService } from './scrap-insights.service';
 import { createWorkOrderSchema, fromSalesOrderSchema, releaseSchema, updateWorkOrderSchema, WorkOrdersService, type CreateWorkOrderInput } from './work-orders.service';
 
 const idPipe = new ZodValidationPipe(z.object({ id: z.uuid() }));
@@ -34,6 +35,7 @@ export class ProductionController {
   constructor(
     private readonly workOrders: WorkOrdersService,
     private readonly production: ProductionService,
+    private readonly scrap: ScrapInsightsService,
   ) {}
 
   // ---- Work orders ----
@@ -157,5 +159,25 @@ export class ProductionController {
   @ApiZodBody(recordCardSchema)
   record(@Auth() auth: AuthContext, @Body(new ZodValidationPipe(recordCardSchema)) b: z.infer<typeof recordCardSchema>) {
     return this.production.record(auth, b);
+  }
+  @Post('job-cards/sync')
+  @HttpCode(200)
+  @RequirePermissions('manufacturing.shopfloor.record')
+  @ApiZodBody(syncSchema)
+  sync(@Auth() auth: AuthContext, @Body(new ZodValidationPipe(syncSchema)) b: SyncInput) {
+    return this.production.sync(auth, b);
+  }
+  @Get('scan')
+  @RequirePermissions('manufacturing.production.read')
+  scan(@Auth() auth: AuthContext, @Query(new ZodValidationPipe(z.object({ code: z.string().trim().min(1).max(80) }))) q: { code: string }) {
+    return this.production.scan(auth, q.code);
+  }
+
+  // ---- Insights ----
+
+  @Get('insights/scrap')
+  @RequirePermissions('manufacturing.production.read')
+  scrapInsights(@Auth() auth: AuthContext, @Query(new ZodValidationPipe(z.object({ from: z.iso.date().optional(), to: z.iso.date().optional() }))) q: { from?: string; to?: string }) {
+    return this.scrap.report(auth, q);
   }
 }

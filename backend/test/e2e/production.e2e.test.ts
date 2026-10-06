@@ -242,3 +242,50 @@ describe('backflush, rejects and rework', () => {
     expect(mto.body.errors[0].path).toBe('salesOrderLineId');
   });
 });
+
+describe('kiosk sync, scanning and scrap insights', () => {
+  const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+
+  it('applies kiosk events once, with the tablet times', async () => {
+    let w = await created(W, { itemId: item.bracket.id, qty: '10', sourceWarehouseId: wh.MAIN, targetWarehouseId: wh.MAIN });
+    w = await ok(await a.client.post(`${W}/${w.id}/submit`, { version: w.version }));
+    const opId = op(w, 10).id;
+    const start = { type: 'start', clientRef: 'kiosk-0001-a', operationId: opId, operatorName: 'Lakshmi', at: ago(30) };
+    const stop = { type: 'stop', clientRef: 'kiosk-0001-a', goodQty: '10', at: ago(10) };
+    const first = await ok(await a.client.post('/manufacturing/job-cards/sync', { events: [start, stop] }));
+    expect(first.results.map((r: any) => [r.type, r.ok, r.already])).toEqual([['start', true, false], ['stop', true, false]]);
+    // Replayed after a dropped response: nothing happens twice.
+    const again = await ok(await a.client.post('/manufacturing/job-cards/sync', { events: [start, stop] }));
+    expect(again.results.map((r: any) => [r.ok, r.already])).toEqual([[true, true], [true, true]]);
+    const cards = await ok(await a.client.get(`${W}/${w.id}/job-cards`));
+    expect(cards).toHaveLength(1);
+    // 20 minutes between the tablet's start and stop × ₹7 a minute.
+    expect(cards[0]).toMatchObject({ minutes: '20.00', operatorName: 'Lakshmi', goodQty: '10.0000', labourCost: '40.00', machineCost: '80.00', overheadCost: '20.00' });
+    const bad = await ok(await a.client.post('/manufacturing/job-cards/sync', {
+      events: [
+        { type: 'stop', clientRef: 'kiosk-unknown', goodQty: '1', at: ago(1) },
+        { type: 'start', clientRef: 'kiosk-0002-old', operationId: op(w, 20).id, at: new Date(Date.now() - 8 * 86_400_000).toISOString() },
+        { type: 'start', clientRef: 'kiosk-0003-new', operationId: op(w, 20).id, at: new Date(Date.now() + 3_600_000).toISOString() },
+      ],
+    }));
+    expect(bad.results.map((r: any) => r.ok)).toEqual([false, false, false]);
+    expect(bad.results[1].error).toMatch(/more than a week old/);
+    expect(bad.results[2].error).toMatch(/future/);
+    ctx.w3 = w;
+  });
+
+  it('resolves scanned traveller codes and work order numbers', async () => {
+    const opId = op(ctx.w3, 20).id;
+    expect(await ok(await a.client.get(`/manufacturing/scan?code=JC:${opId}`))).toMatchObject({ kind: 'operation', id: opId, workOrderId: ctx.w3.id, seq: 20 });
+    expect(await ok(await a.client.get(`/manufacturing/scan?code=${encodeURIComponent(ctx.w3.number.toLowerCase())}`))).toMatchObject({ kind: 'work_order', id: ctx.w3.id });
+    expect((await a.client.get('/manufacturing/scan?code=NOPE-1')).status).toBe(404);
+  });
+
+  it('reports scrap by reason, work centre and week', async () => {
+    const r = await ok(await a.client.get('/manufacturing/insights/scrap'));
+    expect(r.totals.rejected).toBeGreaterThanOrEqual(1);
+    expect(r.byReason.find((x: any) => x.reason === 'Thread stripped')).toMatchObject({ qty: 1 });
+    expect(r.byWorkCenter.find((x: any) => x.key === 'ASSY')).toMatchObject({ rejected: 1 });
+    expect(r.weekly.length).toBeGreaterThanOrEqual(1);
+  });
+});

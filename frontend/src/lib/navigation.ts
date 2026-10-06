@@ -1,4 +1,6 @@
 import {
+  Tablet,
+  TrendingDown,
   GitBranch,
   Factory,
   MonitorPlay,
@@ -119,6 +121,8 @@ export const NAVIGATION: NavSection[] = [
       { label: "Vendor performance", href: "/purchase/vendor-performance", icon: Gauge, permissions: ["purchase.orders.read"] },
       { label: "Work orders", href: "/manufacturing/work-orders", icon: Factory, permissions: ["manufacturing.production.read"] },
       { label: "Shop floor", href: "/manufacturing/shop-floor", icon: MonitorPlay, permissions: ["manufacturing.production.read"] },
+      { label: "Shop-floor kiosk", href: "/manufacturing/kiosk", icon: Tablet, permissions: ["manufacturing.shopfloor.record"] },
+      { label: "Scrap and rejects", href: "/manufacturing/scrap", icon: TrendingDown, permissions: ["manufacturing.production.read"] },
       { label: "Bills of materials", href: "/manufacturing/boms", icon: Network, permissions: ["manufacturing.engineering.read"] },
       { label: "Work centres & tools", href: "/manufacturing/resources", icon: Cog, permissions: ["manufacturing.engineering.read"] },
       { label: "Inspections", href: "/quality/inspections", icon: ClipboardCheck, permissions: ["quality.inspections.read"] },

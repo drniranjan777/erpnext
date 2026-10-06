@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Sprints 5.1–5.3 (7 Oct 2026) done: engineering data; work orders, shop floor and production costing; traceability and QC ([quality.md](quality.md)) |
-| **Code** | `backend/src/modules/manufacturing/`, `database/src/schema/manufacturing.ts` (migrations 0020, 0021), `frontend/src/app/(app)/manufacturing/` |
-| **Tests** | `backend/test/unit/bom-math.test.ts`, `backend/test/unit/production-math.test.ts`, `backend/test/e2e/manufacturing.e2e.test.ts`, `backend/test/e2e/production.e2e.test.ts` |
+| **Status** | **Phase 5 complete** (7 Oct 2026): engineering data; work orders, shop floor and production costing; traceability and QC ([quality.md](quality.md)); tablet kiosk, travellers, offline sync and scrap insights |
+| **Code** | `backend/src/modules/manufacturing/`, `database/src/schema/manufacturing.ts` (migrations 0020, 0021, 0023), `frontend/src/app/(app)/manufacturing/`, `frontend/public/sw.js` |
+| **Tests** | `backend/test/unit/bom-math.test.ts`, `backend/test/unit/production-math.test.ts`, `backend/test/unit/scrap-insights.test.ts`, `backend/test/e2e/manufacturing.e2e.test.ts`, `backend/test/e2e/production.e2e.test.ts` |
 
 ## Sprint plan
 
@@ -13,7 +13,7 @@
 | **5.1** ✅ | Work centres (capacity, hourly labour / machine / overhead rates) · machines · moulds, dies and tools with shot life · multi-level BOM with phantoms, alternates, scrap %, by-products · routing with operations and job-work steps · versions with effectivity and approval · explosion · standard cost roll-up · where-used |
 | **5.2** ✅ | Work orders (MTS, MTO from sales orders, rework), release with availability check and reservation, material issue and backflush, job cards per operation, production receipt with scrap / by-products, WIP and actual costing with variances posted to the ledger |
 | **5.3** ✅ | Lot / serial genealogy and as-built BOM; inspection plans (parameters, AQL sampling); incoming, in-process and final QC with accept / reject / rework. Spec: [quality.md](quality.md) |
-| 5.4 | Tablet shop-floor screens, barcode-driven job cards, offline PWA, scrap-trend insights |
+| **5.4** ✅ | Tablet shop-floor screens, barcode-driven job cards, offline PWA, scrap-trend insights |
 
 ## 1. Resources
 
@@ -123,6 +123,34 @@ For what has been made, actual against standard (positive = adverse):
 - **Other**: the standard unit cost differing from the BOM roll-up, and rounding.
 
 The report also shows the WIP balance, time booked but not yet absorbed, and the actual cost per unit. Planned and actual minutes are shown per operation.
+
+## 7. Shop-floor kiosk, travellers and scrap insights
+
+- **Traveller** (`/print/work-orders/:id`, from the work order once released):
+  - The order number as a Code 128 barcode.
+  - For each operation: a QR code `JC:<operation id>` and boxes for good, rejected and the operator's sign-off.
+  - The materials list with space for the batches issued.
+- **Kiosk** (`/manufacturing/kiosk`): a full-screen tablet view for one work centre.
+  - Big tiles for open operations, most urgent first, with running sittings.
+  - Scanning the traveller QR, or typing a work order number (`GET /manufacturing/scan?code`), opens the operation.
+  - **Start** books the operator and machine.
+  - **Stop** takes good and rejected counts on a number pad and a reject reason from one-tap chips.
+- **Offline**:
+  - Starts and stops are queued on the tablet, in local storage, with the tablet's own times. They are sent in order to `POST /manufacturing/job-cards/sync`.
+  - Each event carries a client reference (`job_cards.client_ref`, unique), so a batch replayed after a dropped response is applied once.
+  - Events more than a week old, or in the future, are refused, and the kiosk shows why.
+  - The last board seen is kept on the tablet. A service worker (`public/sw.js`) caches the app's static files and the kiosk page; API responses are never cached.
+  - The app has a web manifest, so tablets can install it, with a *Shop-floor kiosk* shortcut.
+  - Limits: queued events survive a reload, but a reload with no network cannot sign in again. Keep the kiosk open through a drop.
+- **Scrap and rejects** (`GET /manufacturing/insights/scrap?from&to`, default the last 12 weeks):
+  - Rejects from job cards plus in-process and final inspections.
+  - Broken down by work centre (rate), item, reason (Pareto with cumulative share) and ISO week. The cost is at the order's standard unit cost.
+  - Supplier reject rates come from incoming inspection.
+  - **Alerts**:
+    - a work centre whose latest week runs at twice its earlier rate (at least 5 rejects);
+    - one reason making up half the rejects;
+    - four weeks of rising rates;
+    - a supplier over 5% across two or more lots.
 
 ## Permissions
 
