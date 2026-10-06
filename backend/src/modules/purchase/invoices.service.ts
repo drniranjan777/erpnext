@@ -77,7 +77,7 @@ export class InvoicesService implements OnModuleInit {
   list(auth: AuthContext, q: ListPiQuery) {
     return this.database.run(auth, async (tx) => {
       const term = q.q?.replace(/[%_\\]/g, '');
-      const outstanding = sql<string>`(${purchaseInvoices.netPayable} - ${purchaseInvoices.paidAmount})`;
+      const outstanding = sql<string>`(${purchaseInvoices.netPayable} - ${purchaseInvoices.paidAmount} - ${purchaseInvoices.debitedAmount})`;
       const rows = await tx
         .select({
           id: documents.id,
@@ -569,7 +569,7 @@ export class InvoicesService implements OnModuleInit {
       purchaseOrder: po ?? null,
       ourGstin: own.gstin,
       stateTaxLabel: pi.placeOfSupply && UTGST_STATES.has(pi.placeOfSupply) ? 'UTGST' : 'SGST',
-      outstanding: D(pi.netPayable).sub(D(pi.paidAmount)).toFixed(2),
+      outstanding: D(pi.netPayable).sub(D(pi.paidAmount)).sub(D(pi.debitedAmount)).toFixed(2),
       daysToDue: pi.dueDate ? Math.round((Date.parse(pi.dueDate) - Date.parse(today)) / 86_400_000) : null,
       varianceNeedsNote: lines.some((l) => l.outOfTolerance) && !pi.varianceNote,
       lines,

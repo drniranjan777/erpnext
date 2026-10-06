@@ -312,8 +312,10 @@ export const purchaseInvoices = pgTable(
     rateTolerancePct: numeric('rate_tolerance_pct', { precision: 5, scale: 2 }).notNull().default('1'),
     rateVariance: money('rate_variance'),
     varianceNote: text('variance_note'),
-    /** Amount settled (payments arrive with accounting in Phase 4). */
+    /** Settled by payments. */
     paidAmount: money('paid_amount'),
+    /** Approved debit notes against this bill. */
+    debitedAmount: money('debited_amount'),
     notes: text('notes'),
   },
   (t) => [index('pi_vendor_idx').on(t.tenantId, t.vendorId), index('pi_supplier_no_idx').on(t.tenantId, t.vendorId, t.supplierInvoiceNo), index('pi_due_idx').on(t.tenantId, t.dueDate)],

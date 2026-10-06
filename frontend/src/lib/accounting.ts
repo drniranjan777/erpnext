@@ -86,6 +86,9 @@ export const VOUCHER_PATH: Record<string, string> = {
   job_work_challan: "/job-work/challans",
   job_work_receipt: "/job-work/receipts",
   journal_entry: "/accounting/journals",
+  receipt: "/accounting/receipts",
+  payment: "/accounting/payments",
+  contra: "/accounting/contra",
 };
 
 export const VOUCHER_LABEL: Record<string, string> = {
@@ -102,4 +105,58 @@ export const VOUCHER_LABEL: Record<string, string> = {
   job_work_challan: "JW challan",
   job_work_receipt: "JW receipt",
   journal_entry: "Journal",
+  receipt: "Receipt",
+  payment: "Payment",
+  contra: "Contra",
 };
+
+export type MoneyKind = "receipt" | "payment" | "contra";
+
+export const MONEY: Record<MoneyKind, { title: string; route: string; api: string; party: "customer" | "vendor" | null }> = {
+  receipt: { title: "Receipts", route: "/accounting/receipts", api: "/accounting/money/receipt", party: "customer" },
+  payment: { title: "Payments", route: "/accounting/payments", api: "/accounting/money/payment", party: "vendor" },
+  contra: { title: "Contra", route: "/accounting/contra", api: "/accounting/money/contra", party: null },
+};
+
+export interface MoneyAccount {
+  id: string;
+  code: string;
+  name: string;
+  accountType: "bank" | "cash";
+  balance: string;
+}
+
+export interface MoneyVoucher extends DocumentHeader {
+  kind: MoneyKind;
+  party: { id: string; code: string; name: string } | null;
+  account: { id: string; code: string; name: string } | null;
+  counterAccount: { id: string; code: string; name: string } | null;
+  mode: string;
+  instrumentNo: string | null;
+  instrumentDate: string | null;
+  chequeStatus: "pending" | "cleared" | "bounced" | null;
+  amount: string;
+  bankCharges: string;
+  tdsDeducted: string;
+  settledAmount: string;
+  onAccount: string;
+  reference: string | null;
+  narration: string | null;
+  allocations: { id: string; againstDocId: string; amount: string; adjustmentId: string | null; number: string | null; docType: string; docDate: string }[];
+  canAdjust: boolean;
+  canCheque: boolean;
+}
+
+export interface OpenBill {
+  id: string;
+  docType: string;
+  number: string | null;
+  docDate: string;
+  reference: string | null;
+  dueDate: string | null;
+  total: string;
+  outstanding: string;
+  daysOverdue: number;
+}
+
+export const MODES: Record<string, string> = { neft: "NEFT", rtgs: "RTGS", imps: "IMPS", upi: "UPI", cheque: "Cheque", cash: "Cash", card: "Card", dd: "Demand draft", write_off: "Write-off" };

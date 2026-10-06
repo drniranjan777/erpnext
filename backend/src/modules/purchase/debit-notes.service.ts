@@ -204,10 +204,12 @@ export class DebitNotesService implements OnModuleInit {
           .filter((a) => a.warehouseId),
       );
     }
+    await tx.update(purchaseInvoices).set({ debitedAmount: sql`${purchaseInvoices.debitedAmount} + ${dn.grandTotal}::numeric` }).where(eq(purchaseInvoices.id, dn.piId));
   }
 
   private async unpost(tx: Transaction, auth: AuthContext, doc: DocumentRow) {
     const [dn] = await tx.select().from(debitNotes).where(eq(debitNotes.id, doc.id));
+    await tx.update(purchaseInvoices).set({ debitedAmount: sql`${purchaseInvoices.debitedAmount} - ${dn.grandTotal}::numeric` }).where(eq(purchaseInvoices.id, dn.piId));
     await this.stock.reverseVoucher(tx, auth, { id: doc.id, type: DOC_TYPE, number: doc.number, companyId: doc.companyId, postingDate: doc.docDate });
     if (dn.kind === 'return') {
       const lines = await tx.select().from(debitNoteLines).where(eq(debitNoteLines.dnId, doc.id));

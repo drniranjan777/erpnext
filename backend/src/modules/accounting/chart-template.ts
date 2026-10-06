@@ -122,5 +122,6 @@ export const REQUIRED_KEYS = [
   'sales', 'sales_export', 'sales_services', 'sales_returns', 'purchase_services', 'purchase_expenses', 'itc_ineligible',
   'gst_out_cgst', 'gst_out_sgst', 'gst_out_igst', 'gst_out_cess', 'gst_in_cgst', 'gst_in_sgst', 'gst_in_igst', 'gst_in_cess',
   'gst_rcm_cgst', 'gst_rcm_sgst', 'gst_rcm_igst', 'gst_rcm_cess', 'tds_payable', 'landed_cost_accrued', 'jobwork_accrued', 'customs_payable',
+  'bank_charges', 'tds_receivable', 'bad_debts', 'cash', 'customer_advance', 'vendor_advance', 'interest_income', 'depreciation', 'accumulated_depreciation',
 ] as const;
 export type SystemKey = (typeof REQUIRED_KEYS)[number];

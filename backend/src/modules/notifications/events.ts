@@ -18,7 +18,7 @@ export interface Rendered {
 export interface EventDefinition<D = Record<string, string>> {
   label: string;
   description: string;
-  group: 'Approvals' | 'Documents' | 'Account & security' | 'Team' | 'Vendors';
+  group: 'Approvals' | 'Documents' | 'Account & security' | 'Team' | 'Vendors' | 'Customers';
   defaults: Record<Channel, boolean>;
   /** Users can't turn these off (security). */
   mandatory?: boolean;
@@ -191,6 +191,23 @@ Kindly reply by ${d.dueDate}, quoting ${d.number}. ${d.contact}`,
           : `Material sent to ${d.jobWorker} on challan ${d.number} must come back by ${d.dueDate}, or it is treated as a supply. Pending: ${d.pending}.`,
       link: d.link,
       action: 'Open the challan',
+    }),
+  },
+  /** Sent to a customer's email (not a user). */
+  'accounting.payment_reminder': {
+    label: 'Payment reminder',
+    description: 'Overdue invoices reminder emailed to a customer',
+    group: 'Customers',
+    defaults: { in_app: false, email: true, whatsapp: false },
+    mandatory: true,
+    render: (d: { companyName: string; customerName: string; total: string; lines: string; contact: string }) => ({
+      title: `Payment reminder from ${d.companyName}: ${d.total} overdue`,
+      body: `Dear ${d.customerName},
+
+Our records show these invoices are past their due date:
+${d.lines}
+
+Total overdue: ${d.total}. If you have already paid, please share the payment details so we can update our books. ${d.contact}`,
     }),
   },
 } satisfies Record<string, EventDefinition<any>>;

@@ -72,6 +72,9 @@ export const PERMISSIONS = {
   'accounting.accounts.manage': 'Create and edit accounts and cost centres',
   'accounting.journals.manage': 'Create and submit journal vouchers',
   'accounting.journals.cancel': 'Cancel posted journal vouchers',
+  'accounting.money.manage': 'Record receipts, payments and contra entries; adjust advances; write off bad debts',
+  'accounting.money.cancel': 'Cancel receipts, payments and contra entries; mark cheques bounced',
+  'accounting.bank.reconcile': 'Import bank statements and reconcile them',
   'accounting.settings.manage': 'Set up the books, lock periods and bring past documents into the ledger',
 } as const;
 

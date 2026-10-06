@@ -50,6 +50,14 @@ export async function parseSheet(buffer: Buffer, fileName: string): Promise<Pars
   return { headers, rows };
 }
 
+/** Raw cell table of a CSV / XLSX file (no header handling). */
+export async function readTable(buffer: Buffer, fileName: string): Promise<string[][]> {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith('.xlsx')) return readXlsx(buffer);
+  if (lower.endsWith('.csv') || lower.endsWith('.txt')) return parseCsv(decodeText(buffer));
+  throw new BadRequestException('Upload a CSV, Excel (.xlsx) or MT940 file');
+}
+
 /** UTF-8 (with or without BOM) or UTF-16 (Excel "Unicode text"). */
 export function decodeText(buffer: Buffer) {
   if (buffer[0] === 0xff && buffer[1] === 0xfe) return buffer.subarray(2).toString('utf16le');
