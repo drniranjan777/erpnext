@@ -169,6 +169,13 @@
       "when": 1791328407228,
       "tag": "0023_job_card_client_ref",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791330471099,
+      "tag": "0024_dashboards",
+      "breakpoints": true
     }
   ]
 }

@@ -33,6 +33,7 @@ import { AccountingModule } from './modules/accounting/accounting.module';
 import { ManufacturingModule } from './modules/manufacturing/manufacturing.module';
 import { QualityModule } from './modules/quality/quality.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { DashboardsModule } from './modules/dashboards/dashboards.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     ManufacturingModule,
     QualityModule,
     ReportsModule,
+    DashboardsModule,
     AdminModule,
     PrivacyModule,
   ],
