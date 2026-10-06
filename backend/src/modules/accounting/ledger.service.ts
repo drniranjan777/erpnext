@@ -74,7 +74,33 @@ export class LedgerService {
     return row ?? (await tx.select().from(accountingSettings).where(eq(accountingSettings.companyId, companyId)))[0];
   }
 
-  async resolveAccounts(tx: Transaction, companyId: string, lines: GlLine[]) {
+  /** Adds template accounts a company's chart is missing (system accounts added in later releases). */
+  async addMissingTemplateAccounts(tx: Transaction, tenantId: string, companyId: string) {
+    const rows = await tx.select({ id: accounts.id, code: accounts.code, key: accounts.systemKey }).from(accounts).where(eq(accounts.companyId, companyId));
+    const keys = new Set(rows.map((r) => r.key).filter(Boolean));
+    const byCode = new Map(rows.map((r) => [r.code, r.id]));
+    let added = 0;
+    const walk = async (list: TemplateAccount[], parentCode: string | null, line: string | null) => {
+      for (const t of list) {
+        if (t.key && !keys.has(t.key) && !byCode.has(t.code) && parentCode && byCode.has(parentCode)) {
+          const [row] = await tx
+            .insert(accounts)
+            .values({ tenantId, companyId, code: t.code, name: t.name, parentId: byCode.get(parentCode)!, isGroup: !!t.group, nature: t.nature, systemKey: t.key, reportLine: t.reportLine ?? line, isControl: !!t.control, accountType: t.type ?? null, allowManual: t.manual !== false })
+            .onConflictDoNothing()
+            .returning({ id: accounts.id });
+          if (row) {
+            byCode.set(t.code, row.id);
+            added++;
+          }
+        }
+        if (t.children) await walk(t.children, t.code, t.reportLine ?? line);
+      }
+    };
+    await walk(CHART_TEMPLATE, null, null);
+    return added;
+  }
+
+  async resolveAccounts(tx: Transaction, companyId: string, lines: GlLine[], retried = false): Promise<{ id: string; code: string; key: string | null; isGroup: boolean; isActive: boolean; isControl: boolean; name: string; companyId: string }[]> {
     const rows = await tx
       .select({ id: accounts.id, code: accounts.code, key: accounts.systemKey, isGroup: accounts.isGroup, isActive: accounts.isActive, isControl: accounts.isControl, name: accounts.name, companyId: accounts.companyId })
       .from(accounts)
@@ -82,9 +108,14 @@ export class LedgerService {
     const byKey = new Map(rows.filter((r) => r.key).map((r) => [r.key!, r]));
     const byId = new Map(rows.map((r) => [r.id, r]));
     const byCode = new Map(rows.map((r) => [r.code.toLowerCase(), r]));
+    const find = (l: GlLine) => (typeof l.account === 'string' ? byKey.get(l.account) : 'id' in l.account ? byId.get(l.account.id) : byCode.get(l.account.code.toLowerCase()));
+    // A system account added in a later release: create it in this company's chart, then retry.
+    if (!retried && lines.some((l) => typeof l.account === 'string' && !find(l))) {
+      const tenantId = rows[0] ? (await tx.select({ t: accounts.tenantId }).from(accounts).where(eq(accounts.id, rows[0].id)))[0].t : null;
+      if (tenantId && (await this.addMissingTemplateAccounts(tx, tenantId, companyId))) return this.resolveAccounts(tx, companyId, lines, true);
+    }
     return lines.map((l) => {
-      const acc =
-        typeof l.account === 'string' ? byKey.get(l.account) : 'id' in l.account ? byId.get(l.account.id) : byCode.get(l.account.code.toLowerCase());
+      const acc = find(l);
       if (!acc) {
         const what = typeof l.account === 'string' ? `the ${l.account.replace(/_/g, ' ')} account` : 'id' in l.account ? 'an account of another company' : `account ${l.account.code}`;
         throw new BadRequestException(`The chart of accounts has no ${what}. Add it under Accounting → Chart of accounts.`);

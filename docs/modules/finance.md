@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Sprints 4.1 and 4.2 (7 Oct 2026) done: general ledger; receivables, payables, cash and bank |
-| **Code** | `backend/src/modules/accounting/`, `database/src/schema/{accounting,banking}.ts` (migrations 0015–0017), `frontend/src/app/(app)/accounting/` |
-| **Tests** | `backend/test/e2e/{accounting,money}.e2e.test.ts`, `backend/test/unit/bank-statement.test.ts` |
+| **Status** | Sprints 4.1–4.3 (7 Oct 2026) done: general ledger; receivables, payables, cash and bank; GST and TDS returns, fixed assets |
+| **Code** | `backend/src/modules/accounting/`, `database/src/schema/{accounting,banking,returns}.ts` (migrations 0015–0018), `frontend/src/app/(app)/accounting/` |
+| **Tests** | `backend/test/e2e/{accounting,money,returns}.e2e.test.ts`, `backend/test/unit/{bank-statement,tax-assets}.test.ts` |
 
 ## Sprint plan
 
@@ -12,7 +12,7 @@
 |---|---|
 | **4.1** ✅ | Chart of accounts (Schedule III) · cost centres · append-only general ledger · posting rules from every module · journal vouchers (manual, opening, reversing, recurring) · period lock · back-posting · trial balance, ledger, day book |
 | **4.2** ✅ | Receipts and payments with bill-wise allocation, advances, on-account · cash, bank and contra vouchers · cheques / PDC · bank statement import and auto-reconciliation · customer statements, dunning, interest · payment proposals (due date, MSME), bank files · bad-debt write-off |
-| 4.3 | GSTR-1 JSON, GSTR-3B, GSTR-2B reconciliation, GST set-off and challan · TDS / TCS returns (26Q / 27Q, 16A) · fixed assets: register, capitalisation, depreciation (Companies Act and Income-tax books), disposal |
+| **4.3** ✅ | GSTR-1 JSON, GSTR-3B, GSTR-2B reconciliation, GST set-off and challan · TDS / TCS returns (26Q / 27Q, 16A) · fixed assets: register, capitalisation, depreciation (Companies Act and Income-tax books), disposal |
 | 4.4 | P&L, Balance Sheet (Schedule III), cash flow, ratios, comparatives · year-end close · budgets and budget control on PR / PO · multi-currency revaluation · maker-checker, auditor role, close checklist · AI: journal anomalies, cash-flow forecast |
 
 ## 1. Chart of accounts
@@ -169,3 +169,94 @@ Doc types: `receipt` (`RV/{FY}/{SEQ}`), `payment` (`PV`), `contra` (`CV`). Table
 - **Manual**: match one line to one or more entries (the sum must equal the line), undo, or ignore.
 - **Record**: creates and posts a receipt / payment for a line missing from the books (charges, interest), then matches it.
 - **BRS** (`GET /accounting/bank/:id/brs?asOf`): balance as per books, less deposits not credited, plus payments not presented, gives the expected bank balance. That is compared with the statement balance, and statement lines not yet in the books are shown.
+
+## 10. GST returns (Sprint 4.3)
+
+Code: `compliance/gst-returns.service.ts`, `compliance/gst-setoff.ts`. Pages: GST → GSTR-1, GSTR-3B, GSTR-2B reconciliation.
+
+### GSTR-1 (`GET /gst/gstr1?period=YYYY-MM[&download=true]`)
+
+JSON in the GSTN offline-tool layout, built from posted invoices and credit notes of the month.
+
+| Section | What goes in |
+|---|---|
+| `b2b` | Registered customers; SEZ as SEWP / SEWOP |
+| `b2cl` | Unregistered customers, inter-state, invoice above ₹1 lakh |
+| `b2cs` | All other B2C, by supply type / state / rate; credit notes on these are netted in |
+| `exp` | Exports, WPAY / WOPAY |
+| `cdnr` | Credit notes to registered customers |
+| `cdnur` | Credit notes on B2CL invoices and exports |
+| `hsn` | HSN summary, B2B and B2C separately |
+| `doc_issue` | Documents issued |
+
+Items are grouped by rate. Bills of supply and exempt lines are left out.
+
+### GSTR-3B (`GET /gst/gstr3b?period`)
+
+| Table | Source |
+|---|---|
+| 3.1 (a)–(e) | Sales net of credit notes: taxable, zero-rated, nil / exempt, non-GST. Plus reverse-charge inward supplies. |
+| 3.2 | Inter-state supplies to unregistered persons, by state |
+| 4(A) | Import IGST / cess from Bills of Entry; reverse-charge ITC; all other eligible ITC |
+| 4(B) | ITC reversed by debit notes |
+| 4(D) | Ineligible ITC, s.17(5) |
+| 5 | Exempt / non-GST inward supplies |
+
+**Set-off** (`computeSetOff`) uses the tax ledgers' balances at the period end, so unused credit carries forward. The order (s.49A / rule 88A):
+
+1. IGST credit pays IGST.
+2. What is left of the IGST credit pays CGST / SGST, going first where their own credit falls short.
+3. CGST credit pays CGST, then IGST.
+4. SGST credit pays SGST, then IGST.
+
+CGST and SGST credit never cross. Cess credit pays only cess. Reverse-charge tax is paid in cash.
+
+**Post set-off** (`POST /gst/gstr3b/settle`) posts a journal dated the period end:
+
+- Dr output tax and RCM payable.
+- Cr input credit, by the amounts utilised.
+- Cr *GST payable (cash ledger)* for the cash part.
+
+The cash part is then paid with a payment voucher against GST payable.
+
+### GSTR-2B (`POST /gst/gstr2b` with the portal JSON, `GET /gst/gstr2b?period`)
+
+The portal's documents are matched to bills:
+
+- **B2B invoices** match on vendor GSTIN + normalised invoice number, where `SP/0012` = `sp-12`. Taxable value and each tax must agree within ₹1. Each document gets one status:
+  - **matched**;
+  - **mismatch**, with the differences listed;
+  - **missing in books**.
+- **Imports (IMPG)** match Bills of Entry on BE number.
+- **Bills in the books but not in 2B** are listed with their *ITC at risk*.
+- An accountant can mark each line *accept*, *follow up* or *defer ITC*.
+
+## 11. TDS (Sprint 4.3)
+
+- `GET /accounting/tds?fy&quarter&form=26Q|27Q[&format=csv]`
+  - Deductions from posted bills for the quarter, by section. 27Q holds overseas vendors.
+  - Shows deposits and the balance still to deposit.
+  - Lists deductees without a PAN (s.206AA).
+  - CSV gives the deductee rows for the return utility.
+- **Record challan** (`POST /accounting/tds/challans`): a payment from the bank against TDS payable, with BSR code, challan serial and deposit date (ITNS 281). Stored in `tds_challans`.
+- **Form 16A data** (`GET /accounting/tds/16a/:vendorId`): per deductee, the quarter's transactions and challans, to check against TRACES.
+
+## 12. Fixed assets (Sprint 4.3)
+
+Code: `accounting/assets.service.ts`, `accounting/depreciation.ts`. Pages under `/assets`.
+
+- **Categories**: asset account, method (SLM / WDV), Schedule II useful life, residual %, Income-tax block rate. Defaults: plant 15 yrs / 15%, furniture 10 / 10%, vehicles 8 / 15%, computers 3 / 40%.
+- **Add asset**: cost, purchase and put-to-use dates, location, custodian, serial number. *Move cost from* posts a journal from CWIP, or from the account the bill was booked to. Each asset gets a QR tag (code | name).
+- **Depreciation run** (`POST /assets/depreciation {to}`):
+  - Day-based (365-day year), from the day after the last charge. Never below the residual value.
+  - SLM = (cost − residual) / life.
+  - WDV rate = 1 − (residual / cost)^(1 / life), assuming at least 5% residual.
+  - One journal posts Dr depreciation / Cr accumulated depreciation. Per-asset rows are kept in `asset_depreciation`.
+  - Cancelling the journal takes the charge back off the assets.
+- **Disposal** (`POST /assets/:id/dispose`):
+  1. Depreciation is charged up to the disposal date.
+  2. A journal posts Dr accumulated depreciation + bank (sale amount), Cr asset cost.
+  3. The balance goes to *Profit / loss on sale of assets*.
+- **Transfer**: location / custodian.
+- **Income-tax schedule** (`GET /assets/it-schedule?fy`): per block, opening WDV, additions (≥180 / <180 days), sales, depreciation, closing. Half rate applies on additions used under 180 days. Sales come off the full-rate part first. This is a report only; it is not posted.
+- System accounts *GST payable* and *Profit / loss on sale of assets* were added to the chart. Charts of existing companies get them automatically the first time a posting needs them (`LedgerService.addMissingTemplateAccounts`).

@@ -75,6 +75,9 @@ export const PERMISSIONS = {
   'accounting.money.manage': 'Record receipts, payments and contra entries; adjust advances; write off bad debts',
   'accounting.money.cancel': 'Cancel receipts, payments and contra entries; mark cheques bounced',
   'accounting.bank.reconcile': 'Import bank statements and reconcile them',
+  'accounting.tax.manage': 'Prepare GST and TDS returns, reconcile GSTR-2B, record tax payments',
+  'assets.register.read': 'View the fixed asset register and depreciation',
+  'assets.register.manage': 'Add, capitalise, transfer and dispose of fixed assets; run depreciation',
   'accounting.settings.manage': 'Set up the books, lock periods and bring past documents into the ledger',
 } as const;
 

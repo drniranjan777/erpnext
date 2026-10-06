@@ -11,6 +11,7 @@ import { decimalSchema, optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
 import { JobsService } from '../jobs/jobs.service';
+import { GstReturnsService } from '../compliance/gst-returns.service';
 import { LedgerService } from './ledger.service';
 
 const DOC_TYPE = 'journal_entry' as const;
@@ -63,6 +64,7 @@ export class JournalsService implements OnModuleInit {
     private readonly documents: DocumentsService,
     private readonly ledger: LedgerService,
     private readonly jobs: JobsService,
+    private readonly gstReturns: GstReturnsService,
   ) {}
 
   onModuleInit() {
@@ -71,6 +73,13 @@ export class JournalsService implements OnModuleInit {
       onApproved: (tx, auth, doc) => this.post(tx, auth, doc),
       onCancelled: (tx, auth, doc) => this.ledger.reverse(tx, auth, doc.id),
     });
+    this.gstReturns.postJournal = (auth, companyId, date, narration, lines, meta) =>
+      this.database.run(auth, async (tx) => {
+        const j = await this.createTx(tx, auth, { companyId, docDate: date, kind: 'journal', narration, lines: lines.map((l) => ({ ...l, partyId: null, costCenterId: null, againstVoucherId: null })) }, meta);
+        await this.documents.submit(tx, auth, await this.documents.find(tx, j.id, DOC_TYPE), meta);
+        const posted = await this.documents.find(tx, j.id, DOC_TYPE);
+        return { id: j.id, number: posted.number };
+      });
     this.jobs.register(RECUR_QUEUE, (payload, ctx) => this.recur(ctx.tenantId, String(payload.journalId), String(payload.userId)));
   }
 

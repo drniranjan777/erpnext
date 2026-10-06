@@ -127,6 +127,13 @@
       "when": 1791319531906,
       "tag": "0017_drop_party_bank_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791320975943,
+      "tag": "0018_returns_assets",
+      "breakpoints": true
     }
   ]
 }

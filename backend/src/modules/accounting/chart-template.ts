@@ -52,6 +52,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
       a('3423', 'Cess payable on reverse charge', 'liability', 'gst_rcm_cess'),
       a('3430', 'TDS payable', 'liability', 'tds_payable'),
       a('3431', 'TCS payable', 'liability', 'tcs_payable'),
+      a('3440', 'GST payable (cash ledger)', 'liability', 'gst_payable'),
     ]),
     a('3500', 'Short-term provisions', 'liability', undefined, { reportLine: 'bs.cl.provisions' }),
   ]),
@@ -93,6 +94,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     a('6510', 'Discount received', 'income'),
     a('6520', 'Interest income', 'income', 'interest_income'),
     a('6530', 'Foreign exchange gain / loss', 'income', 'fx_gain_loss'),
+    a('6540', 'Profit / loss on sale of assets', 'income', 'asset_disposal'),
     a('6590', 'Rounding off', 'income', 'round_off'),
   ]),
   g('7000', 'Cost of materials and goods', 'expense', 'pl.materials', [
@@ -123,5 +125,6 @@ export const REQUIRED_KEYS = [
   'gst_out_cgst', 'gst_out_sgst', 'gst_out_igst', 'gst_out_cess', 'gst_in_cgst', 'gst_in_sgst', 'gst_in_igst', 'gst_in_cess',
   'gst_rcm_cgst', 'gst_rcm_sgst', 'gst_rcm_igst', 'gst_rcm_cess', 'tds_payable', 'landed_cost_accrued', 'jobwork_accrued', 'customs_payable',
   'bank_charges', 'tds_receivable', 'bad_debts', 'cash', 'customer_advance', 'vendor_advance', 'interest_income', 'depreciation', 'accumulated_depreciation',
+  'gst_payable', 'asset_disposal', 'cwip', 'ppe_plant',
 ] as const;
 export type SystemKey = (typeof REQUIRED_KEYS)[number];
