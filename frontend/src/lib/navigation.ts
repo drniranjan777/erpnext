@@ -1,4 +1,5 @@
 import {
+  GitBranch,
   Factory,
   MonitorPlay,
   ArrowDownToLine,
@@ -120,7 +121,9 @@ export const NAVIGATION: NavSection[] = [
       { label: "Shop floor", href: "/manufacturing/shop-floor", icon: MonitorPlay, permissions: ["manufacturing.production.read"] },
       { label: "Bills of materials", href: "/manufacturing/boms", icon: Network, permissions: ["manufacturing.engineering.read"] },
       { label: "Work centres & tools", href: "/manufacturing/resources", icon: Cog, permissions: ["manufacturing.engineering.read"] },
-      { label: "Quality", href: "/quality", icon: ClipboardCheck, comingInPhase: 5 },
+      { label: "Inspections", href: "/quality/inspections", icon: ClipboardCheck, permissions: ["quality.inspections.read"] },
+      { label: "Inspection plans", href: "/quality/plans", icon: Ruler, permissions: ["quality.inspections.read"] },
+      { label: "Traceability", href: "/quality/traceability", icon: GitBranch, permissions: ["quality.inspections.read"] },
     ],
   },
   {

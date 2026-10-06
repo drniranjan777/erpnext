@@ -12,6 +12,6 @@ import { WorkOrdersService } from './work-orders.service';
   imports: [InventoryModule],
   controllers: [ManufacturingController, ProductionController],
   providers: [ResourcesService, BomsService, WorkOrdersService, ProductionService],
-  exports: [BomsService, WorkOrdersService],
+  exports: [BomsService, WorkOrdersService, ProductionService],
 })
 export class ManufacturingModule {}

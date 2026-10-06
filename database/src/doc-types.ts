@@ -216,6 +216,15 @@ export const DOC_TYPES = {
     readPermission: 'manufacturing.production.read',
     gstDocument: false,
   },
+  quality_inspection: {
+    label: 'Quality Inspection',
+    code: 'QI',
+    module: 'quality',
+    path: '/quality/inspections',
+    defaultPattern: 'QI/{FY}/{SEQ}',
+    readPermission: 'quality.inspections.read',
+    gstDocument: false,
+  },
   stock_entry: {
     label: 'Stock Entry',
     code: 'SE',

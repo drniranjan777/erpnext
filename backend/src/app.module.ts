@@ -31,6 +31,7 @@ import { ComplianceModule } from './modules/compliance/compliance.module';
 import { JobWorkModule } from './modules/jobwork/jobwork.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { ManufacturingModule } from './modules/manufacturing/manufacturing.module';
+import { QualityModule } from './modules/quality/quality.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { ManufacturingModule } from './modules/manufacturing/manufacturing.modul
     JobWorkModule,
     AccountingModule,
     ManufacturingModule,
+    QualityModule,
     AdminModule,
     PrivacyModule,
   ],

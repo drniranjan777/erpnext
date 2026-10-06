@@ -104,8 +104,14 @@ const OPEN = ['released', 'in_progress', 'completed'];
  * rejects), job cards on the shop floor, and closing. Every movement is a production entry
  * document so stock and the ledger move together; WIP is carried on the work order.
  */
+export type JobCardRow = typeof jobCards.$inferSelect;
+export type OperationRow = typeof workOrderOperations.$inferSelect;
+type CardListener = (tx: Transaction, auth: AuthContext, card: JobCardRow, op: OperationRow) => Promise<void>;
+
 @Injectable()
 export class ProductionService implements OnModuleInit {
+  private readonly cardListeners: CardListener[] = [];
+
   constructor(
     private readonly database: DatabaseService,
     private readonly documents: DocumentsService,
@@ -117,6 +123,11 @@ export class ProductionService implements OnModuleInit {
       amendable: false,
       onApproved: (tx, auth, doc) => this.post(tx, auth, doc),
     });
+  }
+
+  /** Followers of finished job cards (in-process inspection), run in the same transaction. */
+  onCardDone(listener: CardListener) {
+    this.cardListeners.push(listener);
   }
 
   // ---- entries ----------------------------------------------------------------------------
@@ -485,6 +496,7 @@ export class ProductionService implements OnModuleInit {
       .update(workOrderOperations)
       .set({ goodQty: opGood.toFixed(4), rejectQty: opRej.toFixed(4), actualMinutes: D(op.actualMinutes).add(D(minutes)).toFixed(2), status: opGood.add(opRej).cmp(D(wo.wo.qty)) >= 0 ? 'done' : 'in_progress' })
       .where(eq(workOrderOperations.id, op.id));
+    for (const l of this.cardListeners) await l(tx, auth, updated, op);
     return updated;
   }
 

@@ -18,6 +18,7 @@ import { api, ApiError } from "@/lib/api";
 import { formatDate, formatMoney, formatQty } from "@/lib/documents";
 import { useWarehouses } from "@/lib/masters";
 import { ENTRY_LABEL, KIND_LABEL, MFG, STAGE_LABEL, STAGE_TONE, type WoOperation, type WorkOrder } from "@/lib/manufacturing";
+import type { TraceNode } from "@/lib/quality";
 
 const W = `${MFG}/work-orders`;
 
@@ -399,6 +400,8 @@ export default function WorkOrderPage() {
         </Card>
       )}
 
+      {w.entries.length > 0 && <AsBuilt id={w.id} />}
+
       {w.entries.length > 0 && (
         <Card>
           <CardHeader title="Production entries" />
@@ -751,5 +754,34 @@ function CloseDialog({ w, wip, onClose, onDone }: { w: WorkOrder; wip: string; o
         Work in progress now: <span className="font-medium tabular-nums">{signed(wip)}</span>
       </p>
     </Dialog>
+  );
+}
+
+/** Lots and serials that went into the order and came out of it. */
+function AsBuilt({ id }: { id: string }) {
+  const q = useQuery({ queryKey: [W, id, "as-built"], queryFn: () => api<{ consumed: TraceNode[]; made: TraceNode[] }>(`/quality/as-built/${id}`) });
+  if (!q.data || (!q.data.consumed.length && !q.data.made.length)) return null;
+  const lot = (n: TraceNode) => n.batchNo ? `Batch ${n.batchNo}` : n.serialNo ? `Serial ${n.serialNo}` : "—";
+  const list = (title: string, ns: TraceNode[]) => (
+    <div>
+      <p className="px-5 pt-3 text-xs uppercase tracking-wide text-muted">{title}</p>
+      <ul className="divide-y divide-border text-sm">
+        {ns.map((n, i) => (
+          <li key={`${n.item.id}-${n.batchNo ?? n.serialNo ?? i}`} className="flex justify-between gap-3 px-5 py-1.5">
+            <span><span className="font-mono text-xs text-muted">{n.item.code}</span> {n.item.name} <span className="text-muted">· {lot(n)}</span></span>
+            <span className="tabular-nums">{formatQty(n.qty)} {n.item.uom}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+  return (
+    <Card>
+      <CardHeader title="As built" description="Lots and serials used and made, from the stock movements. Trace any of them under Quality → Traceability." />
+      <div className="grid border-t border-border md:grid-cols-2">
+        {list("Went in", q.data.consumed)}
+        {list("Came out", q.data.made)}
+      </div>
+    </Card>
   );
 }

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Sprints 5.1–5.2 (7 Oct 2026) done: engineering data; work orders, shop floor and production costing |
+| **Status** | Sprints 5.1–5.3 (7 Oct 2026) done: engineering data; work orders, shop floor and production costing; traceability and QC ([quality.md](quality.md)) |
 | **Code** | `backend/src/modules/manufacturing/`, `database/src/schema/manufacturing.ts` (migrations 0020, 0021), `frontend/src/app/(app)/manufacturing/` |
 | **Tests** | `backend/test/unit/bom-math.test.ts`, `backend/test/unit/production-math.test.ts`, `backend/test/e2e/manufacturing.e2e.test.ts`, `backend/test/e2e/production.e2e.test.ts` |
 
@@ -12,7 +12,7 @@
 |---|---|
 | **5.1** ✅ | Work centres (capacity, hourly labour / machine / overhead rates) · machines · moulds, dies and tools with shot life · multi-level BOM with phantoms, alternates, scrap %, by-products · routing with operations and job-work steps · versions with effectivity and approval · explosion · standard cost roll-up · where-used |
 | **5.2** ✅ | Work orders (MTS, MTO from sales orders, rework), release with availability check and reservation, material issue and backflush, job cards per operation, production receipt with scrap / by-products, WIP and actual costing with variances posted to the ledger |
-| 5.3 | Lot / serial genealogy and as-built BOM; inspection plans (parameters, AQL sampling); incoming, in-process and final QC with accept / reject / rework |
+| **5.3** ✅ | Lot / serial genealogy and as-built BOM; inspection plans (parameters, AQL sampling); incoming, in-process and final QC with accept / reject / rework. Spec: [quality.md](quality.md) |
 | 5.4 | Tablet shop-floor screens, barcode-driven job cards, offline PWA, scrap-trend insights |
 
 ## 1. Resources

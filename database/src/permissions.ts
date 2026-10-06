@@ -86,6 +86,8 @@ export const PERMISSIONS = {
   'manufacturing.production.read': 'View work orders, job cards, production entries and production costs',
   'manufacturing.production.manage': 'Create, release and close work orders; issue materials and receive output',
   'manufacturing.shopfloor.record': 'Start and stop job cards and record good and rejected quantities',
+  'quality.inspections.read': 'View inspection plans, inspections and lot / serial traceability',
+  'quality.inspections.manage': 'Maintain inspection plans, record readings and accept or reject lots',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;
