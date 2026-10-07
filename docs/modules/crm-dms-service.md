@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 10.1–10.4 done |
+| **Status** | Done (10.1–10.5) |
 | **Code** | `backend/src/modules/crm/`, `backend/src/modules/dms/`, `backend/src/modules/service/`, `backend/src/modules/portal/`, `database/src/schema/crm.ts`, `dms.ts`, `service.ts`, `frontend/src/app/(app)/crm/`, `dms/`, `service/`, `frontend/src/app/portal/` |
 
 ## Sprint plan
@@ -150,8 +150,8 @@ Schema: `database/src/schema/dms.ts`, migration 0042. Code: `backend/src/modules
 Schema: `database/src/schema/service.ts`, migration 0043. Code: `backend/src/modules/service/`. SLA arithmetic and triage are in `sla.ts`, pure and unit tested. Pages under `/service`.
 
 **Tickets** (TKT000001…)
-- Raised by staff, or by the customer on the portal (10.5). The customer is matched by email or phone when no party is given.
-- Triage suggests a category and priority from the subject and description (keyword rules; the AI version comes in 10.5).
+- Raised by staff, or by the customer on the portal. The customer is matched by email or phone when no party is given.
+- Triage suggests a category and priority from the subject and description (keyword rules).
 - Each ticket gets a response and a resolution due time from the priority's targets (settings, `/service/sla`), counted round the clock or in business hours (IST). A customer contract can set a shorter resolution time.
 - Coverage is worked out on creation: the serial's warranty, or an active service contract for the customer and item.
 - SLA state per ticket: met, missed, due, at risk (less than 20 % of the time left) or breached.
@@ -175,6 +175,47 @@ Schema: `database/src/schema/service.ts`, migration 0043. Code: `backend/src/mod
 - Authorised, then received, repaired or replaced, returned (with a dispatch reference), or rejected.
 - A replacement moves the remaining warranty to the new serial.
 
-**Knowledge base**: articles with tags and a category, searched by title, body and tags. Public articles will show on the customer portal (10.5).
+**Knowledge base**: articles with tags and a category, searched by title, body and tags. Public articles show on the customer portal.
 
 **Not covered by e2e tests**: creating warranties from a sales invoice (`fromInvoice`). Invoicing a chargeable visit is done by hand from Sales for now.
+
+## 10.5 Portals and AI (done)
+
+Schema: `database/src/schema/portal.ts`, migration 0044. Code: `backend/src/modules/portal/`, `crm/insight.ts`, `service/reply.ts`. Portal pages: `frontend/src/app/portal/`. Staff page: `/sales/portal`.
+
+**Portal logins** (permission `portal.users.manage`)
+- A login belongs to one contact of one customer, of kind customer or dealer. A dealer login needs the customer set up as a distributor.
+- Logins are separate from staff users. They sign in at `/portal/login` with the workspace code, their email and a password. Emails are unique per workspace.
+- Staff invite a contact. The link (valid 7 days) is emailed and also shown, so it can be shared on WhatsApp. "New link" replaces the old one and re-enables a disabled login. "Disable" also ends its sessions.
+- Sessions use opaque tokens, `ngp_<workspace id>.<random>`, stored as hashes and valid for 7 days. The browser keeps them for the tab only (sessionStorage). Portal tokens are rejected by staff routes and staff tokens by portal routes.
+- Five wrong passwords lock the login for 15 minutes. Unknown workspaces and emails get the same answer and the same delay as a wrong password.
+- Before sign-in, the workspace is found with the SECURITY DEFINER function `tenant_id_by_slug()` (in `database/sql/rls.sql`), which only returns trial and active workspaces. Everything after that runs under that workspace's row security, filtered to the contact's party.
+
+**Customer portal**
+- Home: outstanding and overdue amounts, open orders, open service requests.
+- Orders: submitted sales orders with delivery progress and line detail. Customers can place new orders from the catalogue of active items at list prices; they can withdraw them until accepted.
+- Staff review placed orders under `/sales/portal` (permissions `portal.orders.manage` and `sales.orders.manage`). Accepting creates a draft sales order at price-list rates, which the sales team checks and submits. Rejecting needs a reason, which the customer sees. Staff holding `portal.orders.manage` are notified of each new order.
+- Invoices (approved, with outstanding balance and paid / part paid / overdue state, lines with HSN and GST) and payments received.
+- Statement of account for a period: the running balance plus unpaid invoices. It leaves out account names and narrations.
+- Service:
+  - raise requests (channel "portal", the contact's email kept for replies);
+  - see replies, but not internal notes, assignments or escalations;
+  - write back: this reopens a ticket waiting for the customer or resolved, and notifies the assignee (`service.customer_message`);
+  - rate a resolved ticket;
+  - search public knowledge-base articles.
+- Delivery schedules held for the customer and ASNs.
+
+**Dealer portal**: everything a customer sees, plus:
+- running schemes with their slabs and items;
+- their claims, and raising a claim (a scheme claim computes the amount due as in 10.3);
+- their stock as we compute it (our invoices less secondary sales, with days of cover).
+
+**AI assistance** (rule-based; an AI key only rewrites the reply)
+- Lead insight on the lead page: grade and a one-line summary from the score reasons, what would raise the score, and the next best action (overdue activity, first contact, qualify, follow up when idle 7+ days, convert).
+- Opportunity next best action: overdue activity, past close date, quotation needed (stage ≥ 30 % and none), quotation still draft or pending, follow-up when idle 7+ days (naming the competitor), ask for the order (stage ≥ 70 % within 14 days of closing), or plan the next step.
+- Ticket assist (`GET /service/tickets/:id/assist`, "Suggest a reply" on the ticket):
+  - reclassifies the ticket from its wording, and flags when it disagrees with the current category or priority;
+  - drafts a reply from a template for the category, mentioning warranty or contract coverage, the steps from the best matching article and the resolution target;
+  - with `ANTHROPIC_API_KEY` set, the model rewrites the draft from the same facts, falling back to the template on any error. The response says which was used.
+
+**Not built**: password reset by email (staff send a new link instead); downloading invoice PDFs from the portal; online payment.

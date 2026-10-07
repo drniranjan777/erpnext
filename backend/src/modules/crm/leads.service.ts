@@ -11,6 +11,7 @@ import { parseSheet } from '../imports/file-parser';
 import { createPartySchema, PartiesService } from '../masters/parties.service';
 import { PipelineService } from './pipeline.service';
 import { phoneKey, readLeadRow, scoreLead, stateCodeOf } from './scoring';
+import { leadInsight, type ActivityFacts } from './insight';
 
 const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (max: number) => z.string().trim().max(max).nullable().optional();
@@ -115,7 +116,13 @@ export class LeadsService {
       );
       if (!l) throw new NotFoundException('Lead not found');
       const activities = await this.activitiesFor(tx, { leadId: id });
-      return { ...l, activities };
+      const r = l as Record<string, unknown>;
+      const insight = leadInsight(
+        { email: (r.email as string) ?? null, phone: (r.phone as string) ?? null, company: (r.company as string) ?? null, source: String(r.source), requirement: (r.requirement as string) ?? null, estimatedValue: r.estimatedValue == null ? null : Number(r.estimatedValue), activities: 0, status: String(r.status), createdAt: r.createdAt as string },
+        activities as unknown as ActivityFacts[],
+        new Date(),
+      );
+      return { ...l, activities, insight };
     });
   }
 

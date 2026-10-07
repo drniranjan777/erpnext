@@ -8,6 +8,7 @@ import { nextCode } from '../../common/codes';
 import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
 import { QuotationsService } from '../sales/quotations.service';
+import { opportunityNextAction, type ActivityFacts, type OpportunityFacts } from './insight';
 
 const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Month as YYYY-MM');
@@ -107,7 +108,7 @@ export class PipelineService {
         sql`select a.id, a.kind, a.subject, a.notes, a.due_at as "dueAt", a.done_at as "doneAt", a.outcome, u.full_name as owner from crm_activities a left join users u on u.id = a.owner_id
             where a.opportunity_id = ${id} order by coalesce(a.done_at, a.due_at, a.created_at) desc`,
       );
-      return { ...o, activities };
+      return { ...o, activities, nextAction: opportunityNextAction(o as unknown as OpportunityFacts, activities as unknown as ActivityFacts[], new Date()) };
     });
   }
 

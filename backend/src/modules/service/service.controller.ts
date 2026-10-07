@@ -42,6 +42,11 @@ export class ServiceController {
   create(@Auth() auth: AuthContext, @Body(body(ticketSchema)) b: z.infer<typeof ticketSchema>) {
     return this.tickets.create(auth, b);
   }
+  @Get('tickets/:id/assist')
+  @RequirePermissions(T)
+  assist(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }) {
+    return this.tickets.assist(auth, p.id);
+  }
   @Post('tickets/:id/reply')
   @HttpCode(200)
   @RequirePermissions(T)

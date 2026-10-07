@@ -104,6 +104,12 @@ CREATE OR REPLACE FUNCTION tenant_slug_exists(p_slug text) RETURNS boolean
   SET search_path = public
   AS $$ SELECT EXISTS (SELECT 1 FROM tenants WHERE slug = p_slug::citext) $$;
 
+-- Customer / dealer portal sign-in names the workspace by its code before any tenant context.
+CREATE OR REPLACE FUNCTION tenant_id_by_slug(p_slug text) RETURNS uuid
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$ SELECT id FROM tenants WHERE slug = p_slug::citext AND status IN ('trial', 'active') $$;
+
 -- Invitation preview/accept happens before the invitee has any tenant context.
 -- Looks up by token hash only (the raw token is never stored).
 CREATE OR REPLACE FUNCTION invitation_by_token_hash(p_hash text)
@@ -304,6 +310,8 @@ REVOKE ALL ON FUNCTION auth_find_user_by_email(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION auth_find_user_by_email(text) TO nextgen_app;
 REVOKE ALL ON FUNCTION tenant_slug_exists(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION tenant_slug_exists(text) TO nextgen_app;
+REVOKE ALL ON FUNCTION tenant_id_by_slug(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION tenant_id_by_slug(text) TO nextgen_app;
 REVOKE ALL ON FUNCTION invitation_by_token_hash(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION invitation_by_token_hash(text) TO nextgen_app;
 REVOKE ALL ON FUNCTION revoke_my_sessions(uuid) FROM PUBLIC;

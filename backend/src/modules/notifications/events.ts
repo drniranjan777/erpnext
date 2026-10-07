@@ -218,6 +218,49 @@ Kindly reply by ${d.dueDate}, quoting ${d.number}. ${d.contact}`,
     }),
   },
   /** Sent to a customer's email (not a user). */
+  'service.customer_message': {
+    label: 'Customer wrote on a ticket',
+    description: 'A customer replied on the portal to a ticket assigned to you',
+    group: 'Service',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    render: (d: { number: string; subject: string; customer: string; link: string }) => ({
+      title: `${d.customer} wrote on ticket ${d.number}`,
+      body: d.subject,
+      link: d.link,
+      action: 'Open the ticket',
+    }),
+  },
+  'portal.order_placed': {
+    label: 'Order placed on the portal',
+    description: 'A customer or dealer placed an order on the portal for you to accept',
+    group: 'Customers',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    render: (d: { number: string; customer: string; lines: string; by: string; link: string }) => ({
+      title: `Portal order ${d.number} from ${d.customer}`,
+      body: `${d.by} ordered ${d.lines} item(s). Accept it into a sales order or reject it.`,
+      link: d.link,
+      action: 'Review the order',
+    }),
+  },
+  /** Sent to a customer or dealer contact's email (not a user). */
+  'portal.invite': {
+    label: 'Portal invitation',
+    description: 'Link for a customer or dealer contact to set their portal password',
+    group: 'Customers',
+    defaults: { in_app: false, email: true, whatsapp: false },
+    mandatory: true,
+    render: (d: { companyName: string; name: string; party: string; url: string; workspace: string }) => ({
+      title: `Your ${d.companyName} portal login`,
+      body: `Dear ${d.name},
+
+${d.companyName} has given you a login to its portal for ${d.party}: see your orders, invoices, payments and statement, and raise service requests.
+
+Set your password here (the link works for 7 days):
+${d.url}
+
+To sign in later, use the workspace code "${d.workspace}" and this email address.`,
+    }),
+  },
   'service.ticket_reply': {
     label: 'Reply on a service ticket',
     description: 'A reply to the customer on their ticket',

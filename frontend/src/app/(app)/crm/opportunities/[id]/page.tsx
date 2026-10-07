@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Info } from "@/components/documents/doc-page";
 import { ActivityTimeline } from "@/components/crm/activity-form";
+import { NextActionCard, type NextAction } from "@/components/crm/next-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
@@ -19,7 +20,7 @@ import { CRM, type Activity, type Stage } from "@/lib/crm";
 import { formatDate } from "@/lib/documents";
 import { inr } from "@/lib/payroll";
 
-interface OppView { id: string; number: string; title: string; amount: string; closeDate: string | null; status: "open" | "won" | "lost"; stageId: string; stage: string; stageProbability: number; probability: number | null; partyId: string; party: string; owner: string | null; leadId: string | null; leadNumber: string | null; competitor: string | null; lostReason: string | null; quotationId: string | null; quotationNumber: string | null; quotationStatus: string | null; activities: Activity[] }
+interface OppView { id: string; number: string; title: string; amount: string; closeDate: string | null; status: "open" | "won" | "lost"; stageId: string; stage: string; stageProbability: number; probability: number | null; partyId: string; party: string; owner: string | null; leadId: string | null; leadNumber: string | null; competitor: string | null; lostReason: string | null; quotationId: string | null; quotationNumber: string | null; quotationStatus: string | null; activities: Activity[]; nextAction: NextAction }
 
 export default function OpportunityPage() {
   const { id } = useParams<{ id: string }>();
@@ -66,6 +67,7 @@ export default function OpportunityPage() {
       </div>
       {error && <Alert>{error}</Alert>}
       {o.lostReason && <Alert tone="warning">Lost: {o.lostReason}</Alert>}
+      {o.nextAction && <NextActionCard next={o.nextAction} />}
       <Card>
         <CardHeader title="Deal" />
         <dl className="grid gap-4 border-t border-border px-5 py-4 text-sm sm:grid-cols-4">

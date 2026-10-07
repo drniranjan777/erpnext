@@ -104,6 +104,7 @@ import {
   Plane,
   CalendarCog,
   Fingerprint,
+  Globe,
   Timer,
   PackageX,
   ScanBarcode,
@@ -293,6 +294,7 @@ export const NAVIGATION: NavSection[] = [
       { label: "Sales invoices", href: "/sales/invoices", icon: Receipt, permissions: ["sales.invoices.read"] },
       { label: "Credit notes", href: "/sales/credit-notes", icon: FileMinus, permissions: ["sales.invoices.read"] },
       { label: "Receivables", href: "/sales/receivables", icon: HandCoins, permissions: ["sales.invoices.read"] },
+      { label: "Customer portal", href: "/sales/portal", icon: Globe, permissions: ["portal.orders.manage", "portal.users.manage"] },
     ],
   },
   {

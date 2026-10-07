@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Info } from "@/components/documents/doc-page";
 import { ActivityTimeline } from "@/components/crm/activity-form";
+import { NextActionCard, type LeadInsight } from "@/components/crm/next-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
@@ -19,7 +20,7 @@ import { CRM, grade, GRADE_TONE, LEAD_TONE, SOURCES, type Activity, type Lead } 
 import { formatDate } from "@/lib/documents";
 import { inr } from "@/lib/payroll";
 
-interface LeadView extends Lead { requirement: string | null; sourceRef: string | null; scoreReasons: string[]; lostReason: string | null; partyId: string | null; partyName: string | null; opportunityId: string | null; duplicateNumber: string | null; activities: Activity[] }
+interface LeadView extends Lead { requirement: string | null; sourceRef: string | null; scoreReasons: string[]; lostReason: string | null; partyId: string | null; partyName: string | null; opportunityId: string | null; duplicateNumber: string | null; activities: Activity[]; insight: LeadInsight }
 
 export default function LeadPage() {
   const { id } = useParams<{ id: string }>();
@@ -70,6 +71,7 @@ export default function LeadPage() {
       </div>
       {error && <Alert>{error}</Alert>}
       {l.lostReason && <Alert tone="warning">Lost: {l.lostReason}</Alert>}
+      {l.insight && <NextActionCard next={l.insight.nextAction} summary={l.insight.summary} missing={open ? l.insight.missing : undefined} />}
       <Card>
         <CardHeader title="Enquiry" />
         <dl className="grid gap-4 border-t border-border px-5 py-4 text-sm sm:grid-cols-3">

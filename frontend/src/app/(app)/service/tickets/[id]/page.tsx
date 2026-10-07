@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarPlus, CheckCircle2, MessageSquare, PackageX } from "lucide-react";
+import { CalendarPlus, CheckCircle2, MessageSquare, PackageX, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -36,6 +36,16 @@ export default function TicketPage() {
   const q = useQuery({ queryKey: [SVC, "tickets", id], queryFn: () => api<Ticket>(`${SVC}/tickets/${id}`) });
   const members = useQuery({ queryKey: ["iam", "users"], queryFn: () => api<Member[]>("/iam/users"), retry: false, enabled: manage });
   const [reply, setReply] = useState({ body: "", toCustomer: true });
+  const [hint, setHint] = useState<string | null>(null);
+  async function suggest() {
+    try {
+      const a = await api<{ reply: string; mode: string; classification: { category: string; priority: string; differs: boolean } }>(`${SVC}/tickets/${id}/assist`);
+      setReply({ body: a.reply, toCustomer: true });
+      setHint(`${a.mode === "ai" ? "Drafted by AI" : "Drafted from a template"}; check before sending.${a.classification.differs ? ` The wording suggests ${a.classification.category}, ${a.classification.priority} priority.` : ""}`);
+    } catch {
+      setHint("Could not draft a reply.");
+    }
+  }
   const [dlg, setDlg] = useState<"visit" | "rma" | null>(null);
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   async function act(path: string, body: unknown, done?: string) {
@@ -103,8 +113,8 @@ export default function TicketPage() {
         <CardHeader title="History" />
         <ul className="divide-y divide-border border-t border-border text-sm">
           {t.events.map((e) => (
-            <li key={e.id} className={`px-5 py-2 ${e.kind === "reply" ? "bg-primary/5" : e.kind === "escalation" ? "bg-danger/5" : ""}`}>
-              <p className="text-xs text-muted">{when(e.createdAt)} · {e.author ?? "system"} · {e.kind === "reply" ? "reply to customer" : e.kind}</p>
+            <li key={e.id} className={`px-5 py-2 ${e.kind === "reply" ? "bg-primary/5" : e.kind === "customer" ? "bg-warning/5" : e.kind === "escalation" ? "bg-danger/5" : ""}`}>
+              <p className="text-xs text-muted">{when(e.createdAt)} · {e.kind === "customer" ? "customer, on the portal" : `${e.author ?? "system"} · ${e.kind === "reply" ? "reply to customer" : e.kind}`}</p>
               <p className="whitespace-pre-wrap">{e.body}</p>
             </li>
           ))}
@@ -116,6 +126,8 @@ export default function TicketPage() {
             <div className="flex items-center gap-3">
               <Select aria-label="Visibility" className="h-9 w-56" value={reply.toCustomer ? "c" : "n"} onChange={(e) => setReply({ ...reply, toCustomer: e.target.value === "c" })}><option value="c">Reply to the customer</option><option value="n">Internal note</option></Select>
               <Button size="sm" disabled={!reply.body.trim()} onClick={async () => (await act(`${SVC}/tickets/${t.id}/reply`, reply, reply.toCustomer ? "Reply sent" : "Note added")) && setReply({ body: "", toCustomer: reply.toCustomer })}><MessageSquare className="size-4" aria-hidden /> {reply.toCustomer ? "Send reply" : "Add note"}</Button>
+              <Button size="sm" variant="ghost" onClick={suggest}><Sparkles className="size-4" aria-hidden /> Suggest a reply</Button>
+              {hint && <span className="text-xs text-muted">{hint}</span>}
             </div>
           </div>
         )}

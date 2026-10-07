@@ -144,6 +144,8 @@ export const PERMISSIONS = {
   'service.field.manage': 'Schedule and carry out installation and service visits, issuing spares from stock',
   'service.contracts.manage': 'Register warranties, maintain customer service contracts (AMC) and RMAs',
   'service.setup.manage': 'Set SLA targets, business hours and escalation',
+  'portal.users.manage': 'Give customers and dealers portal logins, and disable them',
+  'portal.orders.manage': 'Accept orders placed on the customer and dealer portals into sales orders, or reject them',
   'payroll.setup.manage': 'Maintain salary components, templates, piece rates and payroll settings',
   'payroll.salaries.read': 'View salaries, loans, payroll inputs and tax declarations',
   'payroll.salaries.manage': 'Set salaries, give loans and advances, enter monthly inputs and tax declarations',
