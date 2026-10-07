@@ -288,6 +288,13 @@
       "when": 1791380629174,
       "tag": "0040_crm",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791382208762,
+      "tag": "0041_cpq_schedules",
+      "breakpoints": true
     }
   ]
 }
