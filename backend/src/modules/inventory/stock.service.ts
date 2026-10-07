@@ -13,6 +13,7 @@ import {
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { AuthContext } from '../../common/auth-context';
 import { Decimal } from '../../common/decimal';
+import { applyBinMove, reverseBinPostings, wmsConfigs } from './bins';
 import { issue, receive, revalue, reverse, type Method, type Pool } from './valuation';
 
 export const NO_BATCH = '00000000-0000-0000-0000-000000000000';
@@ -46,6 +47,8 @@ export interface StockMove {
   allowExpired?: boolean;
   /** Lots on QC hold may move between stores (transfers, adjustments) but not be issued or sold. */
   allowHeld?: boolean;
+  /** Bin, in a warehouse run with bins (WMS). Otherwise receipts land in the receiving bin and issues are allocated. */
+  binId?: string | null;
 }
 
 export interface Voucher {
@@ -126,6 +129,7 @@ export class StockService {
     if (errors.length) throw new StockError(errors);
 
     await this.lockPools(tx, auth.tenantId, moves);
+    const wms = await wmsConfigs(tx, whIds);
     const posted: PostedMove[] = [];
     for (const m of moves) {
       const it = itemMap.get(m.itemId)!;
@@ -179,6 +183,8 @@ export class StockService {
         .set({ qty: result.pool.qty, value: result.pool.value, layers: result.pool.layers, updatedAt: new Date() })
         .where(and(eq(stockValuation.itemId, m.itemId), eq(stockValuation.warehouseId, m.warehouseId)));
       await this.addBalance(tx, auth.tenantId, m.itemId, m.warehouseId, bucket, m.qty);
+      const cfg = wms.get(m.warehouseId);
+      if (cfg) await applyBinMove(tx, auth.tenantId, auth.userId, cfg, { warehouseId: m.warehouseId, itemId: m.itemId, batchId, qty: m.qty, binId: m.binId, kind: 'posting', voucherType: voucher.type, voucherId: voucher.id, label: `${it.code} (line ${m.line ?? 1})` });
 
       await tx.insert(stockLedger).values({
         tenantId: auth.tenantId,
@@ -279,6 +285,7 @@ export class StockService {
         createdBy: auth.userId,
       });
     }
+    await reverseBinPostings(tx, auth.tenantId, auth.userId, voucher.id);
   }
 
   /**

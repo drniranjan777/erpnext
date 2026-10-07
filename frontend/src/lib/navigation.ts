@@ -104,6 +104,9 @@ import {
   Plane,
   CalendarCog,
   Fingerprint,
+  Flame,
+  Grid3x3,
+  Warehouse,
   Globe,
   Timer,
   PackageX,
@@ -205,6 +208,17 @@ export const NAVIGATION: NavSection[] = [
       { label: "HSE", href: "/hse", icon: HardHat, permissions: ["hse.register.read"] },
       { label: "Retain samples", href: "/quality/retain-samples", icon: FlaskRound, permissions: ["quality.inspections.read"] },
       { label: "Traceability", href: "/quality/traceability", icon: GitBranch, permissions: ["quality.inspections.read"] },
+    ],
+  },
+  {
+    title: "Warehouse",
+    items: [
+      { label: "Warehouses", href: "/wms", icon: Warehouse, permissions: ["inventory.stock.read"] },
+      { label: "Floor tasks", href: "/wms/tasks", icon: ClipboardCheck, permissions: ["inventory.stock.read"] },
+      { label: "Scan", href: "/wms/scan", icon: ScanLine, permissions: ["inventory.stock.read"] },
+      { label: "Bins & zones", href: "/wms/bins", icon: Grid3x3, permissions: ["inventory.stock.read"] },
+      { label: "Heat map", href: "/wms/heatmap", icon: Flame, permissions: ["inventory.stock.read"] },
+      { label: "Item storage", href: "/wms/items", icon: Boxes, permissions: ["inventory.stock.read"] },
     ],
   },
   {

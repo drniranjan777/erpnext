@@ -34,6 +34,8 @@ export const PERMISSIONS = {
   'inventory.stock.read': 'View stock levels, ledger and valuation',
   'inventory.entries.manage': 'Create and submit stock entries (opening, receipt, issue, transfer, adjustment)',
   'inventory.entries.cancel': 'Cancel posted stock entries',
+  'wms.setup.manage': 'Switch warehouse management on, and set up zones, bins and item storage profiles',
+  'wms.tasks.execute': 'Carry out put-away, picking and bin moves on the warehouse floor',
   // Purchase
   'purchase.requisitions.read': 'View purchase requisitions',
   'purchase.requisitions.manage': 'Create, edit and submit purchase requisitions',
