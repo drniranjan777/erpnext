@@ -141,3 +141,23 @@ export const aiActionLog = pgTable(
   },
   (t) => [index('ai_action_log_idx').on(t.tenantId, t.at)],
 );
+
+/** Voice commands: what was heard, what was understood, and what happened (feeds the accuracy figure). */
+export const aiVoiceLogs = pgTable(
+  'ai_voice_logs',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    lang: text('lang').notNull(),
+    text: text('text').notNull(),
+    normalised: text('normalised'),
+    command: text('command'),
+    parsed: jsonb('parsed').$type<Record<string, unknown>>(),
+    /** understood | executed | cancelled | corrected | fallback | failed */
+    outcome: text('outcome').notNull(),
+    documentId: uuid('document_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('ai_voice_logs_idx').on(t.tenantId, t.createdAt)],
+);

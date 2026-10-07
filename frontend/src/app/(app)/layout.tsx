@@ -10,6 +10,7 @@ import { documentKeys, type InboxItem } from "@/lib/documents";
 import { CommandPalette } from "@/components/command-palette";
 import { Copilot } from "@/components/copilot";
 import { NotificationsBell } from "@/components/notifications-bell";
+import { VoiceButton } from "@/components/voice-button";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/auth";
 import { NAVIGATION } from "@/lib/navigation";
@@ -228,6 +229,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <main id="main" tabIndex={-1} className="flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8">{children}</main>
         {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
         <Copilot />
+        <VoiceButton />
       </div>
     </div>
   );

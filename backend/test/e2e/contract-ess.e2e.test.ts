@@ -13,6 +13,12 @@ const H = '/hr';
 
 const today = () => new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 10);
 const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+/** The first Monday–Friday on or after the date (leave on a weekly off is refused). */
+const weekday = (d: string) => {
+  let t = Date.parse(`${d}T00:00:00Z`);
+  while ([0, 6].includes(new Date(t).getUTCDay())) t += 86_400_000;
+  return new Date(t).toISOString().slice(0, 10);
+};
 // Last month, fully past.
 const M = (() => {
   const d = new Date(`${today().slice(0, 7)}-01T00:00:00Z`);
@@ -92,7 +98,7 @@ describe('expense claims and self-service', () => {
 
   it('shows the employee their day and the manager their queue', async () => {
     const lt = await ok(await a.client.post(`${H}/leave/types`, { code: 'CL', name: 'Casual leave', accrual: 'none', allowNegative: true }), 201);
-    await ok(await worker.client.post(`${H}/leave/applications`, { leaveTypeId: lt.id, fromDate: addDays(today(), 10), toDate: addDays(today(), 10), reason: 'Family function' }), 201);
+    await ok(await worker.client.post(`${H}/leave/applications`, { leaveTypeId: lt.id, fromDate: weekday(addDays(today(), 10)), toDate: weekday(addDays(today(), 10)), reason: 'Family function' }), 201);
     await ok(await worker.client.post(`${H}/claims`, { kind: 'phone', spentOn: today(), amount: 300, description: 'Mobile bill' }), 201);
     const mine = await ok(await worker.client.get(`${H}/home`));
     expect(mine.employee.id).toBe(ctx.emp.id);

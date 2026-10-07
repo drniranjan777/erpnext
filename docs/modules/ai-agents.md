@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 12.1–12.2 done |
+| **Status** | In progress: 12.1–12.3 done |
 | **Code** | `backend/src/modules/agents/`, `database/src/schema/ai.ts`, `frontend/src/app/(app)/ai/` |
 
 ## Sprint plan
@@ -110,3 +110,37 @@ Code: `backend/src/modules/agents/definitions/` (`sales.ts`, `finance.ts`, `oper
 - Flags tickets whose wording suggests a higher priority than logged.
 
 WhatsApp is not used for sending: messages go by email until a WhatsApp Business provider is connected.
+
+## 12.3 Voice (done)
+
+Code: `backend/src/modules/voice/` (`grammar.ts`, the command grammar; `eval-set.ts`, the evaluation set; both pure and unit tested), `frontend/src/components/voice-button.tsx` (on every screen, above the copilot button), page `/ai/voice`. Migration 0052 adds `ai_voice_logs`.
+
+**Speech**
+- Recognised in the browser with the Web Speech API (Chrome / Edge / Android): English, Hindi, Telugu, Tamil, Marathi, Kannada, Gujarati and Bengali (`xx-IN`).
+- Replies are spoken with the browser's speech synthesis in the same language.
+- Where speech is not available, commands can be typed. No audio leaves the device; only the transcript is sent.
+
+**Understanding** (rule-based, no AI key needed)
+- The transcript is normalised first:
+  - Devanagari digits and keywords become Latin;
+  - spoken numbers become digits: "paanch hazaar" / "पांच हजार" / "five thousand" → 5000, also "do sau pachaas", "dedh hazaar", "do lakh";
+  - Indian digit grouping is removed.
+- Three commands are recognised, with quantity, unit, item and production line:
+  - production (work) order: "Line 2 par 5,000 units ka production order banao", "create a production order for 1200 hex bolts on line 1";
+  - purchase requisition: "50 kg resin mangwao", "raise an indent for 200 bags of cement";
+  - stock question: "hex bolt ka stock kitna hai", "how much stock of resin".
+- Anything else goes to the copilot (which uses the model when a key is set). Commands in the other six languages are understood through the copilot model.
+
+**Resolving**
+- Items are matched by name or code (singular and plural).
+- "Line 2" is matched to a work centre by name or code (L2, LINE2…). When no item is said, the item of the last work order run on that line is proposed, with a note.
+- Warehouses come from that last order, or else the main store.
+
+**Confirm before acting**
+- A command never acts on its own. It returns a summary (item, quantity, line, start) and a spoken question.
+- "Yes" creates a draft work order or requisition, checking the person's permission (`manufacturing.production.manage` / `purchase.requisitions.manage`).
+- Missing or unknown details are asked back.
+
+**Accuracy**
+- The evaluation set holds 42 phrases (English, Hindi in Devanagari, Hinglish) across the three commands and non-commands. The unit test requires 90 % or more overall and in English and Hindi separately, the Phase 12 exit criterion.
+- In use, every command is logged: understood, executed as heard, corrected on the confirm screen, cancelled, fallback or failed. The page shows "confirmed as heard" over the last 30 days alongside the evaluation score and any phrases not yet understood.

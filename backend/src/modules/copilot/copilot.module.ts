@@ -10,5 +10,6 @@ import { CopilotTools } from './tools';
   imports: [ReportsModule, ManufacturingModule],
   controllers: [CopilotController],
   providers: [CopilotService, CopilotTools],
+  exports: [CopilotService],
 })
 export class CopilotModule {}
