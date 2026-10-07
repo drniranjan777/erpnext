@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 14.1–14.2 done |
+| **Status** | In progress: 14.1–14.3 done |
 | **Code** | `backend/src/modules/gmp/`, `backend/src/modules/pharma/`, `database/src/schema/gmp.ts`, `pharma.ts`, `frontend/src/app/(app)/gmp/`, `pharma/` |
 
 Phase 8 already provides: lot status with QA release under electronic signature, specifications and CoA, NCR / CAPA / SCAR, complaints, SPC, supplier quality and approved manufacturers, deviations with risk and change control, calibration and MSA, internal audits, SOPs and training, HSE incidents, the hazardous waste register, EPR targets, and licences with renewal tracking. Phase 7 provides formulas, dispensing with tolerances, machine cleaning, process batches and engineering change. Phase 14 builds the packs on top of these.
@@ -57,3 +57,19 @@ Migration 0060 adds `pharma_settings`, `stability_studies`, `stability_results`,
 **API labels.** The label of an active pharmaceutical ingredient container carries the QR code the Drugs Rules require: unique product identification code, API name, brand name, manufacturer's name and address, batch number and size, manufacturing and expiry or retest dates, SSCC (from the batch's shippers), manufacturing licence number, storage conditions and import licence number. Missing data (licence number, batch dates) is listed before printing. Labels print at 100 × 70 mm.
 
 **DPCO.** Ceiling prices notified by NPPA are recorded per formulation with their S.O. number and effective date. The check lists sales invoice lines priced above the ceiling in force on the invoice date (per base unit) and items whose MRP is above the ceiling in force today.
+
+## 14.3 Validation package (done)
+
+Migration 0061 adds `val_projects`, `val_tests` and `val_approvals`. Code: `backend/src/modules/validation/` (`catalogue.ts` holds the requirements; `risk.ts` is pure and unit tested). Permissions: `validation.projects.manage` and `validation.documents.approve`. Pages: `/validation`, `/validation/:id`, and the printable package `/print/validation/:id`.
+
+**Scope and requirements.** A validation project covers one release of the system and the modules a site uses (users, access, audit trail and signatures; inventory and lot control; quality; manufacturing; GMP controls; pharma; maintenance; shop floor). The catalogue holds the user requirements for each module — 29 in all — each with its GxP impact (direct or indirect), whether it is a Part 11 control, how the system meets it (the functional specification) and the OQ test that shows it, naming the product's own automated test that covers the same behaviour as supporting evidence.
+
+**Risk assessment (GAMP 5).** Each requirement is rated for severity, probability and detectability (low, medium, high). Severity and probability give the risk class; class and detectability give the priority, and the priority gives the testing: high — OQ with negative tests and PQ in the site's process; medium — OQ of the function; low — vendor testing leveraged. GxP-direct requirements start at high severity and Part 11 controls at low detectability.
+
+**Protocols and execution.**
+- IQ: the system checks itself — database version, the release installed, row-level security on every workspace table, the audit trail and signatures being impossible to change or delete for the application, the signature chain, the clocks agreeing, and production security settings — and records actual results with the time. Backups and a test restore are checked by hand.
+- OQ: generated from the requirements in scope, with steps and expected results.
+- PQ: written by the site, for its own process and data, against the requirements they show.
+- A protocol is executed only after it is approved (signed). Each test records the result (pass, fail, not applicable), the actual result, the evidence and who ran it when; a failed test needs a deviation.
+
+**Traceability and sign-off.** The traceability matrix links each requirement to its priority, its tests and their results: covered, failed, pending, or a gap (no test where the risk needs one). Documents (URS, risk assessment, IQ, OQ, PQ, summary report) are signed electronically as author, reviewer or approver. The summary report can be approved only when every requirement is covered and no test anywhere is failed or still to run; approval closes the validation. The printable package contains the URS with the functional specification, the risk assessment, the three protocols with their execution, the traceability matrix and the summary report with every signature.

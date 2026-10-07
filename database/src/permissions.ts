@@ -61,6 +61,8 @@ export const PERMISSIONS = {
   'pharma.serials.manage': 'Commission serial numbers, aggregate cartons and pallets, and export serialisation data',
   'pharma.pricing.manage': 'Record DPCO ceiling prices and check sales against them',
   'pharma.reports.read': 'See stability data, annual product quality reviews, serialisation and DPCO checks',
+  'validation.projects.manage': 'Run computer system validation: scope, risk assessment, protocols and test execution',
+  'validation.documents.approve': 'Sign validation documents as reviewer or approver',
   'ai.governance.manage': 'Set the AI policy (features, consent, PII masking, budget, models) and see AI usage and evaluations',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',
   // Purchase

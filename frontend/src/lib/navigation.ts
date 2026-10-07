@@ -307,6 +307,7 @@ export const NAVIGATION: NavSection[] = [
       { label: "Stability studies", href: "/pharma/stability", icon: FlaskRound, permissions: ["pharma.reports.read"] },
       { label: "Product quality review", href: "/pharma/apqr", icon: BookOpenCheck, permissions: ["pharma.reports.read"] },
       { label: "Serialisation & DPCO", href: "/pharma/serialisation", icon: Barcode, permissions: ["pharma.reports.read"] },
+      { label: "System validation", href: "/validation", icon: BadgeCheck, permissions: ["validation.projects.manage"] },
     ],
   },
   {
