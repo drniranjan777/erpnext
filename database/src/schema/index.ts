@@ -32,3 +32,4 @@ export * from './dms';
 export * from './service';
 export * from './portal';
 export * from './wms';
+export * from './tms';

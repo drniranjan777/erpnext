@@ -42,6 +42,7 @@ import { PayrollModule } from './modules/payroll/payroll.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { DmsModule } from './modules/dms/dms.module';
 import { PortalModule } from './modules/portal/portal.module';
+import { TmsModule } from './modules/tms/tms.module';
 import { WmsModule } from './modules/wms/wms.module';
 import { ServiceModule } from './modules/service/service.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
@@ -100,6 +101,7 @@ import { ProcessModule } from './modules/process/process.module';
     ServiceModule,
     PortalModule,
     WmsModule,
+    TmsModule,
     AdminModule,
     PrivacyModule,
   ],

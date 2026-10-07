@@ -104,6 +104,7 @@ import {
   Plane,
   CalendarCog,
   Fingerprint,
+  Route,
   RotateCcw,
   Disc3,
   Cylinder,
@@ -232,6 +233,14 @@ export const NAVIGATION: NavSection[] = [
       { label: "Returnables", href: "/wms/returnables", icon: RotateCcw, permissions: ["inventory.stock.read"] },
       { label: "Consignment", href: "/wms/consignments", icon: Handshake, permissions: ["inventory.stock.read"] },
       { label: "Item storage", href: "/wms/items", icon: Boxes, permissions: ["inventory.stock.read"] },
+    ],
+  },
+  {
+    title: "Transport",
+    items: [
+      { label: "Trips", href: "/tms", icon: Truck, permissions: ["sales.deliveries.read"] },
+      { label: "Freight bills", href: "/tms/freight", icon: ReceiptIndianRupee, permissions: ["tms.freight.manage"] },
+      { label: "Transport setup", href: "/tms/setup", icon: Route, permissions: ["sales.deliveries.read"] },
     ],
   },
   {

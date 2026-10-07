@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 11.1–11.3 done |
+| **Status** | In progress: 11.1–11.4 done |
 | **Code** | `backend/src/modules/wms/`, `backend/src/modules/tms/`, `backend/src/modules/inventory/bins.ts`, `database/src/schema/wms.ts`, `tms.ts`, `frontend/src/app/(app)/wms/`, `tms/` |
 
 ## Approach
@@ -170,3 +170,40 @@ Schema: added to `database/src/schema/wms.ts` (migration 0047), plus `stock_entr
 - An expired reel cannot be opened or used until baked.
 
 **Consignment**: a warehouse holds either a vendor's stock at our site or our stock at a customer. The statement shows what is held now and what was issued out of that warehouse in a period, with its value: what we pay the vendor for, or bill the customer for.
+
+## 11.4 Logistics (TMS-lite) (done)
+
+Schema: `database/src/schema/tms.ts`, migration 0048. Code: `backend/src/modules/tms/` (`freight.ts`: rate matching, freight, GPS trail distance; pure and unit tested). Pages: `/tms`, `/tms/trips/[id]`, `/tms/setup`, `/tms/freight`, and the public driver page `/driver`. Permissions: `tms.setup.manage`, `tms.trips.manage`, `tms.freight.manage`; viewing needs `sales.deliveries.read`.
+
+**Masters**
+- Transporters are vendors, with their GST transporter ID (defaults to the GSTIN).
+- Vehicles have a registration (normalised), whether owned or hired, a type (407, 17ft, 32ft_sxl…), capacity, transporter and driver.
+- Rate contracts (FRC0001…) have a validity period and lanes. A lane has:
+  - from city / to city / to state, each blank for any;
+  - a vehicle type (blank for any);
+  - a basis: per kg, per trip or per km;
+  - an optional minimum charge and an optional charge per extra drop.
+- The most specific lane that fits wins: a city beats a state beats any, and a named vehicle type beats any.
+
+**Trips** (TR000001…)
+- A trip takes posted, undelivered delivery notes, in drop order, that are not on another live trip. A vehicle (or a typed number and type) can't be loaded above its capacity.
+- Weight is the sum of the delivery notes' gross weights. Freight comes from the transporter's contract valid on the trip date. The lane runs from the warehouse's city and state to the last drop, with the vehicle type; per-km lanes need the planned km.
+- Stops copy the customer and shipping address. Delivery notes without a vehicle number get the trip's.
+- Status goes planned → dispatched (with the odometer start) → completed (every stop delivered or failed; odometer end not below start), or a planned trip is cancelled.
+- Expenses (toll, fuel, loading…) can be added until the trip is billed.
+
+**Driver link**
+- Dispatching issues a link `/driver?t=<token>` (the token carries the workspace and is stored hashed). It can be sent on WhatsApp, and "New driver link" replaces it. The link stops working when the trip is completed.
+- The page needs no login. It lists the drops with call buttons and shares the phone's position every 2 minutes while open.
+- At each drop: arrived; delivered, with the receiver's name, signature, an optional photo (shrunk on the phone) and the location; or not delivered, with a reason.
+- A delivery records proof of delivery on the delivery note (`deliveredAt`, and "Received by …" as the POD note).
+- `/public/trips/:token/*` routes are public (CORS open). Staff and integrations use `/tms/trips/:id/positions` (for example a GPS or FASTag feed with an API key).
+
+**Tracking**: the trip shows the last position (with a map link), the distance along the GPS trail (ignoring jumps faster than 150 km/h), and the odometer distance.
+
+**Freight bills** (FB00001…)
+- Pick the transporter's completed, unbilled trips and enter what their bill claims for each.
+- The bill is checked against the contract freight plus that trip's expenses; the same transporter bill number cannot be entered twice.
+- Someone other than the person who entered it approves the bill (a reason is needed if it is above the contract) or disputes it with a reason. A disputed bill frees its trips to be billed again.
+
+Not built: route optimisation across drops, live map view, e-way bill Part-B vehicle update from the trip, and FASTag/telematics provider integrations (the positions endpoint takes their feed).
