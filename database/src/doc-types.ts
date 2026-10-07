@@ -288,6 +288,15 @@ export const DOC_TYPES = {
     readPermission: 'quality.inspections.read',
     gstDocument: false,
   },
+  maintenance_order: {
+    label: 'Maintenance Order',
+    code: 'MWO',
+    module: 'maintenance',
+    path: '/maintenance/orders',
+    defaultPattern: 'MWO/{FY}/{SEQ}',
+    readPermission: 'maintenance.orders.read',
+    gstDocument: false,
+  },
   ncr: {
     label: 'Non-conformance Report',
     code: 'NCR',

@@ -1,5 +1,7 @@
 import {
   ActivitySquare,
+  Handshake,
+  Siren,
   BookOpenCheck,
   ClipboardPen,
   Crosshair,
@@ -175,6 +177,17 @@ export const NAVIGATION: NavSection[] = [
       { label: "HSE", href: "/hse", icon: HardHat, permissions: ["hse.register.read"] },
       { label: "Retain samples", href: "/quality/retain-samples", icon: FlaskRound, permissions: ["quality.inspections.read"] },
       { label: "Traceability", href: "/quality/traceability", icon: GitBranch, permissions: ["quality.inspections.read"] },
+    ],
+  },
+  {
+    title: "Maintenance",
+    items: [
+      { label: "Maintenance orders", href: "/maintenance/orders", icon: Siren, permissions: ["maintenance.orders.read"] },
+      { label: "Assets", href: "/maintenance/assets", icon: Building2, permissions: ["maintenance.orders.read"] },
+      { label: "Preventive maintenance", href: "/maintenance/pm", icon: CalendarClock, permissions: ["maintenance.orders.read"] },
+      { label: "Reliability & OEE", href: "/maintenance/reliability", icon: Gauge, permissions: ["maintenance.orders.read"] },
+      { label: "AMC contracts", href: "/maintenance/amc", icon: Handshake, permissions: ["maintenance.orders.read"] },
+      { label: "TPM", href: "/maintenance/tpm", icon: Sparkles, permissions: ["maintenance.orders.read"] },
     ],
   },
   {

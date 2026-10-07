@@ -38,6 +38,7 @@ const STOCK_ONLY: Partial<Record<DocType, SystemKey>> = {
   stock_count: 'stock_adjustment',
   job_work_challan: 'stock_adjustment',
   job_work_receipt: 'jobwork_accrued',
+  maintenance_order: 'maintenance_consumed',
 };
 
 const STOCK_ENTRY_COUNTER: Record<string, SystemKey> = {

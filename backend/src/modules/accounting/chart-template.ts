@@ -117,6 +117,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     a('9560', 'Rent', 'expense'),
     a('9570', 'Power and fuel', 'expense'),
     a('9580', 'Repairs and maintenance', 'expense'),
+    a('9585', 'Maintenance spares consumed', 'expense', 'maintenance_consumed'),
   ]),
 ];
 
@@ -127,6 +128,6 @@ export const REQUIRED_KEYS = [
   'gst_out_cgst', 'gst_out_sgst', 'gst_out_igst', 'gst_out_cess', 'gst_in_cgst', 'gst_in_sgst', 'gst_in_igst', 'gst_in_cess',
   'gst_rcm_cgst', 'gst_rcm_sgst', 'gst_rcm_igst', 'gst_rcm_cess', 'tds_payable', 'landed_cost_accrued', 'jobwork_accrued', 'customs_payable',
   'bank_charges', 'tds_receivable', 'bad_debts', 'cash', 'customer_advance', 'vendor_advance', 'interest_income', 'depreciation', 'accumulated_depreciation',
-  'gst_payable', 'asset_disposal', 'cwip', 'ppe_plant', 'wip', 'production_variance', 'production_absorbed',
+  'gst_payable', 'asset_disposal', 'cwip', 'ppe_plant', 'wip', 'production_variance', 'production_absorbed', 'maintenance_consumed',
 ] as const;
 export type SystemKey = (typeof REQUIRED_KEYS)[number];

@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Sprints 8.1–8.3 (7 Oct 2026) done. Builds on the 5.3 quality module (`docs/modules/quality.md`). |
-| **Tests** | `backend/test/unit/spc.test.ts`, `backend/test/e2e/qms.e2e.test.ts`, `backend/test/e2e/improvement.e2e.test.ts`, `backend/test/unit/msa.test.ts`, `backend/test/e2e/qms-system.e2e.test.ts` |
+| **Status** | **Phase 8 complete** (7 Oct 2026): sprints 8.1–8.4. Builds on the 5.3 quality module (`docs/modules/quality.md`). |
+| **Tests** | `backend/test/unit/spc.test.ts`, `backend/test/e2e/qms.e2e.test.ts`, `backend/test/e2e/improvement.e2e.test.ts`, `backend/test/unit/msa.test.ts`, `backend/test/e2e/qms-system.e2e.test.ts`, `backend/test/e2e/maintenance.e2e.test.ts` |
 | **Code** | `backend/src/modules/quality/`, `backend/src/modules/qms/`, `backend/src/modules/maintenance/`, `database/src/schema/quality.ts`, `database/src/schema/qms.ts`, `database/src/schema/maintenance.ts` |
 
 ## Sprint plan
@@ -13,7 +13,7 @@
 | **8.1** ✅ | **Quality control depth**: lot status (quarantine → under test → released / conditional / rejected) enforced on stock issue; QA release with an electronic signature (password re-entry + meaning, kept as a signature record); vendor- and customer-specific specifications; skip-lot sampling; vendor CoA reference and check on incoming lots; certificate of analysis print; retain samples; **non-conformance reports** with MRB disposition (use as is, rework, scrap, return, sort) and **cost of poor quality** |
 | **8.2** ✅ | **CAPA** (5-Why, fishbone, 8D, effectiveness check, links to NCRs and complaints); **SPC** (X-bar R / S, I-MR, p, np, c, u charts, Cp / Cpk / Pp / Ppk, Western Electric rules) on inspection readings; **customer complaints**; **supplier quality** (scorecards from inspections and NCRs, SCAR, supplier audits, approved manufacturer list) |
 | **8.3** ✅ | **Deviations and change control** (impact and risk assessment, approval); **calibration and MSA** (gauge master, calibration schedule and certificates, due alerts, gauge R&R); **internal audits** (plans, findings); **SOPs** with versions and training acknowledgement; **HSE** (incidents, hazardous waste register, EPR obligations, licences and permits with expiry alerts) |
-| 8.4 | **Maintenance (EAM / TPM)**: asset hierarchy; breakdown requests (photo); preventive schedules by time, usage or meter; maintenance work orders with checklists, spares issue, labour and cost; downtime with MTTR / MTBF; tool and mould life triggers; critical spares; AMC contracts and visits with SLA; TPM (autonomous maintenance checklists, kaizen register, 5S audits, OEE losses) |
+| **8.4** ✅ | **Maintenance (EAM / TPM)**: asset hierarchy; breakdown requests (photo); preventive schedules by time, usage or meter; maintenance work orders with checklists, spares issue, labour and cost; downtime with MTTR / MTBF; tool and mould life triggers; critical spares; AMC contracts and visits with SLA; TPM (autonomous maintenance checklists, kaizen register, 5S audits, OEE losses) |
 
 Exit target (V1.5): an IATF-style and a GMP-style pilot can complete a mock audit from system records alone.
 
@@ -187,3 +187,53 @@ Exit target (V1.5): an IATF-style and a GMP-style pilot can complete a mock audi
 - licences to renew and expired;
 - open HSE incidents;
 - hazardous waste stored over 90 days.
+
+## 14. Maintenance (8.4)
+
+- **Assets** (`/maintenance/assets`): a tree of plant → line → machine → assembly → component (and utilities).
+  - Each asset has criticality A / B / C, a status (running, down, standby, retired), make, model, serial, specs, warranty and an optional meter (hours, km, strokes).
+  - A machine asset can point at its shop-floor machine. Loops in the tree are refused.
+  - **Spares**: per asset, an item, whether it is critical, a minimum stock and an interchangeable alternate. Critical spares below their minimum (stock in nettable stores) are listed.
+  - **Meter readings** may not go backwards.
+- **Maintenance orders** (doc type `maintenance_order`, `MWO/{FY}/{SEQ}`):
+  - The kind is breakdown, preventive, condition, shutdown or corrective, on an asset or a mould / die.
+  - A request (permission `maintenance.requests.create`) is a draft. A breakdown marks the machine *down*.
+  - *Start* records who and when. *Complete* records the cause, what was done, the checklist answers (every point), labour (hours × rate), spares (item, store, quantity), other cost and the meter reading.
+  - Downtime runs from the breakdown report (or the start of work, for planned jobs that stop the machine) to the finish, unless entered.
+  - **Sign-off** (approval) issues the spares from stock, so they post to *Maintenance spares consumed* through the stock ledger. It then fixes labour, spares, other and total cost, puts the asset back to running (unless another open job keeps it down), and rolls the PM schedule or the mould's shot counter forward.
+- **Preventive maintenance** (`/maintenance/pm`):
+  - Schedules run by calendar (every *n* days, first due date) or by meter (every *n* units from the reading when created), each with a checklist.
+  - *Open due jobs* creates a preventive order, with the checklist, for each schedule due within 7 days or past its meter reading, never two open for one schedule. It does the same for moulds and dies whose shots since their last service have reached the tool's maintenance interval.
+  - Sign-off sets the last-done date and the next due date or meter reading.
+  - PM compliance is the share of signed-off PM jobs finished by their planned date.
+- **Reliability** (`/maintenance/reliability`):
+  - Per asset over the period:
+    - failures (breakdowns finished in it);
+    - downtime;
+    - MTTR = downtime ÷ failures;
+    - MTBF = (working time − downtime) ÷ failures, where working time follows the machine's work-centre calendar, else round the clock;
+    - availability;
+    - breakdown and planned maintenance cost.
+  - **OEE** per machine:
+    - availability = (calendar working time − maintenance downtime) ÷ working time;
+    - performance = standard run minutes for the pieces booked ÷ minutes booked on job cards;
+    - quality = good ÷ (good + rejected).
+
+    Losses are shown as breakdown, speed, quality and idle minutes.
+- **AMC contracts**: contractor, assets covered, period, value, visits a year and the promised breakdown response in hours.
+  - Visits are logged within the contract period. Breakdown visits need the call time and are marked within or outside the SLA.
+  - Contracts are active, expiring (within 30 days) or expired.
+- **TPM**:
+  - **Autonomous maintenance**: checklists per asset (daily, weekly or monthly), done by operators once per day. Each point not OK is a tagged abnormality.
+  - **Kaizen** register: before / after, category, annual savings and implementation date, with the year's totals.
+  - **5S audits**: by area, each S scored 1–5 (out of 25), with the change since the last audit of that area.
+
+## Permissions (Phase 8)
+
+| Permission | Covers |
+|---|---|
+| `quality.release.sign` | QA release with e-signature |
+| `quality.ncr.manage`, `quality.capa.manage`, `quality.complaints.manage`, `quality.suppliers.manage`, `quality.deviations.manage`, `quality.calibration.manage`, `quality.audits.manage`, `quality.sops.manage` | The registers they name |
+| `hse.register.read` / `hse.register.manage` | HSE. Anyone may report an incident. |
+| `maintenance.orders.read` / `maintenance.orders.manage` | Maintenance |
+| `maintenance.requests.create` | Report breakdowns, record meter readings and AM checks, submit kaizens |
