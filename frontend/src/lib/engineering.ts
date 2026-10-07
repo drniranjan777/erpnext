@@ -2,8 +2,8 @@ import type { DocumentHeader } from "./documents";
 
 export const ENG = "/engineering";
 
-export type ChangeKind = "bom" | "formula" | "drawing" | "item" | "process";
-export const CHANGE_KIND: Record<ChangeKind, string> = { bom: "Bill of materials", formula: "Formula", drawing: "Drawing", item: "Item master", process: "Process / routing" };
+export type ChangeKind = "bom" | "formula" | "drawing" | "item" | "process" | "facility" | "system";
+export const CHANGE_KIND: Record<ChangeKind, string> = { bom: "Bill of materials", formula: "Formula", drawing: "Drawing", item: "Item master", process: "Process / routing", facility: "Facility / equipment", system: "System / software" };
 export const DISPOSITION = { use_as_is: "Use up existing stock", rework: "Rework existing stock", scrap: "Scrap existing stock", return_to_vendor: "Return to vendor" } as const;
 export const STAGE = { request: { label: "Request", tone: "neutral" }, approved: { label: "Approved notice", tone: "primary" }, implemented: { label: "Implemented", tone: "success" } } as const;
 
@@ -35,6 +35,13 @@ export interface Change extends DocumentHeader {
   stage: keyof typeof STAGE;
   implementedAt: string | null;
   implementationNotes: string | null;
+  severity: number | null;
+  occurrence: number | null;
+  detection: number | null;
+  rpn: number | null;
+  riskLevel: "low" | "medium" | "high" | null;
+  regulatoryImpact: boolean;
+  validationRequired: boolean;
   items: { id: string; lineNo: number; item: { id: string; code: string; name: string }; from: DocRef | null; to: DocRef | null; remarks: string | null }[];
   impact: Impact;
   liveImpact: Impact | null;

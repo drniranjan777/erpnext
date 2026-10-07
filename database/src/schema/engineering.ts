@@ -1,4 +1,4 @@
-import { date, index, jsonb, pgTable, smallint, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { boolean, date, index, jsonb, pgTable, smallint, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { citext, pk } from './_columns';
 import { documents } from './documents';
 import { items } from './masters';
@@ -31,6 +31,16 @@ export const engineeringChanges = pgTable('engineering_changes', {
   stage: text('stage').notNull().default('request'),
   implementedAt: timestamp('implemented_at', { withTimezone: true }),
   implementationNotes: text('implementation_notes'),
+  /** Change control risk: 1–5 ratings, their product (RPN) and band. */
+  severity: smallint('severity'),
+  occurrence: smallint('occurrence'),
+  detection: smallint('detection'),
+  rpn: smallint('rpn'),
+  riskLevel: text('risk_level'),
+  /** Needs regulatory notification (licence, DMF, PPAP resubmission…). */
+  regulatoryImpact: boolean('regulatory_impact').notNull().default(false),
+  /** Needs validation / qualification before release. */
+  validationRequired: boolean('validation_required').notNull().default(false),
   /** Impact as it was when the change was approved. */
   impactSnapshot: jsonb('impact_snapshot').$type<Record<string, unknown>>(),
 });

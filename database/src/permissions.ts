@@ -93,6 +93,12 @@ export const PERMISSIONS = {
   'quality.capa.manage': 'Raise CAPAs and SCARs, record root cause and actions, verify effectiveness',
   'quality.complaints.manage': 'Log customer complaints, respond and close them',
   'quality.suppliers.manage': 'Record supplier audits and maintain the approved manufacturer list',
+  'quality.deviations.manage': 'Raise deviations, assess their risk and close them',
+  'quality.calibration.manage': 'Maintain gauges, record calibrations and gauge R&R studies',
+  'quality.audits.manage': 'Plan internal audits and record findings',
+  'quality.sops.manage': 'Write and release SOPs and assign who must be trained on them',
+  'hse.register.read': 'View HSE incidents, the hazardous waste register, EPR and licences',
+  'hse.register.manage': 'Record HSE incidents, hazardous waste, EPR progress and licences',
   'planning.mrp.read': 'View demand forecasts, MRP runs, planned orders and exceptions',
   'planning.mrp.manage': 'Edit forecasts and planning parameters, run MRP, firm and convert planned orders',
 } as const;

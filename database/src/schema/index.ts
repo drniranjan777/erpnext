@@ -19,3 +19,4 @@ export * from './analytics';
 export * from './process';
 export * from './planning';
 export * from './engineering';
+export * from './qms';

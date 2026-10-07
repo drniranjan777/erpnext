@@ -232,6 +232,13 @@
       "when": 1791343201432,
       "tag": "0032_capa_complaints_suppliers",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791344475029,
+      "tag": "0033_deviations_calibration_sops_hse",
+      "breakpoints": true
     }
   ]
 }

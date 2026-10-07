@@ -100,6 +100,9 @@ export default function ChangePage() {
           <Info label="Effective from" value={d.effectiveDate ? formatDate(d.effectiveDate) : "On implementation"} />
           <Info label="Existing stock" value={d.dispositionLabel} />
           <Info label="Raised" value={formatDate(d.docDate)} />
+          {d.rpn !== null && <Info label="Risk" value={<Badge tone={d.riskLevel === "high" ? "danger" : d.riskLevel === "medium" ? "warning" : "success"}>{d.riskLevel} · RPN {d.rpn} ({d.severity}×{d.occurrence}×{d.detection})</Badge>} />}
+          {d.validationRequired && <Info label="Validation" value="Required before release" />}
+          {d.regulatoryImpact && <Info label="Regulatory" value="Notification needed" />}
         </dl>
         {d.description && <p className="whitespace-pre-line border-t border-border px-5 py-4 text-sm">{d.description}</p>}
       </Card>

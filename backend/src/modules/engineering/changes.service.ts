@@ -9,17 +9,24 @@ import type { RequestMeta } from '../../common/request-meta';
 import { optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
+import { riskOf } from '../quality/msa';
 
 const DOC_TYPE = 'engineering_change' as const;
 const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 
 const body = {
-  kind: z.enum(['bom', 'formula', 'drawing', 'item', 'process']),
+  kind: z.enum(['bom', 'formula', 'drawing', 'item', 'process', 'facility', 'system']),
   reason: z.string().trim().min(3, 'Say why the change is needed').max(1000),
   description: optionalText(4000),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
   effectiveDate: z.iso.date().nullable().optional(),
   disposition: z.enum(['use_as_is', 'rework', 'scrap', 'return_to_vendor']).default('use_as_is'),
+  /** Change-control risk, 1–5 each (required for process, facility and system changes). */
+  severity: z.number().int().min(1).max(5).nullable().optional(),
+  occurrence: z.number().int().min(1).max(5).nullable().optional(),
+  detection: z.number().int().min(1).max(5).nullable().optional(),
+  regulatoryImpact: z.boolean().default(false),
+  validationRequired: z.boolean().default(false),
   docDate: z.iso.date().optional(),
   items: z
     .array(
@@ -127,6 +134,8 @@ export class ChangesService implements OnModuleInit {
   submit(auth: AuthContext, id: string, version: number, meta: RequestMeta) {
     return this.database.run(auth, async (tx) => {
       const doc = await this.documents.lock(tx, id, DOC_TYPE, version);
+      const [c] = await tx.select({ kind: engineeringChanges.kind, rpn: engineeringChanges.rpn }).from(engineeringChanges).where(eq(engineeringChanges.id, id));
+      if (['process', 'facility', 'system'].includes(c.kind) && c.rpn === null) throw new BadRequestException({ message: 'Rate the risk (severity, occurrence, detection) before submitting a process, facility or system change', errors: [{ path: 'severity', message: 'Required' }] });
       const submitted = await this.documents.submit(tx, auth, doc, meta);
       return this.view(tx, auth, submitted);
     });
@@ -160,7 +169,23 @@ export class ChangesService implements OnModuleInit {
   }
 
   private header(input: CreateChangeInput) {
-    return { kind: input.kind, reason: input.reason, description: input.description, priority: input.priority, effectiveDate: input.effectiveDate ?? null, disposition: input.disposition };
+    const rated = input.severity && input.occurrence && input.detection;
+    const risk = rated ? riskOf(input.severity!, input.occurrence!, input.detection!) : null;
+    return {
+      kind: input.kind,
+      reason: input.reason,
+      description: input.description,
+      priority: input.priority,
+      effectiveDate: input.effectiveDate ?? null,
+      disposition: input.disposition,
+      severity: input.severity ?? null,
+      occurrence: input.occurrence ?? null,
+      detection: input.detection ?? null,
+      rpn: risk?.rpn ?? null,
+      riskLevel: risk?.level ?? null,
+      regulatoryImpact: input.regulatoryImpact,
+      validationRequired: input.validationRequired,
+    };
   }
 
   private title(input: CreateChangeInput, lines: { code: string }[]) {

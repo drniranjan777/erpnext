@@ -5,6 +5,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ItemPicker } from "@/components/item-picker";
+import { RiskInputs } from "@/components/quality/deviation-form";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -43,7 +45,12 @@ export function ChangeForm({ change }: { change?: Change }) {
     priority: change?.priority ?? "normal",
     effectiveDate: change?.effectiveDate ?? "",
     disposition: change?.disposition ?? "use_as_is",
+    regulatoryImpact: change?.regulatoryImpact ?? false,
+    validationRequired: change?.validationRequired ?? false,
   });
+  const [rated, setRated] = useState(!!change?.rpn);
+  const [risk, setRisk] = useState({ severity: change?.severity ?? 3, occurrence: change?.occurrence ?? 2, detection: change?.detection ?? 2 });
+  const needsRisk = ["process", "facility", "system"].includes(f.kind);
   const [lines, setLines] = useState<Line[]>(change?.items.map((l) => ({ itemId: l.item.id, label: `${l.item.code} ${l.item.name}`, toDocId: l.to?.id ?? "", remarks: l.remarks ?? "" })) ?? []);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -53,7 +60,7 @@ export function ChangeForm({ change }: { change?: Change }) {
     setBusy(true);
     setError(null);
     try {
-      const body = { ...f, description: f.description || null, effectiveDate: f.effectiveDate || null, items: lines.map((l) => ({ itemId: l.itemId, toDocId: l.toDocId || null, remarks: l.remarks || null })) };
+      const body = { ...f, ...(rated || needsRisk ? risk : { severity: null, occurrence: null, detection: null }), description: f.description || null, effectiveDate: f.effectiveDate || null, items: lines.map((l) => ({ itemId: l.itemId, toDocId: l.toDocId || null, remarks: l.remarks || null })) };
       const r = await api<Change>(change ? `${ENG}/changes/${change.id}` : `${ENG}/changes`, { method: change ? "PUT" : "POST", body: change ? { ...body, version: change.version } : body });
       router.push(`${ENG}/changes/${r.id}`);
     } catch (e) {
@@ -71,6 +78,14 @@ export function ChangeForm({ change }: { change?: Change }) {
         <Field label="Effective from">{(p) => <Input {...p} type="date" value={f.effectiveDate} onChange={set("effectiveDate")} />}</Field>
         <Field label="Reason" required className="sm:col-span-3">{(p) => <Input {...p} placeholder="Customer complaint, cost reduction, supplier change…" value={f.reason} onChange={set("reason")} />}</Field>
         <Field label="Description of the change" className="sm:col-span-2">{(p) => <textarea {...p} rows={3} value={f.description} onChange={set("description")} className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />}</Field>
+        <div className="space-y-2 sm:col-span-3">
+          <div className="flex flex-wrap gap-4">
+            <Checkbox label="Rate the risk" checked={rated || needsRisk} disabled={needsRisk} onChange={(e) => setRated(e.target.checked)} />
+            <Checkbox label="Needs validation / qualification" checked={f.validationRequired} onChange={(e) => setF({ ...f, validationRequired: e.target.checked })} />
+            <Checkbox label="Regulatory notification needed" checked={f.regulatoryImpact} onChange={(e) => setF({ ...f, regulatoryImpact: e.target.checked })} />
+          </div>
+          {(rated || needsRisk) && <RiskInputs value={risk} onChange={setRisk} />}
+        </div>
         <Field label="Existing stock and open orders">{(p) => <Select {...p} value={f.disposition} onChange={set("disposition")}>{Object.entries(DISPOSITION).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select>}</Field>
       </Card>
       <Card>
