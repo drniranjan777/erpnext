@@ -8,6 +8,9 @@ import {
   HardHat,
   ShieldAlert,
   BadgeCheck,
+  TriangleAlert,
+  FileStack,
+  Milestone,
   GitPullRequestArrow,
   MessageSquareWarning,
   CalendarClock,
@@ -308,6 +311,16 @@ export const NAVIGATION: NavSection[] = [
       { label: "Product quality review", href: "/pharma/apqr", icon: BookOpenCheck, permissions: ["pharma.reports.read"] },
       { label: "Serialisation & DPCO", href: "/pharma/serialisation", icon: Barcode, permissions: ["pharma.reports.read"] },
       { label: "System validation", href: "/validation", icon: BadgeCheck, permissions: ["validation.projects.manage"] },
+    ],
+  },
+  {
+    title: "Automotive",
+    items: [
+      { label: "APQP", href: "/auto/apqp", icon: Milestone, permissions: ["auto.quality.read"] },
+      { label: "PPAP", href: "/auto/ppap", icon: FileStack, permissions: ["auto.quality.read"] },
+      { label: "FMEA & control plans", href: "/auto/fmea", icon: TriangleAlert, permissions: ["auto.quality.read"] },
+      { label: "Layered audits", href: "/auto/lpa", icon: ClipboardList, permissions: ["auto.quality.read"] },
+      { label: "EDI & customer requirements", href: "/auto/edi", icon: ArrowLeftRight, permissions: ["auto.quality.read"] },
     ],
   },
   {

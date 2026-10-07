@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 14.1–14.3 done |
+| **Status** | In progress: 14.1–14.4 done |
 | **Code** | `backend/src/modules/gmp/`, `backend/src/modules/pharma/`, `database/src/schema/gmp.ts`, `pharma.ts`, `frontend/src/app/(app)/gmp/`, `pharma/` |
 
 Phase 8 already provides: lot status with QA release under electronic signature, specifications and CoA, NCR / CAPA / SCAR, complaints, SPC, supplier quality and approved manufacturers, deviations with risk and change control, calibration and MSA, internal audits, SOPs and training, HSE incidents, the hazardous waste register, EPR targets, and licences with renewal tracking. Phase 7 provides formulas, dispensing with tolerances, machine cleaning, process batches and engineering change. Phase 14 builds the packs on top of these.
@@ -73,3 +73,23 @@ Migration 0061 adds `val_projects`, `val_tests` and `val_approvals`. Code: `back
 - A protocol is executed only after it is approved (signed). Each test records the result (pass, fail, not applicable), the actual result, the evidence and who ran it when; a failed test needs a deviation.
 
 **Traceability and sign-off.** The traceability matrix links each requirement to its priority, its tests and their results: covered, failed, pending, or a gap (no test where the risk needs one). Documents (URS, risk assessment, IQ, OQ, PQ, summary report) are signed electronically as author, reviewer or approver. The summary report can be approved only when every requirement is covered and no test anywhere is failed or still to run; approval closes the validation. The printable package contains the URS with the functional specification, the risk assessment, the three protocols with their execution, the traceability matrix and the summary report with every signature.
+
+## 14.4 Automotive pack (IATF 16949) (done)
+
+Migration 0062 adds `apqp_projects`, `ppap_submissions`, `fmeas`, `control_plans`, `lpa_checklists`, `lpa_audits`, `csr_requirements`, `edi_partners` and `edi_messages`. Code: `backend/src/modules/auto/` (`auto-rules.ts` is pure and unit tested). Permissions: `auto.apqp.manage`, `auto.lpa.audit`, `auto.edi.manage`, `auto.quality.read`. Pages: `/auto/apqp` (and `/:id`), `/auto/ppap` (and `/:id`), `/auto/fmea` (and `/:id`, `/new`), `/auto/lpa`, `/auto/edi`.
+
+**APQP.** A project (customer, part, customer part number, vehicle programme, SOP date) carries the 24 standard deliverables across the five phases (plan and define; product design; process design; product and process validation; feedback and corrective action), each with status, owner and due date. A phase gate is signed electronically once every deliverable of the phase is done or not applicable, and only after the gate before it; deliverables of a passed phase are frozen. Passing phase 5 completes the project. PPAPs of the project show under phase 4.
+
+**PPAP** (AIAG 4th edition). A submission is created for a part, customer, level (1–5) and reason (initial, engineering change, tooling, correction, other) with the 18 elements and what each level requires: submit (S), retain (R), or as the customer specifies (level 4, settable per element). Each element is tracked with its status and the reference to the document; the page lists the evidence already in the system for the part (FMEAs, control plans, drawings, inspections). The PSW is signed electronically with the supplier's declaration, only when every element to submit is complete or not applicable; the customer's decision (approved, interim, rejected) is then recorded, and a rejected PPAP can be corrected and resubmitted.
+
+**FMEA (AIAG-VDA 2019).** Design and process FMEAs have one row per failure mode and cause: step or function, failure mode, effect, severity, special characteristic (CC / SC), cause, prevention control, occurrence, detection control, detection, recommended action with owner and due date, and the ratings after the action. Each row gets its action priority (high, medium, low) from the AIAG-VDA table — not the old RPN — before and after the action; the FMEA shows how many are high, medium and low and flags high-priority rows without an action. Every save is a new revision.
+
+**Control plans.** A control plan (prototype, pre-launch, production) lists for each step the machine, characteristic (product or process), special characteristic class, specification, evaluation technique, sample size, frequency, control method and reaction plan. It can be drafted from a process FMEA: every special characteristic and every failure with medium or high priority becomes a characteristic, with the FMEA's detection control as the technique and its prevention control as the method.
+
+**Layered process audits.** Short checklists per area are audited at three layers (supervisors daily, managers weekly, plant head monthly). Every question must be answered; each "no" must describe the finding and can be marked fixed on the spot. The summary shows compliance and audits by layer over the last 30 days and the findings.
+
+**Customer-specific requirements** (IATF 16949 clause 4.3.2): each customer's requirements with the source document, the IATF clause, how they are met (required to mark one as met) and the review date.
+
+**EDI with OEMs (EDIFACT D.96A).** A partner links a customer to the interchange ids on both sides and maps the customer's part numbers to items.
+- Incoming DELFOR (delivery schedules, firm and forecast by commitment level) and DELJIT (JIT calls, firm) are read — including the UNA service string advice and the release character — into dated quantities per part. Unknown senders and unmapped part numbers are reported and the message kept with its error. When every part is known, the quantities are loaded into the customer's delivery schedules (one schedule per item and month, as a new revision with the EDI reference), so schedule adherence and ASNs (Phase 9) work on them.
+- Outgoing DESADV (despatch advice) is built from a submitted delivery note (order reference, parts mapped back to the customer's part numbers, quantities) and INVOIC from a submitted sales invoice (lines with price, taxable value and GST rate, and the invoice's taxable, tax and total amounts). Every message in or out is kept.

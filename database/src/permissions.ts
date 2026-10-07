@@ -63,6 +63,10 @@ export const PERMISSIONS = {
   'pharma.reports.read': 'See stability data, annual product quality reviews, serialisation and DPCO checks',
   'validation.projects.manage': 'Run computer system validation: scope, risk assessment, protocols and test execution',
   'validation.documents.approve': 'Sign validation documents as reviewer or approver',
+  'auto.apqp.manage': 'Run APQP projects, PPAP submissions, FMEAs and control plans',
+  'auto.lpa.audit': 'Carry out layered process audits and keep their checklists',
+  'auto.edi.manage': 'Set up EDI partners, receive schedules and send dispatch advices and invoices',
+  'auto.quality.read': 'See APQP, PPAP, FMEA, control plans, audits, customer requirements and EDI messages',
   'ai.governance.manage': 'Set the AI policy (features, consent, PII masking, budget, models) and see AI usage and evaluations',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',
   // Purchase
