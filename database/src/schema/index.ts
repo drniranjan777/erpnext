@@ -28,3 +28,4 @@ export * from './talent';
 export * from './contract';
 export * from './crm';
 export * from './cpq';
+export * from './dms';

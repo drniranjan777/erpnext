@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 10.1–10.2 done |
+| **Status** | In progress: 10.1–10.3 done |
 | **Code** | `backend/src/modules/crm/`, `backend/src/modules/dms/`, `backend/src/modules/service/`, `backend/src/modules/portal/`, `database/src/schema/crm.ts`, `dms.ts`, `service.ts`, `frontend/src/app/(app)/crm/`, `dms/`, `service/`, `frontend/src/app/portal/` |
 
 ## Sprint plan
@@ -100,3 +100,47 @@ Schema: `database/src/schema/cpq.ts`, migration 0041. The engines and the config
 **Permissions**: `cpq.estimates.read`, `cpq.estimates.manage`, `sales.schedules.read`, `sales.schedules.manage`.
 
 **UI**: `/crm/estimates` (the three engines with live calculation, quoting, quote templates), `/crm/configurator` (choose options, see the price, quote; edit option groups), `/sales/schedules` (adherence, schedules, ASNs; import).
+
+## 10.3 Distribution (DMS) (done)
+
+Schema: `database/src/schema/dms.ts`, migration 0042. Code: `backend/src/modules/dms/`. The scheme engine is in `schemes.ts`, pure and unit tested.
+
+**Network**: distributors (any customer, with a territory and salesperson), beats (a salesperson, an optional weekday, a distributor) and retailers (code, owner, outlet class A/B/C, beat and location). A retailer's location is recorded on the first field check-in if it was not entered.
+
+**Schemes**
+- Kinds:
+  - quantity slab: ₹ off each unit or a % off, once a quantity is reached;
+  - value slab: a % off the order once its value is reached;
+  - free goods: buy N, get M free.
+- A scheme covers chosen items (or all), has dated validity, and works at one level: secondary (distributor to retailer) or primary (us to distributor).
+- Quantity and free-goods schemes work per item. A value slab works on the order value of its items after the per-item discounts. The highest slab reached applies.
+
+**Secondary sales** (SS000001…)
+- Recorded manually, booked in the field during a visit, or imported from a distributor's file (`retailer_code`, `item_code`, qty, optional rate, date and `invoice_no`; rows with the same retailer, date and invoice number form one sale).
+- Each sale is priced with the item's selling rate unless a rate is given, and the secondary schemes active on its date apply automatically; free goods go on the line.
+- Cancelling is refused once an approved scheme claim covers the sale.
+
+**Distributor stock** = opening stock and counts + our posted invoices to the distributor − their secondary sales (free goods included), with days of cover from the last 30 days of sales.
+
+**Field force** (`/dms/field`, permission `dms.field.use`)
+- Today's beats and their outlets.
+- Check-in records the phone's location and an optional shelf photo, and flags a check-in further than the configured radius (200 m by default) from the outlet. Only one open visit at a time.
+- Book the order (a secondary sale linked to the visit), then check out with an outcome; a visit with an order is always marked "order".
+- Visit report: calls, productive calls, far check-ins and order value, per salesperson per day.
+
+**Claims** (CLM00001…)
+- Kinds: scheme, damage, price difference, other.
+- For a scheme claim the system computes the amount due:
+  - secondary schemes: the discounts the scheme gave on the distributor's recorded secondary sales in the period;
+  - primary schemes: the slab benefit on the quantity and value invoiced to the distributor in the period.
+- Only one claim per scheme and overlapping period.
+- Decided by someone other than the person who raised it. By default the approved amount is the lower of the amount claimed and the system's figure.
+- **Settle** posts a journal: debit Trade schemes and distributor claims (9590, system key `trade_schemes`), credit the distributor's receivable. This is a financial credit; it does not adjust GST. Where GST on the discount must be reduced, issue a sales credit note instead.
+
+**Loyalty**: retailers earn points on net secondary purchases (1 point per ₹100 by default) and can redeem them. Cancelling a sale takes back its points.
+
+**Permissions**: `dms.network.read`, `dms.network.manage`, `dms.schemes.manage`, `dms.claims.manage`, `dms.claims.settle`, `dms.field.use`.
+
+**UI**: `/dms` (distributors, beats, retailers), `/dms/distributors/:id` (stock, adjustments, secondary sales), `/dms/sales` (secondary sales with scheme preview and import; schemes), `/dms/claims`, `/dms/field` (phone screen).
+
+**Not built**: van sales (selling from a vehicle's own stock), dealer tinting machines, and distributor-side billing software integration (file import covers it).

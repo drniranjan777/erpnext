@@ -129,6 +129,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     a('9570', 'Power and fuel', 'expense'),
     a('9580', 'Repairs and maintenance', 'expense'),
     a('9585', 'Maintenance spares consumed', 'expense', 'maintenance_consumed'),
+    a('9590', 'Trade schemes and distributor claims', 'expense', 'trade_schemes'),
   ]),
 ];
 
@@ -140,6 +141,6 @@ export const REQUIRED_KEYS = [
   'gst_rcm_cgst', 'gst_rcm_sgst', 'gst_rcm_igst', 'gst_rcm_cess', 'tds_payable', 'landed_cost_accrued', 'jobwork_accrued', 'customs_payable',
   'bank_charges', 'tds_receivable', 'bad_debts', 'cash', 'customer_advance', 'vendor_advance', 'interest_income', 'depreciation', 'accumulated_depreciation',
   'gst_payable', 'asset_disposal', 'cwip', 'ppe_plant', 'wip', 'production_variance', 'production_absorbed', 'maintenance_consumed',
-  'salary_payable', 'pf_payable', 'esi_payable', 'pt_payable', 'lwf_payable', 'employee_loans', 'payroll_salaries', 'payroll_contributions', 'gratuity_expense',
+  'salary_payable', 'pf_payable', 'esi_payable', 'pt_payable', 'lwf_payable', 'employee_loans', 'payroll_salaries', 'payroll_contributions', 'gratuity_expense', 'trade_schemes',
 ] as const;
 export type SystemKey = (typeof REQUIRED_KEYS)[number];

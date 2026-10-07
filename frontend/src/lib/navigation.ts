@@ -104,6 +104,9 @@ import {
   Plane,
   CalendarCog,
   Fingerprint,
+  Navigation,
+  BadgePercent,
+  Store,
   Puzzle,
   SlidersHorizontal,
   Kanban,
@@ -254,6 +257,15 @@ export const NAVIGATION: NavSection[] = [
       { label: "Estimates", href: "/crm/estimates", icon: Calculator, permissions: ["cpq.estimates.read"] },
       { label: "Configurator", href: "/crm/configurator", icon: Puzzle, permissions: ["cpq.estimates.read"] },
       { label: "CRM setup", href: "/crm/setup", icon: SlidersHorizontal, permissions: ["crm.opportunities.read"] },
+    ],
+  },
+  {
+    title: "Distribution",
+    items: [
+      { label: "Network", href: "/dms", icon: Network, permissions: ["dms.network.read"] },
+      { label: "Secondary sales", href: "/dms/sales", icon: Store, permissions: ["dms.network.read"] },
+      { label: "Claims", href: "/dms/claims", icon: BadgePercent, permissions: ["dms.network.read"] },
+      { label: "My beat", href: "/dms/field", icon: Navigation, permissions: ["dms.field.use"] },
     ],
   },
   {
