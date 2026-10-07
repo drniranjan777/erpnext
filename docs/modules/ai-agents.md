@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 12.1–12.3 done |
+| **Status** | In progress: 12.1–12.4 done |
 | **Code** | `backend/src/modules/agents/`, `database/src/schema/ai.ts`, `frontend/src/app/(app)/ai/` |
 
 ## Sprint plan
@@ -113,7 +113,7 @@ WhatsApp is not used for sending: messages go by email until a WhatsApp Business
 
 ## 12.3 Voice (done)
 
-Code: `backend/src/modules/voice/` (`grammar.ts`, the command grammar; `eval-set.ts`, the evaluation set; both pure and unit tested), `frontend/src/components/voice-button.tsx` (on every screen, above the copilot button), page `/ai/voice`. Migration 0052 adds `ai_voice_logs`.
+Code: `backend/src/modules/voice/` (`grammar.ts`, the command grammar; `eval-set.ts`, the evaluation set; both pure and unit tested), `frontend/src/components/voice-button.tsx` (on every screen, above the copilot button), page `/ai/voice`. Migration 0051 adds `ai_voice_logs`.
 
 **Speech**
 - Recognised in the browser with the Web Speech API (Chrome / Edge / Android): English, Hindi, Telugu, Tamil, Marathi, Kannada, Gujarati and Bengali (`xx-IN`).
@@ -144,3 +144,40 @@ Code: `backend/src/modules/voice/` (`grammar.ts`, the command grammar; `eval-set
 **Accuracy**
 - The evaluation set holds 42 phrases (English, Hindi in Devanagari, Hinglish) across the three commands and non-commands. The unit test requires 90 % or more overall and in English and Hindi separately, the Phase 12 exit criterion.
 - In use, every command is logged: understood, executed as heard, corrected on the confirm screen, cancelled, fallback or failed. The page shows "confirmed as heard" over the last 30 days alongside the evaluation score and any phrases not yet understood.
+
+## 12.4 Document AI and prediction (done)
+
+Code: `backend/src/modules/docai/` (`extractors.ts`, pure and unit tested), `backend/src/modules/predict/` (`analytics.ts`, pure and unit tested), and the forecasting additions in `planning/forecast.ts`. Migration 0052 adds `ai_doc_captures`. Permissions: `ai.documents.use` and `ai.insights.read`. Pages: `/ai/documents`, `/ai/insights`.
+
+**Document AI**
+- Recognises the document type from its text, or takes the type chosen by the user, and reads:
+  - delivery challans: number, date, from / to GSTIN, vehicle, purpose (supply, returnable, job work, on approval), PO reference, item lines;
+  - e-way bills: 12-digit EWB number, generated / valid-until dates, GSTINs, document number and date, vehicle, value, distance;
+  - certificates of analysis: product, batch, manufacture / expiry dates, and each test with its specification and result. Results are judged against ranges ("6.5 - 7.5"), minimums ("NLT 98", "Min"), maximums ("NMT", "≤") and "complies"; failures are listed and the CoA is marked as failing.
+  - vendor quotations: number, date, vendor GSTIN, validity (days or date), delivery days, payment terms, priced lines;
+  - bank statements: date, narration, debit, credit, balance per row, with the running balance checked.
+- Supplier bills are pointed to the Phase 4 bill capture.
+- Text (pasted, .txt or .csv) is read directly. PDFs, scans, photos and handwriting are transcribed by the model when `ANTHROPIC_API_KEY` is set, then read the same way; without a key they are refused with a clear message.
+- What was read is matched to records: parties by GSTIN, line items by name, documents by number, and incoming inspections by CoA batch.
+- An e-way bill is checked against the sales invoice it names (EWB number, vehicle, value); differences become warnings.
+- Captures are kept for review.
+  - Applying a quotation updates the vendor's last rate for each matched item (`purchase.orders.manage`).
+  - Applying a CoA attaches it to the incoming inspection of that batch, marked verified only if every result passes (`quality.inspections.manage`).
+  - Other types are for checking. Bank statements are imported through bank reconciliation.
+
+**Forecasting v2** (`planning/forecast.ts`)
+- Croston's method (Syntetos–Boylan corrected) is tried for intermittent demand: 30 % or more months with no demand.
+- Every forecast now carries an 80 % range: forecast ± 1.28 × the back-test RMSE, widening with √(months ahead), never below zero.
+- Method selection by back-test is unchanged.
+
+**Collections** (`GET /insights/collections`)
+- Each customer's typical payment delay is the median days late over the last year's fully paid invoices; customers with fewer than 3 use the overall median.
+- Every open invoice gets an expected date (due date + delay, not before today) and is bucketed into weeks. Invoices expected 60+ days late are at risk.
+
+**Purchase price outlook** (`GET /insights/prices`): monthly average price paid per base unit for the 10 biggest-spend items (or one item) over 18 months. Gaps carry the last price forward; the forecast uses the same method selection, for 3 months with a range.
+
+**Why** (`POST /insights/why`)
+- Reads questions like "why did margin drop in Q2?", "why are sales down last month", "margin in August vs July".
+- Periods: financial-year quarters, month names, last / this month, last quarter. The comparison is the period before unless two are named.
+- Margin is split into selling-price, cost and product-mix effects in three steps that add up to the change, naming the items behind the cost and price effects and the lower-margin items that grew.
+- Sales are split into price, volume, new and lost items, with the biggest movers.

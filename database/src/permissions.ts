@@ -40,6 +40,8 @@ export const PERMISSIONS = {
   'tms.trips.manage': 'Plan, dispatch and track trips; record proof of delivery',
   'tms.freight.manage': 'Check and approve transporter freight bills',
   'ai.inbox.use': 'See AI agent recommendations and approve or dismiss them (each action still needs its own permission)',
+  'ai.documents.use': 'Read documents with Document AI (challans, e-way bills, CoAs, quotations, bank statements)',
+  'ai.insights.read': 'See predictions: collections, price forecasts and why-analysis of sales and margin',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',
   // Purchase
   'purchase.requisitions.read': 'View purchase requisitions',

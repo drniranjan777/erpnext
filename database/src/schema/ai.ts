@@ -161,3 +161,29 @@ export const aiVoiceLogs = pgTable(
   },
   (t) => [index('ai_voice_logs_idx').on(t.tenantId, t.createdAt)],
 );
+
+/** A document read by Document AI, kept for review and, where it applies, for applying to records. */
+export const aiDocCaptures = pgTable(
+  'ai_doc_captures',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    kind: text('kind').notNull(),
+    fileName: text('file_name'),
+    /** text (read directly) | ai (transcribed by the model) */
+    source: text('source').notNull(),
+    confidence: numeric('confidence', { precision: 4, scale: 2 }),
+    fields: jsonb('fields').$type<Record<string, unknown>>().notNull().default({}),
+    lines: jsonb('lines').$type<Record<string, unknown>[]>().notNull().default([]),
+    matches: jsonb('matches').$type<Record<string, unknown>>().notNull().default({}),
+    warnings: jsonb('warnings').$type<string[]>().notNull().default([]),
+    /** review | applied | discarded */
+    status: text('status').notNull().default('review'),
+    result: jsonb('result').$type<Record<string, unknown> | null>(),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    appliedBy: uuid('applied_by').references(() => users.id, { onDelete: 'set null' }),
+    appliedAt: timestamp('applied_at', { withTimezone: true }),
+  },
+  (t) => [index('ai_doc_captures_idx').on(t.tenantId, t.status, t.createdAt)],
+);

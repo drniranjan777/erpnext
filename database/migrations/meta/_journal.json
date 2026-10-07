@@ -365,6 +365,13 @@
       "when": 1791398075380,
       "tag": "0051_voice",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1791399718204,
+      "tag": "0052_doc_captures",
+      "breakpoints": true
     }
   ]
 }

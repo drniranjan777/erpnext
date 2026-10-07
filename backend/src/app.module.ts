@@ -43,6 +43,7 @@ import { CrmModule } from './modules/crm/crm.module';
 import { DmsModule } from './modules/dms/dms.module';
 import { PortalModule } from './modules/portal/portal.module';
 import { AgentsModule } from './modules/agents/agents.module';
+import { PredictModule } from './modules/predict/predict.module';
 import { VoiceModule } from './modules/voice/voice.module';
 import { TmsModule } from './modules/tms/tms.module';
 import { WmsModule } from './modules/wms/wms.module';
@@ -106,6 +107,7 @@ import { ProcessModule } from './modules/process/process.module';
     TmsModule,
     AgentsModule,
     VoiceModule,
+    PredictModule,
     AdminModule,
     PrivacyModule,
   ],
