@@ -115,6 +115,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     a('8100', 'Salaries and wages', 'expense'),
     a('8110', 'Salaries and wages (payroll)', 'expense', 'payroll_salaries'),
     a('8120', 'Contribution to PF, ESI and welfare funds', 'expense', 'payroll_contributions'),
+    a('8130', 'Gratuity and leave encashment', 'expense', 'gratuity_expense'),
   ]),
   g('8500', 'Finance costs', 'expense', 'pl.finance', [a('8510', 'Interest expense', 'expense'), a('8520', 'Bank charges', 'expense', 'bank_charges')]),
   g('9000', 'Depreciation and amortisation', 'expense', 'pl.depreciation', [a('9010', 'Depreciation', 'expense', 'depreciation')]),
@@ -139,6 +140,6 @@ export const REQUIRED_KEYS = [
   'gst_rcm_cgst', 'gst_rcm_sgst', 'gst_rcm_igst', 'gst_rcm_cess', 'tds_payable', 'landed_cost_accrued', 'jobwork_accrued', 'customs_payable',
   'bank_charges', 'tds_receivable', 'bad_debts', 'cash', 'customer_advance', 'vendor_advance', 'interest_income', 'depreciation', 'accumulated_depreciation',
   'gst_payable', 'asset_disposal', 'cwip', 'ppe_plant', 'wip', 'production_variance', 'production_absorbed', 'maintenance_consumed',
-  'salary_payable', 'pf_payable', 'esi_payable', 'pt_payable', 'lwf_payable', 'employee_loans', 'payroll_salaries', 'payroll_contributions',
+  'salary_payable', 'pf_payable', 'esi_payable', 'pt_payable', 'lwf_payable', 'employee_loans', 'payroll_salaries', 'payroll_contributions', 'gratuity_expense',
 ] as const;
 export type SystemKey = (typeof REQUIRED_KEYS)[number];

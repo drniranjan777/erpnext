@@ -192,11 +192,14 @@ export function fiscalPosition(month: string) {
 
 // ---- Gratuity (Payment of Gratuity Act) -----------------------------------------------------------
 
-/** 15 days' wages (basic + DA ÷ 26) per completed year, a part year over six months counting as a year; capped at ₹20 lakh. */
-export function gratuity(monthlyWages: number, serviceDays: number) {
+/**
+ * 15 days' wages (basic + DA ÷ 26) per completed year, a part year over six months counting as a
+ * year; capped at ₹20 lakh. Five years' service is needed, except on death or disablement.
+ */
+export function gratuity(monthlyWages: number, serviceDays: number, opts: { waiveMinimum?: boolean } = {}) {
   const years = Math.floor(serviceDays / 365.25);
   const rest = serviceDays - years * 365.25;
   const counted = years + (rest > 182 ? 1 : 0);
-  if (years < 5 && counted < 5) return 0;
+  if (!opts.waiveMinimum && years < 5 && counted < 5) return 0;
   return Math.min(2_000_000, r0((monthlyWages * 15 * counted) / 26));
 }

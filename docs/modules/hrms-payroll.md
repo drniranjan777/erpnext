@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 9.1–9.3 done |
+| **Status** | In progress: 9.1–9.4 done |
 | **Code** | `backend/src/modules/hr/`, `backend/src/modules/payroll/`, `database/src/schema/hr.ts`, `database/src/schema/payroll.ts`, `frontend/src/app/(app)/hr/` |
 
 ## Sprint plan
@@ -157,3 +157,53 @@ Schema: `database/src/schema/payroll.ts`, migration 0037. Code: `backend/src/mod
 **UI**: `/payroll` (runs), `/payroll/runs/:id` (payslips and statutory summary), `/payroll/salaries`, `/payroll/inputs` (inputs, loans), `/payroll/setup` (components, templates, settings, piece rates), `/payroll/my` (my payslips and declaration).
 
 **Not covered by automated tests**: piece-rate pay from job cards, which is SQL only and has no e2e test. Paying salaries is not posted by payroll; the payment itself goes through the normal bank payment voucher against salaries payable.
+
+## 9.4 Talent, exit and F&F (done)
+
+Schema: `database/src/schema/talent.ts`, migration 0038. Code: `backend/src/modules/hr/talent/`. The settlement calculation is in `settlement.ts`, pure and unit tested.
+
+**Recruitment**
+- A manpower requisition (MRF-0001…) has a position, openings, a CTC budget and a needed-by date. It must be approved by someone other than the requester before candidates can be added.
+- Candidates move through stages: applied, screening, interview, offered, hired, rejected, withdrawn.
+- Interview rounds have an interviewer from the employee master. Only that interviewer, from their own login, or a recruiter can record feedback. A rejection ends the candidacy.
+- Offers:
+  - An offer within the budget, made by someone who may approve, is approved at once; otherwise someone else approves it.
+  - An offer letter can be generated from an `offer` letter template with `{{candidate.name}}`, `{{ctc}}`, `{{doj}}` and `{{designation}}`.
+- Accepting an offer:
+  - creates the employee through `EmployeesService.createTx`, with placement from the requisition, probation end, and the manager;
+  - sets their first salary by splitting the offered CTC with the offer's salary template;
+  - raises the onboarding checklist;
+  - closes the requisition once all openings are filled.
+
+**Checklists and tasks**: each has an owner (HR, IT, Admin, the manager) and a due date. Onboarding tasks are due N days after joining; exit clearance tasks are due N days before the last working day. A clearance task can carry an amount to recover in the settlement.
+
+**Performance**
+- A review cycle has an increment guide (% by final rating).
+- Goals and KRAs with weights are set by the employee, their manager or HR, while the cycle is in goal setting. The review opens only when each person's weights total 100 %.
+- In review the employee gives self ratings and the manager (or HR) gives manager ratings, 1–5. Scores are weighted.
+- HR calibrates a final rating, an increment (from the guide unless overridden), an effective date and an optional promotion.
+- **Apply increments** writes a salary revision with every component scaled. It refuses months whose payroll is already approved. Promotions are recorded through `moveTx`.
+
+**Skills and training**
+- Skills are assessed on the shop-floor ILUO scale, from 0 (not trained) to 4 (can train others). An optional validity in months makes old assessments show as expired.
+- The matrix counts, per skill, how many people can do it on their own (level 3 or above, not expired).
+- Trainings have a capacity, nominations and results. A pass raises the employee to the training's skill level; it never lowers a level. An assessment sets the level directly.
+
+**Separation and full and final**
+- An employee can resign through self-service. HR records any kind: resignation, termination, retirement, death or absconding.
+- Notice shortfall = notice days − days between the notice and the last working day.
+- Acceptance fixes the last working day, can waive the shortfall recovery, puts the employee on notice and raises the exit checklist. A separation can be withdrawn, which restores the employee.
+- Settlement (`GET /hr/separations/:id/settlement` to preview, `POST …/settle` to post):
+  - leave encashment of every encashable leave balance at (basic + DA) ÷ 26 a day;
+  - gratuity: 15/26 of monthly wages per year of service, with five years needed except on death;
+  - notice pay: recovered on a short resignation, or paid in lieu on termination, at gross ÷ 30 a day;
+  - outstanding loans and clearance recoveries are deducted.
+- The final month's salary is not in the settlement; it is paid by that month's payroll run.
+- Posting needs the separation accepted, the last day passed, clearance complete and no remaining reportees. It posts a journal:
+  - Debits: gratuity and leave encashment 8130, notice pay 8110
+  - Credits: notice and clearance recoveries to 8110, loans to employee loans 5430, and the net to salaries payable 3360. A net owed by the employee is debited to employee loans instead.
+- Posting also encashes the leave in the ledger, closes the loans and marks the employee exited.
+
+**Permissions**: `hr.recruitment.read`, `hr.recruitment.manage`, `hr.recruitment.approve`, `hr.performance.read`, `hr.performance.manage`, `hr.training.read`, `hr.training.manage`, `hr.exit.read`, `hr.exit.manage`, `hr.exit.settle`.
+
+**UI**: `/hr/recruitment` and `/hr/recruitment/:id` (pipeline, interviews, offers, hire), `/hr/lifecycle` (onboarding and exit tasks, checklists), `/hr/separations` (resign, accept, F&F), `/hr/performance` (my goals, my team, calibration), `/hr/skills` (matrix and training calendar).

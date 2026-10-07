@@ -136,7 +136,12 @@ export class EmployeesService {
   }
 
   create(auth: AuthContext, input: EmployeeInput, meta: RequestMeta) {
-    return this.database.run(auth, async (tx) => {
+    return this.database.run(auth, async (tx) => this.view(tx, auth, (await this.createTx(tx, auth, input, meta)).id));
+  }
+
+  /** Creates an employee inside the caller's transaction (used when a candidate is hired). */
+  async createTx(tx: Transaction, auth: AuthContext, input: EmployeeInput, meta: RequestMeta) {
+    {
       const code = input.code ? input.code.toUpperCase() : await this.nextCode(tx);
       const values = await this.values(tx, auth, input, null);
       let row: typeof employees.$inferSelect;
@@ -149,8 +154,8 @@ export class EmployeesService {
       await this.writeFamily(tx, auth, row.id, input.family);
       await tx.insert(employeeEvents).values({ tenantId: auth.tenantId, employeeId: row.id, kind: 'joined', effectiveDate: input.dateOfJoining, to: await this.positionNames(tx, row), recordedBy: auth.userId });
       await this.audit.log(tx, { tenantId: auth.tenantId, actorUserId: auth.userId, action: 'hr.employee.created', entityType: 'employee', entityId: row.id, metadata: { code }, ...meta });
-      return this.view(tx, auth, row.id);
-    });
+      return row;
+    }
   }
 
   update(auth: AuthContext, id: string, input: z.infer<typeof updateEmployeeSchema>, meta: RequestMeta) {
@@ -175,6 +180,14 @@ export class EmployeesService {
   /** Transfer, promotion or re-designation: updates the placement and records it on the service record. */
   move(auth: AuthContext, id: string, input: z.infer<typeof moveSchema>) {
     return this.database.run(auth, async (tx) => {
+      await this.moveTx(tx, auth, id, input);
+      return this.view(tx, auth, id);
+    });
+  }
+
+  /** Records a transfer, promotion or re-designation inside the caller's transaction. */
+  async moveTx(tx: Transaction, auth: AuthContext, id: string, input: z.infer<typeof moveSchema>) {
+    {
       const [cur] = await tx.select().from(employees).where(eq(employees.id, id)).for('update');
       if (!cur) throw new NotFoundException('Employee not found');
       if (cur.status === 'exited') throw new ConflictException('The employee has left');
@@ -188,8 +201,7 @@ export class EmployeesService {
       const [next] = await tx.update(employees).set({ ...patch, version: cur.version + 1, updatedAt: new Date() }).where(eq(employees.id, id)).returning();
       const to = await this.positionNames(tx, next);
       await tx.insert(employeeEvents).values({ tenantId: auth.tenantId, employeeId: id, kind: input.kind, effectiveDate: input.effectiveDate, from, to, remarks: input.remarks, recordedBy: auth.userId });
-      return this.view(tx, auth, id);
-    });
+    }
   }
 
   confirm(auth: AuthContext, id: string, effectiveDate: string) {
