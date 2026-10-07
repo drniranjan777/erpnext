@@ -31,6 +31,8 @@ export const stockEntryLineSchema = z.object({
   expiryDate: isoDate.nullable().optional(),
   serialNos: z.array(z.string().trim().min(1).max(60)).max(1000).nullable().optional(),
   remarks: optionalText(300),
+  /** Bin in a warehouse run with bins (the source bin for transfers). */
+  binId: z.uuid().nullable().optional(),
 });
 export type StockEntryLineInput = z.infer<typeof stockEntryLineSchema>;
 

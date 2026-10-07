@@ -208,6 +208,8 @@ export const stockEntryLines = pgTable(
     expiryDate: date('expiry_date', { mode: 'string' }),
     serialNos: text('serial_nos').array(),
     remarks: text('remarks'),
+    /** Bin, in a warehouse run with bins (counts and dip adjustments post to the exact bin). */
+    binId: uuid('bin_id'),
   },
   (t) => [index('stock_entry_lines_entry_idx').on(t.entryId), uniqueIndex('stock_entry_lines_no_uq').on(t.entryId, t.lineNo)],
 );

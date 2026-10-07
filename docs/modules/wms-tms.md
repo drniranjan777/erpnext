@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 11.1–11.2 done |
+| **Status** | In progress: 11.1–11.3 done |
 | **Code** | `backend/src/modules/wms/`, `backend/src/modules/tms/`, `backend/src/modules/inventory/bins.ts`, `database/src/schema/wms.ts`, `tms.ts`, `frontend/src/app/(app)/wms/`, `tms/` |
 
 ## Approach
@@ -82,7 +82,7 @@ Schema: `database/src/schema/wms.ts`, migration 0045. Code: `backend/src/modules
 - Heat map: per aisle, how full each bin is or how many moves it had in 30 days.
 - Bin labels: 75 × 50 mm with a QR code of the bin code.
 
-Not yet: naming a bin on GRN or stock entry lines from the screens. The API supports `binId` on postings; receipts land in RECV and are put away.
+Stock entry lines take a `binId` (from 11.3); GRN lines do not, so receipts land in RECV and are put away.
 
 ## 11.2 Inbound and outbound (done)
 
@@ -131,3 +131,42 @@ Schema: added to `database/src/schema/wms.ts`, migration 0046. Code: `backend/sr
 **Loading check**
 - Scan each carton of a delivery onto the vehicle. Cartons of another delivery, open cartons and cartons already loaded are refused.
 - The screen shows how many are still to load.
+
+## 11.3 Inventory control and special stock (done)
+
+Schema: added to `database/src/schema/wms.ts` (migration 0047), plus `stock_entry_lines.bin_id`. Code: `backend/src/modules/wms/control.service.ts`, `control.ts` (ABC, tank volume, floor life, replenishment; pure and unit tested). Pages: `/wms/counts`, `/wms/counts/[id]`, `/wms/slotting`, `/wms/tanks`, `/wms/reels`, `/wms/returnables`, `/wms/consignments`.
+
+**Bins on stock entries**: a stock entry line can name a bin, which the posting uses (the source bin for a transfer). Counts and tank dips post their differences this way.
+
+**ABC classes** (`GET /wms/abc` previews, `POST` saves on the storage profiles)
+- Value issued per item in the last 12 months. Transfers and reversed vouchers don't count.
+- An item is A while the running total before it is under 80 % of the total, B under 95 %, otherwise C. The top item is always A; items never issued are C.
+
+**Cycle counts** (BC00001…)
+- A bin is due when it holds stock, isn't in an open count, and was last counted longer ago than the interval for the highest class it holds: A 30, B 90, C 180 days (`/wms/count-settings`).
+- "Start a count" takes up to N due bins, A first and the longest-uncounted first. Ad hoc counts take chosen bins.
+- Lines are snapshotted per bin, item and batch. A blind count hides book quantities until it is posted. Items found that the books don't show in a bin are added as lines (a new batch number is allowed).
+- Posting needs every line counted. The difference against the bin's quantity at posting time is posted as one stock adjustment (reason "Bin count BC…"), each line to its bin.
+- Posting stamps the bins as counted and records accuracy: the share of lines with no difference.
+
+**Pick faces and replenishment**
+- A bin with a fixed item can have a min and max (`PUT /wms/bins/:id/pick-face`).
+- "Plan replenishment" creates replenish tasks when a face plus what is on its way is below min. It tops the face up to max from other bins, first expiry first then walking order, skipping quantities promised to other open tasks.
+- The tasks are confirmed like put-aways.
+
+**Slotting suggestions**: items ranked by outbound bin moves in 90 days. The top fifth, where an empty ambient storage bin is nearer the dock, are paired with that bin. A report only; nothing moves.
+
+**Tanks and silos**
+- A tank is a bulk bin holding one item, with a capacity, a dip-to-litres calibration chart (linear interpolation), the stock unit (litres, or kg via density) and a tolerance %.
+- A dip records the litres, the measured quantity, the book quantity in the tank's bin, the variance and whether it is within tolerance.
+- `POST /wms/tanks/:id/dips/adjust` (also needs `inventory.entries.manage`) posts the variance as an adjustment to the tank's bin. It is refused when the tank holds more than one batch.
+
+**Returnable packaging**: types (drums, pallets, crates…) with a deposit amount. Movements are sent to a party (+) or returned by it (−); returning more than the party holds is refused. Balances per party and type show the deposit value and how long they have been out.
+
+**Reels and floor life** (J-STD-033)
+- A reel has an ID, part, batch, place, quantity and MSL level (from the item profile unless given).
+- Floor life: level 2 is one year, 2a four weeks, 3 168 h, 4 72 h, 5 48 h, 5a 24 h; level 6 must be baked before use.
+- Open starts the clock and seal stops it. Use takes parts, and the reel is marked empty at zero. Bake resets the clock and is allowed only when sealed.
+- An expired reel cannot be opened or used until baked.
+
+**Consignment**: a warehouse holds either a vendor's stock at our site or our stock at a customer. The statement shows what is held now and what was issued out of that warehouse in a period, with its value: what we pay the vendor for, or bill the customer for.

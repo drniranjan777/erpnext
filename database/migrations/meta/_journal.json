@@ -330,6 +330,13 @@
       "when": 1791390852435,
       "tag": "0046_wms_outbound",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791392245259,
+      "tag": "0047_wms_control",
+      "breakpoints": true
     }
   ]
 }

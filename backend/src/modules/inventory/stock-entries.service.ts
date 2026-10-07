@@ -219,6 +219,7 @@ export class StockEntriesService implements OnModuleInit {
       expiryDate: l.expiryDate,
       serialNos: l.serialNos,
       line: l.lineNo,
+      binId: l.binId,
     });
     const neg = (q: string) => Decimal.from('0').sub(Decimal.from(q)).toFixed(4);
 
@@ -250,7 +251,7 @@ export class StockEntriesService implements OnModuleInit {
           tx,
           auth,
           voucher,
-          lines.map((l, i) => ({ ...base(l), warehouseId: entry.toWarehouseId!, qty: l.baseQty, rate: out[i].rate, allowExpired: true })),
+          lines.map((l, i) => ({ ...base(l), binId: null, warehouseId: entry.toWarehouseId!, qty: l.baseQty, rate: out[i].rate, allowExpired: true })),
         );
         posted = out;
         break;
@@ -372,6 +373,7 @@ export class StockEntriesService implements OnModuleInit {
         expiryDate: l.expiryDate ?? null,
         serialNos: l.serialNos ?? null,
         remarks: l.remarks,
+        binId: l.binId ?? null,
       })),
     );
   }

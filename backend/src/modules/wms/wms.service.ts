@@ -51,6 +51,7 @@ export const profileSchema = z.object({
   unitVolumeM3: num(1e4),
   abcClass: z.enum(['A', 'B', 'C']).nullable().optional(),
   minShelfLifeDays: z.number().int().min(0).max(3650).nullable().optional(),
+  mslLevel: z.enum(['1', '2', '2a', '3', '4', '5', '5a', '6']).nullable().optional(),
 });
 export const moveSchema = z.object({ itemId: z.uuid(), batchId: z.uuid().nullable().optional(), fromBinId: z.uuid(), toBinId: z.uuid(), qty: z.number().positive().max(1e10), overrideReason: text(200) });
 export const confirmSchema = z.object({ binId: z.uuid().optional(), binCode: z.string().trim().max(30).optional(), qty: z.number().positive().max(1e10), overrideReason: text(200) });
@@ -137,7 +138,7 @@ export class WmsService {
         tx,
         sql`select b.id, b.code, b.zone_id as "zoneId", z.code as zone, z.kind as "zoneKind", z.condition, b.aisle, b.rack, b.shelf, b.position, b.bin_type as "binType",
                    b.max_weight_kg as "maxWeightKg", b.max_volume_m3 as "maxVolumeM3", b.max_qty as "maxQty", b.pick_sequence as "pickSequence", b.fixed_item_id as "fixedItemId", i.code as "fixedItem",
-                   b.is_blocked as "isBlocked", b.block_reason as "blockReason", b.is_active as "isActive", b.grid_x as "gridX", b.grid_y as "gridY",
+                   b.is_blocked as "isBlocked", b.block_reason as "blockReason", b.is_active as "isActive", b.grid_x as "gridX", b.grid_y as "gridY", b.replen_min as "replenMin", b.replen_max as "replenMax",
                    (select count(distinct s.item_id)::int from wms_bin_stock s where s.bin_id = b.id and s.qty > 0) as items
             from wms_bins b join wms_zones z on z.id = b.zone_id left join items i on i.id = b.fixed_item_id
             where b.warehouse_id = ${warehouseId} ${q.zoneId ? sql`and b.zone_id = ${q.zoneId}` : sql``} ${q.q ? sql`and b.code ilike ${`%${q.q}%`}` : sql``}
@@ -245,6 +246,7 @@ export class WmsService {
         unitVolumeM3: input.unitVolumeM3?.toString() ?? null,
         abcClass: input.abcClass ?? null,
         minShelfLifeDays: input.minShelfLifeDays ?? null,
+        mslLevel: input.mslLevel ?? null,
         updatedAt: new Date(),
       };
       return (
