@@ -82,7 +82,7 @@ function EditDialog({ edit, wcs, machines, onClose, onDone }: { edit: NonNullabl
   const r = edit.row as Record<string, unknown> | undefined;
   const [f, setF] = useState<Record<string, string>>((): Record<string, string> => {
     const s = (k: string, d = "") => (r?.[k] === null || r?.[k] === undefined ? d : String(r[k]));
-    if (edit.kind === "wc") return { code: s("code"), name: s("name"), kind: s("kind", "machine"), hoursPerDay: s("hoursPerDay", "8"), units: s("units", "1"), efficiencyPct: s("efficiencyPct", "100"), labourRate: s("labourRate", "0"), machineRate: s("machineRate", "0"), overheadRate: s("overheadRate", "0") };
+    if (edit.kind === "wc") return { code: s("code"), name: s("name"), kind: s("kind", "machine"), hoursPerDay: s("hoursPerDay", "8"), units: s("units", "1"), efficiencyPct: s("efficiencyPct", "100"), daysPerWeek: s("daysPerWeek", "6"), shiftStart: r?.shiftStart === undefined ? "09:00" : `${String(Math.floor(Number(r.shiftStart) / 60)).padStart(2, "0")}:${String(Number(r.shiftStart) % 60).padStart(2, "0")}`, labourRate: s("labourRate", "0"), machineRate: s("machineRate", "0"), overheadRate: s("overheadRate", "0") };
     if (edit.kind === "machine") return { code: s("code"), name: s("name"), workCenterId: s("workCenterId", wcs[0]?.id ?? ""), make: s("make"), model: s("model"), serialNo: s("serialNo"), capacity: s("capacity"), requiresCleaning: s("requiresCleaning", "false") };
     return { code: s("code"), name: s("name"), kind: s("kind", "mould"), cavities: s("cavities", "1"), lifeShots: s("lifeShots"), maintenanceEvery: s("maintenanceEvery"), machineId: s("machineId"), status: s("status", "available") };
   });
@@ -95,7 +95,7 @@ function EditDialog({ edit, wcs, machines, onClose, onDone }: { edit: NonNullabl
     setError(null);
     const body =
       edit.kind === "wc"
-        ? { ...f, units: Number(f.units) }
+        ? { ...f, units: Number(f.units), daysPerWeek: Number(f.daysPerWeek), shiftStart: (() => { const [h, m] = f.shiftStart.split(":").map(Number); return (h || 0) * 60 + (m || 0); })() }
         : edit.kind === "tool"
           ? { ...f, cavities: Number(f.cavities), lifeShots: f.lifeShots ? Number(f.lifeShots) : null, maintenanceEvery: f.maintenanceEvery ? Number(f.maintenanceEvery) : null, machineId: f.machineId || null }
           : { ...f, make: f.make || null, model: f.model || null, serialNo: f.serialNo || null, capacity: f.capacity || null, requiresCleaning: f.requiresCleaning === "true" };
@@ -123,6 +123,9 @@ function EditDialog({ edit, wcs, machines, onClose, onDone }: { edit: NonNullabl
             <Field label="Kind">{(p) => <Select {...p} value={f.kind} onChange={set("kind")}><option value="machine">Machine</option><option value="line">Line</option><option value="manual">Manual</option><option value="subcontract">Sub-contract</option></Select>}</Field>
             <Field label="Hours / day">{(p) => <Input {...p} inputMode="decimal" value={f.hoursPerDay} onChange={set("hoursPerDay")} />}</Field>
             <Field label="Units (parallel)">{(p) => <Input {...p} inputMode="numeric" value={f.units} onChange={set("units")} />}</Field>
+            <Field label="Working days">{(p) => <Select {...p} value={f.daysPerWeek} onChange={set("daysPerWeek")}><option value="5">Mon–Fri</option><option value="6">Mon–Sat</option><option value="7">Every day</option></Select>}</Field>
+            <Field label="Shift starts">{(p) => <Input {...p} type="time" value={f.shiftStart} onChange={set("shiftStart")} />}</Field>
+            <Field label="Efficiency %">{(p) => <Input {...p} inputMode="decimal" value={f.efficiencyPct} onChange={set("efficiencyPct")} />}</Field>
             <Field label="Labour ₹/h">{(p) => <Input {...p} inputMode="decimal" value={f.labourRate} onChange={set("labourRate")} />}</Field>
             <Field label="Machine ₹/h">{(p) => <Input {...p} inputMode="decimal" value={f.machineRate} onChange={set("machineRate")} />}</Field>
             <Field label="Overhead ₹/h">{(p) => <Input {...p} inputMode="decimal" value={f.overheadRate} onChange={set("overheadRate")} />}</Field>

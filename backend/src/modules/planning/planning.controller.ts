@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Put, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import type { AppRequest, AuthContext } from '../../common/auth-context';
@@ -6,6 +6,9 @@ import { ApiZodBody, Auth, RequirePermissions } from '../../common/decorators';
 import { requestMeta } from '../../common/request-meta';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { ForecastingService, generateSchema, overrideSchema, type GenerateInput, type OverrideInput } from './forecasting.service';
+import { todayIST } from '../../common/fiscal-year';
+import { KanbanService, loopSchema, type LoopInput } from './kanban.service';
+import { moveSchema, SchedulingService, transitionSchema, type MoveInput } from './scheduling.service';
 import { convertSchema, editPlannedSchema, firmSchema, MrpService, parametersSchema, runSchema, type ParametersInput, type RunInput } from './mrp.service';
 
 const idPipe = new ZodValidationPipe(z.object({ id: z.uuid() }));
@@ -23,6 +26,9 @@ const plannedQuery = new ZodValidationPipe(
     ...page,
   }),
 );
+const boardQuery = new ZodValidationPipe(z.object({ from: z.iso.date().optional(), days: z.coerce.number().int().min(1).max(62).default(14) }));
+const capacityQuery = new ZodValidationPipe(z.object({ mode: z.enum(['rough', 'detailed']).default('rough'), from: z.iso.date().optional(), periods: z.coerce.number().int().min(1).max(52).optional() }));
+const scanSchema = z.object({ code: z.string().trim().min(3).max(80) });
 const exceptionQuery = new ZodValidationPipe(z.object({ kind: z.string().max(30).optional(), itemId: z.uuid().optional(), ...page }));
 
 @ApiTags('Planning')
@@ -32,6 +38,8 @@ export class PlanningController {
   constructor(
     private readonly forecasting: ForecastingService,
     private readonly mrp: MrpService,
+    private readonly scheduling: SchedulingService,
+    private readonly kanban: KanbanService,
   ) {}
 
   // ---- forecast ---------------------------------------------------------------------------
@@ -110,5 +118,90 @@ export class PlanningController {
   @ApiZodBody(convertSchema)
   convert(@Auth() auth: AuthContext, @Body(new ZodValidationPipe(convertSchema)) b: z.infer<typeof convertSchema>, @Req() req: AppRequest) {
     return this.mrp.convert(auth, b, requestMeta(req));
+  }
+
+  // ---- capacity and finite schedule ------------------------------------------------------
+  @Get('capacity')
+  @RequirePermissions('planning.mrp.read')
+  capacity(@Auth() auth: AuthContext, @Query(capacityQuery) q: { mode: 'rough' | 'detailed'; from?: string; periods?: number }) {
+    return this.scheduling.capacity(auth, { mode: q.mode, from: q.from ?? todayIST(), periods: q.periods ?? (q.mode === 'rough' ? 8 : 14) });
+  }
+  @Get('schedule')
+  @RequirePermissions('planning.mrp.read')
+  board(@Auth() auth: AuthContext, @Query(boardQuery) q: { from?: string; days: number }) {
+    return this.scheduling.board(auth, { from: q.from ?? todayIST(), days: q.days });
+  }
+  @Post('schedule/run')
+  @HttpCode(200)
+  @RequirePermissions('planning.mrp.manage')
+  schedule(@Auth() auth: AuthContext) {
+    return this.scheduling.run(auth);
+  }
+  @Put('schedule/operations/:id')
+  @RequirePermissions('planning.mrp.manage')
+  @ApiZodBody(moveSchema)
+  move(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }, @Body(new ZodValidationPipe(moveSchema)) b: MoveInput) {
+    return this.scheduling.move(auth, p.id, b);
+  }
+  @Get('setup-transitions')
+  @RequirePermissions('planning.mrp.read')
+  transitions(@Auth() auth: AuthContext, @Query(new ZodValidationPipe(z.object({ workCenterId: z.uuid().optional() }))) q: { workCenterId?: string }) {
+    return this.scheduling.transitions(auth, q.workCenterId);
+  }
+  @Post('setup-transitions')
+  @RequirePermissions('planning.mrp.manage')
+  @ApiZodBody(transitionSchema)
+  saveTransition(@Auth() auth: AuthContext, @Body(new ZodValidationPipe(transitionSchema)) b: z.infer<typeof transitionSchema>) {
+    return this.scheduling.saveTransition(auth, b);
+  }
+  @Delete('setup-transitions/:id')
+  @HttpCode(204)
+  @RequirePermissions('planning.mrp.manage')
+  deleteTransition(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }) {
+    return this.scheduling.deleteTransition(auth, p.id);
+  }
+
+  // ---- kanban -----------------------------------------------------------------------------
+  @Get('kanban')
+  @RequirePermissions('planning.mrp.read')
+  loops(@Auth() auth: AuthContext) {
+    return this.kanban.list(auth);
+  }
+  @Post('kanban')
+  @RequirePermissions('planning.mrp.manage')
+  @ApiZodBody(loopSchema)
+  createLoop(@Auth() auth: AuthContext, @Body(new ZodValidationPipe(loopSchema)) b: LoopInput) {
+    return this.kanban.save(auth, null, b);
+  }
+  @Put('kanban/:id')
+  @RequirePermissions('planning.mrp.manage')
+  @ApiZodBody(loopSchema)
+  updateLoop(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }, @Body(new ZodValidationPipe(loopSchema)) b: LoopInput) {
+    return this.kanban.save(auth, p.id, b);
+  }
+  @Get('kanban/:id/suggest')
+  @RequirePermissions('planning.mrp.read')
+  suggest(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }) {
+    return this.kanban.suggest(auth, p.id);
+  }
+  /** Signalling raises a document, so it also needs the right to raise it (checked in the service). */
+  @Post('kanban/cards/:id/signal')
+  @HttpCode(200)
+  @RequirePermissions('planning.mrp.read')
+  signal(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }, @Req() req: AppRequest) {
+    return this.kanban.signal(auth, p.id, requestMeta(req));
+  }
+  @Post('kanban/cards/:id/receive')
+  @HttpCode(200)
+  @RequirePermissions('planning.mrp.read')
+  receive(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }) {
+    return this.kanban.receive(auth, p.id);
+  }
+  @Post('kanban/scan')
+  @HttpCode(200)
+  @RequirePermissions('planning.mrp.read')
+  @ApiZodBody(scanSchema)
+  scan(@Auth() auth: AuthContext, @Body(new ZodValidationPipe(scanSchema)) b: { code: string }, @Req() req: AppRequest) {
+    return this.kanban.scan(auth, b.code, requestMeta(req));
   }
 }

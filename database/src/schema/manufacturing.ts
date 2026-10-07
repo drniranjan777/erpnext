@@ -29,6 +29,9 @@ export const workCenters = pgTable(
     /** Shop-floor store where work in progress sits. */
     warehouseId: uuid('warehouse_id').references(() => warehouses.id, { onDelete: 'restrict' }),
     hoursPerDay: numeric('hours_per_day', { precision: 5, scale: 2 }).notNull().default('8'),
+    /** Calendar: 5 (Mon–Fri), 6 (Mon–Sat) or 7 working days, shift starting at `shift_start` minutes after midnight (IST). */
+    daysPerWeek: smallint('days_per_week').notNull().default(6),
+    shiftStart: smallint('shift_start').notNull().default(540),
     /** Parallel capacity (machines / people). */
     units: smallint('units').notNull().default(1),
     efficiencyPct: numeric('efficiency_pct', { precision: 5, scale: 2 }).notNull().default('100'),
@@ -331,8 +334,16 @@ export const workOrderOperations = pgTable(
     goodQty: qty('good_qty'),
     rejectQty: qty('reject_qty'),
     actualMinutes: numeric('actual_minutes', { precision: 12, scale: 2 }).notNull().default('0'),
+    /** Finite schedule: when and on which parallel unit (lane) of the work centre. */
+    scheduledStart: timestamp('scheduled_start', { withTimezone: true }),
+    scheduledEnd: timestamp('scheduled_end', { withTimezone: true }),
+    lane: smallint('lane'),
+    /** Setup minutes the schedule applied (sequence-dependent; 0 after the same item). */
+    setupApplied: numeric('setup_applied', { precision: 10, scale: 2 }),
+    /** Placed by hand on the board: the scheduler keeps it where it is. */
+    scheduleLocked: boolean('schedule_locked').notNull().default(false),
   },
-  (t) => [index('wo_ops_wo_idx').on(t.workOrderId), uniqueIndex('wo_ops_seq_uq').on(t.workOrderId, t.seq)],
+  (t) => [index('wo_ops_wo_idx').on(t.workOrderId), uniqueIndex('wo_ops_seq_uq').on(t.workOrderId, t.seq), index('wo_ops_sched_idx').on(t.tenantId, t.workCenterId, t.scheduledStart)],
 );
 
 /**

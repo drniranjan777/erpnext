@@ -104,11 +104,30 @@ export const HELP_ARTICLES: HelpArticle[] = [
           "Later receipts are brought forward before anything new is planned; the result is a list of planned orders and exception messages.",
         ],
       },
+      { heading: "Capacity and the schedule", text: "Give each work centre its hours, working days, shift start and units. Capacity shows the load by week (orders and MRP plans) or by day (the schedule). Reschedule places every open operation on the first free unit, skipping the setup when the same item runs again; set changeover times between items for colour or size changes. Drag a bar on the board to pin it, and the rest reflows." },
+      { heading: "Kanban", text: "For parts replenished by container, create a loop and print its cards. Scan or press “Signal empty” when a container is emptied to raise a draft work order, requisition or transfer, and scan again when the full container comes back." },
       { heading: "Acting on the plan", text: "Firm a planned order (or change its quantity or date) to keep it in the next run. Convert selected orders: buys become one draft requisition, makes become draft work orders and formula items draft process batches. Each planned order shows what it is for: a sales order, the forecast, or a parent's planned order." },
     ],
     links: [
       { label: "MRP planning", href: "/planning" },
       { label: "Demand forecast", href: "/planning/forecast" },
+      { label: "Production schedule", href: "/planning/schedule" },
+      { label: "Kanban", href: "/planning/kanban" },
+    ],
+  },
+  {
+    slug: "engineering-change",
+    title: "Engineering changes and drawings",
+    area: "Production",
+    summary: "Change requests with their impact, change notices, and drawing revisions.",
+    sections: [
+      { text: "Raise a change request listing the items it touches. Its impact (stock, open work orders, purchase and sales orders, where the item is used) shows straight away. Draft the new BOM, formula or drawing version and point the change at it." },
+      { text: "Approving the request makes it the change notice and freezes the impact. Once the new versions are approved, mark the change implemented with the cut-in notes." },
+      { heading: "Drawings", text: "Each drawing revision is a document with the files attached. Approving a revision releases it, supersedes the previous one and puts the revision on the item's BOM. Use “New revision” to start the next one." },
+    ],
+    links: [
+      { label: "Engineering changes", href: "/engineering/changes" },
+      { label: "Drawings", href: "/engineering/drawings" },
     ],
   },
   {

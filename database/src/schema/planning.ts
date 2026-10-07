@@ -2,7 +2,8 @@ import { boolean, char, date, index, integer, jsonb, numeric, pgTable, smallint,
 import { pk } from './_columns';
 import { documents } from './documents';
 import { users } from './iam';
-import { items } from './masters';
+import { workCenters } from './manufacturing';
+import { items, parties, warehouses } from './masters';
 import { tenantId } from './tenancy';
 
 const qty = (name: string) => numeric(name, { precision: 18, scale: 4 });
@@ -181,4 +182,84 @@ export const mrpItemPlans = pgTable(
     timeline: jsonb('timeline').$type<TimelineRowData[]>().notNull().default([]),
   },
   (t) => [uniqueIndex('mrp_item_plans_uq').on(t.runId, t.itemId)],
+);
+
+// =============================================================================
+// Sequence-dependent setups
+// =============================================================================
+
+/**
+ * Changeover time on a work centre from one item to the next (e.g. dark → light colour takes
+ * longer than light → dark). Without a row, the operation's own setup applies when the item
+ * changes, and none when the same item runs again.
+ */
+export const setupTransitions = pgTable(
+  'setup_transitions',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    workCenterId: uuid('work_center_id')
+      .notNull()
+      .references(() => workCenters.id, { onDelete: 'cascade' }),
+    fromItemId: uuid('from_item_id')
+      .notNull()
+      .references(() => items.id, { onDelete: 'cascade' }),
+    toItemId: uuid('to_item_id')
+      .notNull()
+      .references(() => items.id, { onDelete: 'cascade' }),
+    minutes: numeric('minutes', { precision: 10, scale: 2 }).notNull(),
+  },
+  (t) => [uniqueIndex('setup_transitions_uq').on(t.workCenterId, t.fromItemId, t.toItemId)],
+);
+
+// =============================================================================
+// Kanban
+// =============================================================================
+
+/**
+ * A kanban loop replenishes one item at one point of use with fixed containers. An empty card
+ * raises the replenishment: a work order (production), a requisition (purchase) or a
+ * transfer from `source_warehouse_id` (transfer).
+ */
+export const kanbanLoops = pgTable(
+  'kanban_loops',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => items.id, { onDelete: 'cascade' }),
+    /** production | purchase | transfer */
+    kind: text('kind').notNull(),
+    warehouseId: uuid('warehouse_id')
+      .notNull()
+      .references(() => warehouses.id, { onDelete: 'restrict' }),
+    sourceWarehouseId: uuid('source_warehouse_id').references(() => warehouses.id, { onDelete: 'restrict' }),
+    vendorId: uuid('vendor_id').references(() => parties.id, { onDelete: 'set null' }),
+    containerQty: qty('container_qty').notNull(),
+    leadTimeDays: smallint('lead_time_days').notNull().default(1),
+    notes: text('notes'),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('kanban_loops_tenant_idx').on(t.tenantId, t.itemId)],
+);
+
+export const kanbanCards = pgTable(
+  'kanban_cards',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    loopId: uuid('loop_id')
+      .notNull()
+      .references(() => kanbanLoops.id, { onDelete: 'cascade' }),
+    cardNo: smallint('card_no').notNull(),
+    /** full | empty (signalled, replenishment raised) */
+    status: text('status').notNull().default('full'),
+    signalledAt: timestamp('signalled_at', { withTimezone: true }),
+    /** The replenishment document raised by the last signal. */
+    docId: uuid('doc_id').references(() => documents.id, { onDelete: 'set null' }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('kanban_cards_no_uq').on(t.loopId, t.cardNo)],
 );

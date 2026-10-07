@@ -36,6 +36,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { CopilotModule } from './modules/copilot/copilot.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { EngineeringModule } from './modules/engineering/engineering.module';
 import { PlanningModule } from './modules/planning/planning.module';
 import { ProcessModule } from './modules/process/process.module';
 
@@ -80,6 +81,7 @@ import { ProcessModule } from './modules/process/process.module';
     OnboardingModule,
     ProcessModule,
     PlanningModule,
+    EngineeringModule,
     AdminModule,
     PrivacyModule,
   ],

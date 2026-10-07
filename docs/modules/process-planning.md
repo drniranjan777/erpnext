@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Sprints 7.1–7.3 (7 Oct 2026) done: formulas and process batches; co-products, packing, blending, corrections, equipment cleaning; demand forecast and MRP |
-| **Code** | `backend/src/modules/process/`, `backend/src/modules/planning/`, `database/src/schema/process.ts`, `database/src/schema/planning.ts` (migrations 0027–0029), `frontend/src/app/(app)/process/`, `frontend/src/app/(app)/planning/`, batch panel in `frontend/src/app/(app)/manufacturing/work-orders/[id]/batch.tsx` |
-| **Tests** | `backend/test/unit/formula-math.test.ts`, `backend/test/unit/mrp-engine.test.ts`, `backend/test/e2e/process.e2e.test.ts`, `backend/test/e2e/process-ops.e2e.test.ts`, `backend/test/e2e/planning.e2e.test.ts`; benchmark `backend/scripts/mrp-bench.mjs` |
+| **Status** | **Phase 7 complete** (7 Oct 2026): formulas and process batches; co-products, packing, blending, corrections, equipment cleaning; demand forecast and MRP; capacity, finite scheduling, kanban, engineering change and drawings |
+| **Code** | `backend/src/modules/process/`, `backend/src/modules/planning/`, `backend/src/modules/engineering/`, `database/src/schema/process.ts`, `database/src/schema/planning.ts`, `database/src/schema/engineering.ts` (migrations 0027–0030), `frontend/src/app/(app)/process/`, `frontend/src/app/(app)/planning/`, `frontend/src/app/(app)/engineering/`, batch panel in `frontend/src/app/(app)/manufacturing/work-orders/[id]/batch.tsx` |
+| **Tests** | `backend/test/unit/formula-math.test.ts`, `backend/test/unit/mrp-engine.test.ts`, `backend/test/e2e/process.e2e.test.ts`, `backend/test/e2e/process-ops.e2e.test.ts`, `backend/test/unit/scheduler.test.ts`, `backend/test/e2e/planning.e2e.test.ts`, `backend/test/e2e/planning-ops.e2e.test.ts`; benchmark `backend/scripts/mrp-bench.mjs` |
 
 ## Sprint plan
 
@@ -13,7 +13,7 @@
 | **7.1** ✅ | Master formula (percent / fixed / potency basis, tolerances, co-products and by-products, stages with in-process parameters, versions and approval, cost roll-up, scaling); process batches as work orders made from a formula; dispensing with tolerance and potency adjustment; stage readings; theoretical vs actual yield |
 | **7.2** ✅ | Co-product cost apportionment at receipt, packing bulk into pack sizes (packing formulas), blending of batches, shade correction, equipment status and cleaning logs |
 | **7.3** ✅ | Demand planning (statistical forecast with seasonality), MRP: multi-level net requirements, lead-time offsetting, lot sizing (L4L, fixed, EOQ, min / max, period), safety stock, planned orders → requisitions / work orders / batches, pegging, exception messages |
-| 7.4 | Capacity: rough-cut and detailed load by work centre; finite scheduling board (Gantt, drag and drop, sequence-dependent setups); kanban; engineering change requests / notices with impact on open orders and stock; drawing register |
+| **7.4** ✅ | Capacity: rough-cut and detailed load by work centre; finite scheduling board (Gantt, drag and drop, sequence-dependent setups); kanban; engineering change requests / notices with impact on open orders and stock; drawing register |
 
 ## 1. Formulas (doc type `formula`, `FRM/{SEQ}`)
 
@@ -123,8 +123,68 @@
   - Converted orders link to their document.
 - **Performance** (`node backend/scripts/mrp-bench.mjs`): 10,000 items in three levels (2,000 → 1,000 → 7,000), 3,000 BOMs, four months of forecast, giving 28,021 planned orders and 17,000 exceptions in about 12 s end to end. Loading takes 0.1 s, planning 0.24 s, and writing the results 11 s. The target was under 2 minutes.
 
+## 6. Capacity and finite scheduling (7.4)
+
+- **Calendars**: each work centre has hours per day, a shift start (IST) and 5, 6 or 7 working days, plus parallel units and an efficiency %. A shift may run past midnight. Calendar maths live in `planning/calendar.ts`.
+- **Capacity** (`GET /planning/capacity?mode=rough|detailed`). Capacity is working minutes × units; load is standard minutes ÷ efficiency.
+  - *Rough-cut*, by week:
+    - remaining operation minutes of open work orders, spread over their planned window (from today);
+    - MRP planned make orders: BOM routing setup + run × qty;
+    - planned batches: formula stage minutes scaled to the batch.
+  - *Detailed*, by day: the finite schedule.
+  - Outside (sub-contract) centres have no limit.
+- **Finite scheduler** (`planning/scheduler.ts`, pure; `POST /planning/schedule/run`):
+  1. Orders are taken in this order: those with a running operation, then by priority, due date and release.
+  2. An order's operations run in sequence, from its planned start (or now).
+  3. Each operation goes to the unit (lane) where it would finish first.
+  4. Setup is sequence-dependent: none when the lane last ran the same item, else the work centre's changeover time from one item to the other (`setup_transitions`), else the operation's own setup.
+  5. Running operations start now with their remaining minutes.
+  6. Results are written to `work_order_operations.scheduled_start / scheduled_end / lane / setup_applied`; an order finishing after the end of its due day is late.
+- **Board** (`/planning/schedule`):
+  - a Gantt chart by work centre and unit;
+  - drag a bar along the time axis or to another unit to pin it (`PUT /planning/schedule/operations/:id {start, lane}`), then everything else reflows around pinned operations;
+  - *Release pin* hands an operation back to the scheduler;
+  - a pinned operation that starts before the step before it ends is flagged as a conflict.
+
+## 7. Kanban (7.4)
+
+- **Loops**: an item at a point of use, a container quantity, a number of cards, a lead time, and how it is replenished:
+  - *production* raises a draft work order;
+  - *purchase* raises a draft requisition;
+  - *transfer* raises a draft stock transfer from a source store.
+- **Cards** print with a QR code `KB:<card id>` (`/print/kanban/:loopId`).
+  - Scanning a full card, or pressing *Signal empty*, claims it (so a double scan raises one document) and raises the replenishment.
+  - Scanning an empty card receives it back into the rack.
+  - Signalling needs the right to raise that document.
+- **Sizing**: *Suggest* uses the average daily use at the point of use over 90 days: cards = ⌈daily × lead time × 1.2 ÷ container⌉ + 1.
+- Cards can be removed only from the end, and only while they are full.
+
+## 8. Engineering change and drawings (7.4)
+
+- **Engineering change** (doc type `engineering_change`, `ECN/{FY}/{SEQ}`):
+  - It records the kind (BOM, formula, drawing, item, process), reason, priority, effective date, and what to do with existing stock (use as is, rework, scrap, return).
+  - It lists the affected items. Each item's current BOM, formula or drawing is filled in automatically, and its new version is picked once drafted.
+  - **Impact**, live while it is a request:
+    - stock and its value;
+    - open work orders making the item (and how many are on the current version);
+    - open work orders using it;
+    - quantity on order and open sales;
+    - the products it is used in.
+  - Approval makes it the change notice and freezes the impact.
+  - *Implement* requires every new version to be approved, and then records the implementation notes. An implemented change cannot be cancelled.
+- **Drawing register** (doc type `drawing`, `DRG/{SEQ}`): one document per drawing number and revision, with the files as attachments.
+  - Approval releases the revision and supersedes the previous released one.
+  - It also stamps the drawing number and revision on the item's default and draft BOMs.
+  - *New revision* copies the drawing to the next revision (A → B … Z → AA, 09 → 10).
+  - The view returns the revision as `drawingRevision`, because `revision` is the document's amendment count.
+
 ## Permissions
 
 Formulas use `manufacturing.engineering.*`. Batches and dispensing use `manufacturing.production.*`. Stage readings come in with job cards (`manufacturing.shopfloor.record`).
 
-Forecasts and MRP use `planning.mrp.read` and `planning.mrp.manage`. Converting planned orders also needs the right to raise the documents it creates.
+Forecasts, MRP, capacity, the schedule and kanban use `planning.mrp.read` and `planning.mrp.manage`.
+
+- Running or changing the schedule, and setting up loops, need `manage`.
+- Signalling a kanban card needs `read`, plus the right to raise the document it creates. So does converting planned orders.
+
+Engineering changes and drawings use `manufacturing.engineering.*`.

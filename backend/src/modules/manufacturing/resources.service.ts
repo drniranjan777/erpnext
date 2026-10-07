@@ -13,6 +13,9 @@ export const workCenterSchema = z.object({
   kind: z.enum(['machine', 'line', 'manual', 'subcontract']).default('machine'),
   warehouseId: z.uuid().nullable().optional(),
   hoursPerDay: decimalSchema(2, 'Hours per day').transform((v) => v ?? '8'),
+  /** Calendar for scheduling: 5, 6 or 7 working days; shift start in minutes after midnight. */
+  daysPerWeek: z.number().int().min(1).max(7).optional(),
+  shiftStart: z.number().int().min(0).max(1439).optional(),
   units: z.number().int().min(1).max(500).default(1),
   efficiencyPct: decimalSchema(2, 'Efficiency').transform((v) => v ?? '100'),
   labourRate: decimalSchema(4, 'Labour rate').transform((v) => v ?? '0'),
