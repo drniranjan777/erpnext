@@ -12,6 +12,7 @@ export interface OutgoingMail {
   toName?: string | null;
   workspace: string;
   message: Rendered;
+  attachments?: { filename: string; content: Buffer; contentType: string }[];
 }
 
 /** Branded, table-based HTML that renders in Gmail/Outlook. Values are HTML-escaped by Handlebars. */
@@ -71,6 +72,7 @@ export class MailService {
       subject: mail.message.title,
       text,
       html,
+      attachments: mail.attachments,
     });
     if (this.mode === 'file') {
       await mkdir(this.mailDir, { recursive: true });

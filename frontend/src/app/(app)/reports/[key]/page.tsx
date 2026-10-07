@@ -1,11 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, FileSpreadsheet, FileText, Printer } from "lucide-react";
+import { CalendarClock, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ItemPicker } from "@/components/item-picker";
+import { ReportTable } from "@/components/reports/report-table";
 import { PartyPicker, type PickedParty } from "@/components/party-picker";
 import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, apiDownload, ApiError } from "@/lib/api";
 import { useWarehouses } from "@/lib/masters";
-import { formatCell, NUMERIC, type Catalogue, type ReportParam, type ReportResult } from "@/lib/reports";
+import { formatCell, type Catalogue, type ReportParam, type ReportResult } from "@/lib/reports";
 
 export default function ReportPage() {
   return (
@@ -39,7 +40,6 @@ function ReportView() {
     enabled: def?.kind === "query" && !missing,
     retry: false,
   });
-  const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (cat.isLoading) return <LoadingBlock />;
@@ -68,18 +68,6 @@ function ReportView() {
   }
 
   const data = run.data;
-  const rows = data
-    ? sort
-      ? [...data.rows].sort((x, y) => {
-          const c = data.columns.find((k) => k.key === sort.key)!;
-          const a = x[sort.key];
-          const b = y[sort.key];
-          if (a === null || a === undefined) return 1;
-          if (b === null || b === undefined) return -1;
-          return (NUMERIC.includes(c.type) ? Number(a) - Number(b) : String(a).localeCompare(String(b))) * sort.dir;
-        })
-      : data.rows
-    : [];
 
   return (
     <div className="mx-auto max-w-7xl space-y-5">
@@ -92,6 +80,7 @@ function ReportView() {
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => exportAs("xlsx")} disabled={!data}><FileSpreadsheet className="size-4" aria-hidden /> Excel</Button>
               <Button variant="secondary" onClick={() => exportAs("csv")} disabled={!data}><FileText className="size-4" aria-hidden /> CSV</Button>
+              <Link href={`/reports/schedules?report=${key}`} className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-medium hover:bg-surface-muted"><CalendarClock className="size-4" aria-hidden /> Schedule</Link>
               <Link href={`/print/reports/${key}?${qs.toString()}`} target="_blank" className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-medium hover:bg-surface-muted"><Printer className="size-4" aria-hidden /> Print / PDF</Link>
             </div>
           }
@@ -105,48 +94,8 @@ function ReportView() {
       {data && (
         <>
           {data.truncated && <Alert tone="warning">Showing the first 10,000 rows. Narrow the filters to see the rest.</Alert>}
-          {data.chart && rows.length > 1 && <Chart data={data} />}
-          <Card className="overflow-hidden">
-            <div className="max-h-[70vh] overflow-auto">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 z-10 bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                  <tr>
-                    {data.columns.map((c) => (
-                      <th key={c.key} className={`px-3 py-2 font-medium whitespace-nowrap ${NUMERIC.includes(c.type) ? "text-right" : ""}`}>
-                        <button className="inline-flex items-center gap-1 uppercase" onClick={() => setSort((s) => (s?.key === c.key ? { key: c.key, dir: s.dir === 1 ? -1 : 1 } : { key: c.key, dir: NUMERIC.includes(c.type) ? -1 : 1 }))}>
-                          {c.label}
-                          {sort?.key === c.key && (sort.dir === 1 ? <ArrowUp className="size-3" aria-label="ascending" /> : <ArrowDown className="size-3" aria-label="descending" />)}
-                        </button>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {rows.map((r, i) => (
-                    <tr key={i} className="hover:bg-surface-muted/50">
-                      {data.columns.map((c) => (
-                        <td key={c.key} className={`px-3 py-1.5 ${NUMERIC.includes(c.type) ? "text-right tabular-nums" : ""}`}>
-                          {c.link && r[c.link.idKey] ? <Link className="text-primary hover:underline" href={`${c.link.path}/${r[c.link.idKey]}`}>{formatCell(c, r[c.key])}</Link> : formatCell(c, r[c.key])}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                  {!rows.length && (
-                    <tr><td colSpan={data.columns.length} className="px-3 py-8 text-center text-muted">Nothing for these filters.</td></tr>
-                  )}
-                </tbody>
-                {Object.keys(data.totals).length > 0 && rows.length > 0 && (
-                  <tfoot className="sticky bottom-0 bg-surface-muted font-semibold">
-                    <tr>
-                      {data.columns.map((c, i) => (
-                        <td key={c.key} className={`px-3 py-2 ${NUMERIC.includes(c.type) ? "text-right tabular-nums" : ""}`}>{data.totals[c.key] !== undefined ? formatCell(c, data.totals[c.key]) : i === 0 ? `Total (${rows.length} rows)` : ""}</td>
-                      ))}
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-          </Card>
+          {data.chart && data.rows.length > 1 && <Chart data={data} />}
+          <ReportTable data={data} />
         </>
       )}
     </div>

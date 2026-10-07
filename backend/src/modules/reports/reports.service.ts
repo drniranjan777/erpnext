@@ -7,6 +7,7 @@ import { fiscalYearOf, todayIST } from '../../common/fiscal-year';
 import { loadPermissions } from '../../common/guards';
 import { DatabaseService } from '../../database/database.service';
 import { toCsv } from '../compliance/gst-reports.service';
+import { relativeDate } from './builder/schedule-time';
 import { INVENTORY_REPORTS } from './catalogue/inventory';
 import { LINK_REPORTS } from './catalogue/links';
 import { PRODUCTION_REPORTS, QUALITY_REPORTS } from './catalogue/production';
@@ -29,6 +30,7 @@ const dateText = (v: unknown) => (v instanceof Date ? `${v.getFullYear()}-${pad(
 
 export function resolveDefault(d: string | undefined, today = todayIST()) {
   if (d === 'today') return today;
+  if (d && ['yesterday', 'week_start', 'prev_month_start', 'prev_month_end'].includes(d)) return relativeDate(d, today);
   if (d === 'fy_start') return fiscalYearOf(today).start;
   if (d === 'month_start') return `${today.slice(0, 8)}01`;
   return d;
@@ -104,41 +106,54 @@ export class ReportsService {
   }
 
   async export(auth: AuthContext, key: string, input: Params, format: 'xlsx' | 'csv') {
-    const data = await this.run(auth, key, input);
-    const stamp = [data.params.from, data.params.to].filter(Boolean).join('_') || todayIST();
-    const name = `${data.key}_${stamp}`;
-    const cell = (c: ReportColumn, v: unknown) => (v === null || v === undefined ? '' : NUMERIC.includes(c.type) ? Number(v) : v);
-    if (format === 'csv') {
-      const body = toCsv(
-        data.columns.map((c) => c.label),
-        [...data.rows.map((row) => data.columns.map((c) => row[c.key] ?? '')), ...(Object.keys(data.totals).length ? [data.columns.map((c, i) => data.totals[c.key] ?? (i === 0 ? 'Total' : ''))] : [])],
-      );
-      return { name: `${name}.csv`, type: 'text/csv; charset=utf-8', body: Buffer.from(body, 'utf8') };
-    }
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'NextGen ERP';
-    const ws = wb.addWorksheet(data.title.slice(0, 31));
-    ws.addRow([data.title]).font = { bold: true, size: 13 };
-    const filters = Object.entries(data.params).map(([k, v]) => `${k}: ${v}`).join('  ·  ');
-    if (filters) ws.addRow([filters]).font = { color: { argb: 'FF666666' } };
-    ws.addRow([]);
-    const head = ws.addRow(data.columns.map((c) => c.label));
-    head.font = { bold: true };
-    head.eachCell((c) => (c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF2F7' } }));
-    for (const row of data.rows) ws.addRow(data.columns.map((c) => cell(c, row[c.key])));
-    if (Object.keys(data.totals).length) {
-      const t = ws.addRow(data.columns.map((c, i) => (data.totals[c.key] !== undefined ? Number(data.totals[c.key]) : i === 0 ? 'Total' : '')));
-      t.font = { bold: true };
-    }
-    data.columns.forEach((c, i) => {
-      const col = ws.getColumn(i + 1);
-      col.width = Math.min(48, Math.max(10, c.label.length + 2, ...data.rows.slice(0, 200).map((r) => String(r[c.key] ?? '').length + 2)));
-      if (c.type === 'money') col.numFmt = '#,##,##0.00';
-      else if (c.type === 'qty') col.numFmt = '#,##,##0.####';
-      else if (c.type === 'percent') col.numFmt = '0.00"%"';
-    });
-    ws.views = [{ state: 'frozen', ySplit: head.number }];
-    const buf = Buffer.from(await wb.xlsx.writeBuffer());
-    return { name: `${name}.xlsx`, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', body: buf };
+    return renderFile(await this.run(auth, key, input), format);
   }
+}
+
+export interface RenderableResult {
+  key: string;
+  title: string;
+  params: Record<string, string | undefined>;
+  columns: ReportColumn[];
+  rows: Record<string, unknown>[];
+  totals: Record<string, string>;
+}
+
+/** A report result as an Excel workbook or CSV file. */
+export async function renderFile(data: RenderableResult, format: 'xlsx' | 'csv') {
+  const stamp = [data.params.from, data.params.to].filter(Boolean).join('_') || todayIST();
+  const name = `${data.key}_${stamp}`;
+  const cell = (c: ReportColumn, v: unknown) => (v === null || v === undefined ? '' : NUMERIC.includes(c.type) ? Number(v) : v);
+  if (format === 'csv') {
+    const body = toCsv(
+      data.columns.map((c) => c.label),
+      [...data.rows.map((row) => data.columns.map((c) => row[c.key] ?? '')), ...(Object.keys(data.totals).length ? [data.columns.map((c, i) => data.totals[c.key] ?? (i === 0 ? 'Total' : ''))] : [])],
+    );
+    return { name: `${name}.csv`, type: 'text/csv; charset=utf-8', body: Buffer.from(body, 'utf8') };
+  }
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'NextGen ERP';
+  const ws = wb.addWorksheet(data.title.slice(0, 31));
+  ws.addRow([data.title]).font = { bold: true, size: 13 };
+  const filters = Object.entries(data.params).map(([k, v]) => `${k}: ${v}`).join('  ·  ');
+  if (filters) ws.addRow([filters]).font = { color: { argb: 'FF666666' } };
+  ws.addRow([]);
+  const head = ws.addRow(data.columns.map((c) => c.label));
+  head.font = { bold: true };
+  head.eachCell((c) => (c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF2F7' } }));
+  for (const row of data.rows) ws.addRow(data.columns.map((c) => cell(c, row[c.key])));
+  if (Object.keys(data.totals).length) {
+    const t = ws.addRow(data.columns.map((c, i) => (data.totals[c.key] !== undefined ? Number(data.totals[c.key]) : i === 0 ? 'Total' : '')));
+    t.font = { bold: true };
+  }
+  data.columns.forEach((c, i) => {
+    const col = ws.getColumn(i + 1);
+    col.width = Math.min(48, Math.max(10, c.label.length + 2, ...data.rows.slice(0, 200).map((r) => String(r[c.key] ?? '').length + 2)));
+    if (c.type === 'money') col.numFmt = '#,##,##0.00';
+    else if (c.type === 'qty') col.numFmt = '#,##,##0.####';
+    else if (c.type === 'percent') col.numFmt = '0.00"%"';
+  });
+  ws.views = [{ state: 'frozen', ySplit: head.number }];
+  const buf = Buffer.from(await wb.xlsx.writeBuffer());
+  return { name: `${name}.xlsx`, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', body: buf };
 }

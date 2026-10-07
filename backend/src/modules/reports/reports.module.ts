@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
+import { BuilderController, SchedulesController } from './builder/builder.controller';
+import { BuilderService } from './builder/builder.service';
+import { SchedulesService } from './builder/schedules.service';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
 
-/** Standard reports: a catalogue of parameterised queries with Excel / CSV export. */
+/** Standard reports, the report builder and scheduled delivery by email. */
 @Module({
-  controllers: [ReportsController],
-  providers: [ReportsService],
+  controllers: [ReportsController, BuilderController, SchedulesController],
+  providers: [ReportsService, BuilderService, SchedulesService],
   exports: [ReportsService],
 })
 export class ReportsModule {}

@@ -176,6 +176,13 @@
       "when": 1791330471099,
       "tag": "0024_dashboards",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791331163840,
+      "tag": "0025_report_builder",
+      "breakpoints": true
     }
   ]
 }

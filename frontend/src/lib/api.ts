@@ -95,13 +95,15 @@ export async function apiUpload<T>(path: string, file: File, retried = false): P
 }
 
 /** Downloads an authenticated file and hands it to the browser as a save. */
-export async function apiDownload(path: string, fileName: string, retried = false): Promise<void> {
+export async function apiDownload(path: string, fileName: string, retried = false, body?: unknown): Promise<void> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {},
+    method: body === undefined ? "GET" : "POST",
+    headers: { ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}), ...(body === undefined ? {} : { "content-type": "application/json" }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "same-origin",
   });
   if (res.status === 401 && !retried) {
-    if (await refreshSession()) return apiDownload(path, fileName, true);
+    if (await refreshSession()) return apiDownload(path, fileName, true, body);
     onSessionLost?.();
   }
   if (!res.ok) {

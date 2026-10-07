@@ -8,6 +8,6 @@ import { WhatsAppService } from './whatsapp.service';
 @Module({
   controllers: [NotificationsController],
   providers: [NotificationsService, MailService, WhatsAppService],
-  exports: [NotificationsService],
+  exports: [NotificationsService, MailService, WhatsAppService],
 })
 export class NotificationsModule {}
