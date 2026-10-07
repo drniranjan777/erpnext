@@ -72,3 +72,6 @@ export interface Employee {
 
 export const STATUS_TONE = { active: "success", notice: "warning", exited: "neutral" } as const;
 export const EVENT_LABEL: Record<string, string> = { joined: "Joined", transfer: "Transfer", promotion: "Promotion", redesignation: "Re-designation", confirmation: "Confirmed", increment: "Increment", exit: "Exit" };
+
+export interface LeaveType { id: string; code: string; name: string; isPaid: boolean; accrual: string; annualQuota: string; daysWorkedPerLeave: number | null; carryForwardMax: string; encashable: boolean; encashMax: string | null; allowHalfDay: boolean; allowNegative: boolean; countHolidays: boolean; isCompOff: boolean; gender: string | null; isActive: boolean }
+export interface LeaveBalance { employeeId: string; code: string; fullName: string; leaveTypeId: string; typeCode: string; typeName: string; isPaid: boolean; opening: number; credited: number; availed: number; closedOut: number; balance: number; balanceNow: number; pending: number }

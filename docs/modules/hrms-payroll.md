@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 9.1 done |
+| **Status** | In progress: 9.1 and 9.2 done |
 | **Code** | `backend/src/modules/hr/`, `backend/src/modules/payroll/`, `database/src/schema/hr.ts`, `database/src/schema/payroll.ts`, `frontend/src/app/(app)/hr/` |
 
 ## Sprint plan
@@ -44,3 +44,60 @@ Exit target: a payroll for ≥ 500 employees across 2 states reconciles with the
 - `/hr/org`: organisation masters
 - `/hr/org-chart`
 - `/hr/letters`: letter templates
+
+## 9.2 Time and leave (done)
+
+Schema: `database/src/schema/attendance.ts`, migration 0036. Rules: `backend/src/modules/hr/time/attendance-engine.ts`, which is pure and unit tested.
+
+**Shifts and rosters**
+- A shift has IST start and end times (an end at or before the start runs past midnight), a break, a grace period for late arrival, and the minutes worked for a half day and a full day. Overtime counts after `otAfterMinutes`, or 9 hours when that is blank (Factories Act s.51/s.59).
+- A roster (`hr_shift_assignments`) gives an employee one shift, or a rotation of up to 6 shifts changing every N days, plus their weekly offs. A new roster replaces any from its start date and closes the one running then. Without a roster, the day is the calendar day and Sunday is off.
+- Holidays apply to one location or to all of them. A restricted holiday is not a day off.
+
+**Punches**
+- Every punch is unique per employee and second, so repeated device pushes are ignored.
+- Sources:
+  - `POST /hr/attendance/punches`: devices or middleware with an API key holding `hr.attendance.manage`, up to 2,000 punches per call.
+  - `POST /hr/attendance/punches/import`: a CSV/XLSX file with `employee_code` plus `punch_time`, or separate date and time columns. Times are read as IST, in `YYYY-MM-DD HH:MM` or `DD/MM/YYYY HH:MM`.
+  - `POST /hr/attendance/mobile`: the employee's phone (`/hr/punch`) sends latitude, longitude, accuracy and a selfie. The distance to the work location's geofence is recorded. A punch outside the fence is still accepted, but flagged for HR (`?flagged=true`).
+- Each new punch reprocesses its date and the day before (for night shifts).
+
+**Daily attendance** (`attendance_days`)
+- `POST /hr/attendance/process` recomputes up to 62 days, and never touches days that payroll has locked.
+- A punch belongs to the shift window, which runs from 4 hours before the start to 8 hours after the end.
+- Worked time is first-in to last-out, less the break once the span passes 5 hours (s.55).
+- Statuses:
+  - present: worked at least a full day
+  - half_day: worked at least a half day
+  - absent: less than a half day
+  - missed_punch: a single punch; not payable until regularised
+  - weekly_off, holiday: payable
+  - leave: payable when the leave type is paid
+- Late minutes count from the shift start once the grace period is passed.
+- Overtime counts beyond the threshold in whole quarter hours.
+- Weekly overtime beyond 48 hours that the daily rule has not already counted is added in the monthly summary.
+- Work on an off day earns comp-off: 1 day for a full day worked, 0.5 for a half. It is credited to the active comp-off leave type.
+
+**Muster roll**: `GET /hr/attendance/month` returns each employee's day codes plus payable days, LOP days, overtime hours and late days. Payroll (9.3) reads it.
+
+**Regularisation**: a request for a missed or wrong in/out time, within the last 62 days. The reporting manager or HR approves it, never the employee. Approval adds `regularisation` punches and reprocesses the day.
+
+**Leave**
+- `leave_ledger` holds every credit and debit, and the balance is their sum. A `ref_key` makes accrual runs and postings idempotent.
+- Accrual types:
+  - monthly: a twelfth of the quota; employees who join after the 15th start the next month
+  - yearly: credited in January, or pro rata in the month of joining
+  - per_days_worked: Factories Act s.79 earned leave; topped up to one day per N days worked so far in the year, recomputed on each run
+- Applications:
+  - Weekly offs and holidays are skipped unless the type counts them (the sandwich rule); half first or last days are supported.
+  - The balance check includes pending applications.
+  - Gender-specific types and overlapping applications are refused.
+- Approval by the manager or HR debits the leave (`availed`). Cancelling approved leave credits it back (`reversal`); once the leave has started, only HR can cancel. Both actions reprocess the days already past.
+- Year end keeps up to the carry-forward limit, encashes up to `encashMax` when the type is encashable, and lapses the rest. Encashment entries are read by payroll and F&F.
+- Opening balances and adjustments go through `POST /hr/leave/adjust`.
+
+**Self-service**: `hr.self.use` lets a linked employee punch, apply for leave and request regularisation for themselves, and decide requests from their direct reports. `GET /hr/me` returns their record and today's punches.
+
+**Permissions**: `hr.attendance.read`, `hr.attendance.manage`, `hr.leave.read`, `hr.leave.manage`, `hr.self.use`.
+
+**UI**: `/hr/punch`, `/hr/attendance` (muster roll, process, import), `/hr/shifts` (shifts, roster, holidays), `/hr/regularisations`, `/hr/leave`, `/hr/leave/types` (types, accrual, year end, opening balances).

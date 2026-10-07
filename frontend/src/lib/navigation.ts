@@ -100,6 +100,10 @@ import {
   IdCard,
   FileSignature,
   UsersRound,
+  Clock,
+  Plane,
+  CalendarCog,
+  Fingerprint,
 } from "lucide-react";
 
 export interface NavItem {
@@ -201,6 +205,12 @@ export const NAVIGATION: NavSection[] = [
       { label: "Organisation", href: "/hr/org", icon: Network, permissions: ["hr.employees.read"] },
       { label: "Org chart", href: "/hr/org-chart", icon: Users, permissions: ["hr.employees.read"] },
       { label: "Letter templates", href: "/hr/letters", icon: FileSignature, permissions: ["hr.letters.manage"] },
+      { label: "Attendance", href: "/hr/attendance", icon: CalendarClock, permissions: ["hr.attendance.read"] },
+      { label: "Shifts & holidays", href: "/hr/shifts", icon: Clock, permissions: ["hr.attendance.read"] },
+      { label: "Regularisation", href: "/hr/regularisations", icon: ClipboardPen, permissions: ["hr.self.use"] },
+      { label: "Leave", href: "/hr/leave", icon: Plane, permissions: ["hr.self.use"] },
+      { label: "Leave setup", href: "/hr/leave/types", icon: CalendarCog, permissions: ["hr.leave.read"] },
+      { label: "Punch", href: "/hr/punch", icon: Fingerprint, permissions: ["hr.self.use"] },
     ],
   },
   {
