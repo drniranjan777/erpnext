@@ -19,6 +19,7 @@ import { formatDate, formatMoney, formatQty } from "@/lib/documents";
 import { useWarehouses } from "@/lib/masters";
 import { ENTRY_LABEL, KIND_LABEL, MFG, STAGE_LABEL, STAGE_TONE, type WoOperation, type WorkOrder } from "@/lib/manufacturing";
 import type { TraceNode } from "@/lib/quality";
+import { BatchPanel } from "./batch";
 
 const W = `${MFG}/work-orders`;
 
@@ -125,7 +126,7 @@ export default function WorkOrderPage() {
         subtitle={`${w.item.code} ${w.item.name} · ${formatQty(w.qty)} ${w.item.uom}`}
         actions={
           <>
-            {w.canProduce && (
+            {w.canProduce && w.kind !== "batch" && (
               <Button variant="secondary" onClick={() => setDialog("issue")}>
                 <PackageMinus className="size-4" aria-hidden /> Issue
               </Button>
@@ -212,6 +213,8 @@ export default function WorkOrderPage() {
           {w.backflush && <Info label="Materials" value="Backflushed at receipt" />}
         </dl>
       </Card>
+
+      {w.kind === "batch" && <BatchPanel w={w} onChanged={(t) => { setMsg({ tone: "success", text: t }); refresh(); }} />}
 
       {planning && (
         <Card>
@@ -659,6 +662,7 @@ function BookDialog({ op, onClose, onDone }: { op: WoOperation; onClose: () => v
     rejectReason: "",
     operatorName: "",
   });
+  const [readings, setReadings] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   async function go() {
@@ -673,6 +677,7 @@ function BookDialog({ op, onClose, onDone }: { op: WoOperation; onClose: () => v
           minutes: op.isSubcontract ? null : f.minutes || null,
           rejectReason: f.rejectReason || null,
           operatorName: f.operatorName || null,
+          readings: Object.entries(readings).filter(([, v]) => v.trim()).map(([name, value]) => ({ name, value })),
         },
       });
       onDone(`Booked against ${op.seq} ${op.name}.`);
@@ -712,6 +717,11 @@ function BookDialog({ op, onClose, onDone }: { op: WoOperation; onClose: () => v
         <Field label="Operator" hint="Blank = you">
           {(p) => <Input {...p} value={f.operatorName} onChange={(e) => setF({ ...f, operatorName: e.target.value })} />}
         </Field>
+        {op.parameters?.map((pa) => (
+          <Field key={pa.name} label={`${pa.name}${pa.unit ? ` (${pa.unit})` : ""}`} hint={`Limits ${pa.min ?? "…"} – ${pa.max ?? "…"}`}>
+            {(p) => <Input {...p} inputMode="decimal" value={readings[pa.name] ?? ""} onChange={(e) => setReadings({ ...readings, [pa.name]: e.target.value })} />}
+          </Field>
+        ))}
       </div>
     </Dialog>
   );

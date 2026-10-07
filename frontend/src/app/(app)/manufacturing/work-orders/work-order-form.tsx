@@ -22,7 +22,7 @@ interface BomRow {
   status: string;
 }
 
-export function WorkOrderForm({ existing }: { existing?: WorkOrder }) {
+export function WorkOrderForm({ existing, initial }: { existing?: WorkOrder; initial?: { kind?: WorkOrder["kind"]; item?: { id: string; label: string } } }) {
   const router = useRouter();
   const qc = useQueryClient();
   const whs = useWarehouses();
@@ -32,11 +32,13 @@ export function WorkOrderForm({ existing }: { existing?: WorkOrder }) {
           id: existing.item.id,
           label: `${existing.item.code} ${existing.item.name}`,
         }
-      : null,
+      : (initial?.item ?? null),
   );
   const [h, setH] = useState({
-    kind: existing?.kind ?? ("mts" as WorkOrder["kind"]),
+    kind: existing?.kind ?? initial?.kind ?? ("mts" as WorkOrder["kind"]),
     bomId: existing?.bom?.id ?? "",
+    formulaId: existing?.formulaId ?? "",
+    batchNo: existing?.batchNo ?? "",
     qty: existing ? String(Number(existing.qty)) : "",
     sourceWarehouseId: existing?.sourceWarehouseId ?? "",
     targetWarehouseId: existing?.targetWarehouseId ?? "",
@@ -52,7 +54,12 @@ export function WorkOrderForm({ existing }: { existing?: WorkOrder }) {
       api<{ items: BomRow[] }>(`${MFG}/boms`, {
         query: { itemId: item!.id, status: "approved", limit: 20 },
       }),
-    enabled: !!item,
+    enabled: !!item && h.kind !== "batch",
+  });
+  const formulaList = useQuery({
+    queryKey: ["/process/formulas", "for", item?.id],
+    queryFn: () => api<{ items: { id: string; number: string | null; formulaVersion: number; isDefault: boolean }[] }>("/process/formulas", { query: { itemId: item!.id, status: "approved", limit: 20 } }),
+    enabled: !!item && h.kind === "batch",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +75,9 @@ export function WorkOrderForm({ existing }: { existing?: WorkOrder }) {
     const body = {
       kind: h.kind,
       itemId: item.id,
-      bomId: h.bomId || null,
+      bomId: h.kind === "batch" ? null : h.bomId || null,
+      formulaId: h.kind === "batch" ? h.formulaId || null : null,
+      batchNo: h.kind === "batch" ? h.batchNo || null : null,
       qty: h.qty,
       salesOrderLineId: existing?.salesOrderLineId ?? null,
       parentWorkOrderId: existing?.parent?.id ?? null,
@@ -132,10 +141,26 @@ export function WorkOrderForm({ existing }: { existing?: WorkOrder }) {
             <Select {...p} value={h.kind} onChange={(e) => set({ kind: e.target.value as WorkOrder["kind"] })} disabled={!!existing?.salesOrderLineId}>
               <option value="mts">Make to stock</option>
               <option value="rework">Rework</option>
+              <option value="batch">Process batch (formula)</option>
               {existing?.kind === "mto" && <option value="mto">Make to order</option>}
             </Select>
           )}
         </Field>
+        {h.kind === "batch" ? (
+          <>
+            <Field label="Formula" error={errors.formulaId} hint="Blank = the default version">
+              {(p) => (
+                <Select {...p} value={h.formulaId} onChange={(e) => set({ formulaId: e.target.value })} disabled={!item}>
+                  <option value="">Default formula</option>
+                  {formulaList.data?.items.map((f) => <option key={f.id} value={f.id}>{f.number} v{f.formulaVersion}{f.isDefault ? " (default)" : ""}</option>)}
+                </Select>
+              )}
+            </Field>
+            <Field label="Batch number" error={errors.batchNo} hint="The lot number the output will carry">
+              {(p) => <Input {...p} value={h.batchNo} onChange={(e) => set({ batchNo: e.target.value })} />}
+            </Field>
+          </>
+        ) : (
         <Field label="BOM" error={errors.bomId} hint={h.kind === "rework" ? "Optional: its routing is used for the rework" : "Blank = the default version"}>
           {(p) => (
             <Select {...p} value={h.bomId} onChange={(e) => set({ bomId: e.target.value })} disabled={!item}>
@@ -149,6 +174,7 @@ export function WorkOrderForm({ existing }: { existing?: WorkOrder }) {
             </Select>
           )}
         </Field>
+        )}
         <Field label="Quantity" error={errors.qty} required>
           {(p) => <Input {...p} inputMode="decimal" value={h.qty} onChange={(e) => set({ qty: e.target.value })} />}
         </Field>

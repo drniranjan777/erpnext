@@ -50,6 +50,7 @@ export default function WorkOrdersPage() {
           query: { stage: "completed" },
         },
         { value: "closed", label: "Closed", query: { stage: "closed" } },
+        { value: "batch", label: "Process batches", query: { kind: "batch" } },
       ]}
       empty={{
         title: "No work orders",

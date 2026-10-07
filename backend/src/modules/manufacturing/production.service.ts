@@ -94,6 +94,8 @@ export const stopCardSchema = z.object({
   rejectReason: optionalText(300),
   jobWorkChallanId: z.uuid().nullable().optional(),
   notes: optionalText(1000),
+  /** Process stages: the in-process parameters measured. */
+  readings: z.array(z.object({ name: z.string().trim().min(1).max(80), value: z.string().trim().min(1).max(40) })).max(30).default([]),
 });
 export const recordCardSchema = startCardSchema.extend(stopCardSchema.shape);
 
@@ -205,7 +207,12 @@ export class ProductionService implements OnModuleInit {
   }
 
   issue(auth: AuthContext, woId: string, input: IssueInput, meta: RequestMeta) {
-    return this.database.run(auth, async (tx) => {
+    return this.database.run(auth, (tx) => this.issueTx(tx, auth, woId, input, meta));
+  }
+
+  /** Same as issue(), inside the caller's transaction (dispensing records its weighings with it). */
+  async issueTx(tx: Transaction, auth: AuthContext, woId: string, input: IssueInput, meta: RequestMeta) {
+    {
       const wo = await this.openOrder(tx, woId, true);
       const mats = await this.materials(tx, woId);
       const errors: Err[] = [];
@@ -236,7 +243,7 @@ export class ProductionService implements OnModuleInit {
       if (errors.length) fail(errors);
       if (!lines.length) throw new BadRequestException('Nothing to issue');
       return this.createEntry(tx, auth, wo, 'issue', { docDate: input.docDate, notes: input.notes }, lines, meta);
-    });
+    }
   }
 
   return(auth: AuthContext, woId: string, input: z.infer<typeof returnSchema>, meta: RequestMeta) {
@@ -303,7 +310,7 @@ export class ProductionService implements OnModuleInit {
         const x = mats.find((m) => m.m.id === b.materialId)!;
         if (D(b.qty).cmp(ZERO) > 0) lines.push({ kind: x.m.kind, materialId: x.m.id, itemId: x.m.itemId, warehouseId: w.targetWarehouseId, qty: b.qty, rate: x.m.recoveryRate ?? '0' });
       }
-      if (good.cmp(ZERO) > 0) lines.push({ kind: 'output', itemId: w.itemId, warehouseId: w.targetWarehouseId, qty: good.toFixed(4), batchNo: input.batchNo, serialNos: input.serialNos ?? null });
+      if (good.cmp(ZERO) > 0) lines.push({ kind: 'output', itemId: w.itemId, warehouseId: w.targetWarehouseId, qty: good.toFixed(4), batchNo: input.batchNo ?? w.batchNo, serialNos: input.serialNos ?? null });
       if (rej.cmp(ZERO) > 0 && input.rejectWarehouseId) lines.push({ kind: 'reject', itemId: w.itemId, warehouseId: input.rejectWarehouseId, qty: rej.toFixed(4), batchNo: input.batchNo });
       return this.createEntry(tx, auth, wo, 'receipt', { docDate: input.docDate, goodQty: good.toFixed(4), rejectQty: rej.toFixed(4), notes: input.notes }, lines, meta);
     });
@@ -505,7 +512,7 @@ export class ProductionService implements OnModuleInit {
     }
     const [updated] = await tx
       .update(jobCards)
-      .set({ status: 'done', endedAt: ended, minutes, goodQty: good.toFixed(4), rejectQty: rej.toFixed(4), shots, labourCost: cost.labour, machineCost: cost.machine, overheadCost: cost.overhead, subcontractCost, rejectReason: input.rejectReason, notes: input.notes, jobWorkChallanId: input.jobWorkChallanId ?? null, updatedBy: auth.userId, updatedAt: new Date() })
+      .set({ readings: this.judgeReadings(op, input.readings), status: 'done', endedAt: ended, minutes, goodQty: good.toFixed(4), rejectQty: rej.toFixed(4), shots, labourCost: cost.labour, machineCost: cost.machine, overheadCost: cost.overhead, subcontractCost, rejectReason: input.rejectReason, notes: input.notes, jobWorkChallanId: input.jobWorkChallanId ?? null, updatedBy: auth.userId, updatedAt: new Date() })
       .where(eq(jobCards.id, id))
       .returning();
     const opGood = D(op.goodQty).add(good);
@@ -516,6 +523,20 @@ export class ProductionService implements OnModuleInit {
       .where(eq(workOrderOperations.id, op.id));
     for (const l of this.cardListeners) await l(tx, auth, updated, op);
     return updated;
+  }
+
+  /** Stage readings against the operation's parameter limits; missing required readings are refused. */
+  private judgeReadings(op: OperationRow, readings: { name: string; value: string }[] = []) {
+    const params = op.parameters ?? [];
+    if (!params.length) return readings.length ? readings.map((r) => ({ ...r, ok: true })) : null;
+    const missing = params.filter((p) => !readings.some((r) => r.name.toLowerCase() === p.name.toLowerCase()));
+    if (missing.length) throw new BadRequestException(`Record ${missing.map((m) => m.name).join(', ')} for ${op.name}`);
+    return readings.map((r) => {
+      const p = params.find((x) => x.name.toLowerCase() === r.name.toLowerCase());
+      const n = Number(r.value);
+      const ok = !p || ((p.min === null || (!Number.isNaN(n) && n >= Number(p.min))) && (p.max === null || (!Number.isNaN(n) && n <= Number(p.max))));
+      return { name: p?.name ?? r.name, value: r.value, ok };
+    });
   }
 
   /** A finished sitting booked in one go (back-entry, sub-contract returns). */

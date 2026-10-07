@@ -212,6 +212,10 @@ export const workOrders = pgTable(
       .notNull()
       .references(() => items.id, { onDelete: 'restrict' }),
     bomId: uuid('bom_id').references(() => boms.id, { onDelete: 'restrict' }),
+    /** Process batches: the formula (instead of a BOM). */
+    formulaId: uuid('formula_id'),
+    /** Process batches: the lot number the output will carry. */
+    batchNo: text('batch_no'),
     salesOrderId: uuid('sales_order_id').references(() => salesOrders.id, { onDelete: 'restrict' }),
     salesOrderLineId: uuid('sales_order_line_id').references(() => salesOrderLines.id, { onDelete: 'set null' }),
     /** Rework: the order whose rejects are being reworked. */
@@ -282,6 +286,10 @@ export const workOrderMaterials = pgTable(
     recoveryRate: numeric('recovery_rate', { precision: 18, scale: 4 }),
     /** Standard cost per base unit at release. */
     stdRate: rate('std_rate'),
+    /** Process batches: how the quantity is stated (percent | fixed | potency). */
+    basis: text('basis'),
+    stdPotency: numeric('std_potency', { precision: 6, scale: 2 }),
+    tolerancePct: numeric('tolerance_pct', { precision: 5, scale: 2 }),
   },
   (t) => [index('wo_mat_wo_idx').on(t.workOrderId), index('wo_mat_item_idx').on(t.tenantId, t.itemId), uniqueIndex('wo_mat_no_uq').on(t.workOrderId, t.lineNo)],
 );
@@ -308,6 +316,8 @@ export const workOrderOperations = pgTable(
     subcontractRate: numeric('subcontract_rate', { precision: 18, scale: 4 }),
     inspection: boolean('inspection').notNull().default(false),
     instructions: text('instructions'),
+    /** Process stages: in-process parameters to record, with limits. */
+    parameters: jsonb('parameters').$type<{ name: string; unit: string | null; min: string | null; max: string | null }[]>(),
     /** pending | in_progress | done */
     status: text('status').notNull().default('pending'),
     goodQty: qty('good_qty'),
@@ -355,6 +365,8 @@ export const jobCards = pgTable(
     jobWorkChallanId: uuid('job_work_challan_id').references(() => jobWorkChallans.id, { onDelete: 'set null' }),
     rejectReason: text('reject_reason'),
     notes: text('notes'),
+    /** Process stages: parameter readings, and whether each was within limits. */
+    readings: jsonb('readings').$type<{ name: string; value: string; ok: boolean }[]>(),
     /** Set by the shop-floor kiosk so events replayed after a network drop are applied once. */
     clientRef: text('client_ref'),
     ...auditColumns(),

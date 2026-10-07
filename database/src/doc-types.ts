@@ -198,6 +198,15 @@ export const DOC_TYPES = {
     readPermission: 'manufacturing.engineering.read',
     gstDocument: false,
   },
+  formula: {
+    label: 'Formula',
+    code: 'FRM',
+    module: 'process',
+    path: '/process/formulas',
+    defaultPattern: 'FRM/{SEQ}',
+    readPermission: 'manufacturing.engineering.read',
+    gstDocument: false,
+  },
   work_order: {
     label: 'Work Order',
     code: 'WO',

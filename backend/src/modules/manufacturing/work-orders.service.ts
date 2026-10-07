@@ -4,6 +4,9 @@ import {
   bomOperations,
   boms,
   documents,
+  formulaLines,
+  formulaStages,
+  formulas,
   items,
   jobCards,
   parties,
@@ -34,6 +37,7 @@ import { DocumentsService, type DocumentRow } from '../documents/documents.servi
 import { activeLines, explode } from './bom-math';
 import { BomsService } from './boms.service';
 import { outstanding, plannedMinutes, shortages, wipBalance } from './production-math';
+import { scale, type Basis, type FormulaData } from '../process/formula-math';
 
 const DOC_TYPE = 'work_order' as const;
 const D = Decimal.from;
@@ -51,9 +55,13 @@ const positive = (label: string) =>
     .refine((v) => /^\d{1,12}(\.\d{1,4})?$/.test(v) && Number(v) > 0, `${label} must be more than zero (up to 4 decimals)`);
 
 const woBody = {
-  kind: z.enum(['mts', 'mto', 'rework']).default('mts'),
+  kind: z.enum(['mts', 'mto', 'rework', 'batch']).default('mts'),
   itemId: z.uuid(),
   bomId: z.uuid().nullable().optional(),
+  /** Process batches: the formula (blank = the item's default). */
+  formulaId: z.uuid().nullable().optional(),
+  /** Process batches: lot number for the output. */
+  batchNo: optionalText(40),
   qty: positive('Quantity'),
   salesOrderLineId: z.uuid().nullable().optional(),
   parentWorkOrderId: z.uuid().nullable().optional(),
@@ -95,7 +103,7 @@ export class WorkOrdersService implements OnModuleInit {
     });
   }
 
-  list(auth: AuthContext, q: { status?: string; stage?: string; q?: string; itemId?: string; salesOrderId?: string; limit: number; cursor?: string }) {
+  list(auth: AuthContext, q: { status?: string; stage?: string; kind?: string; q?: string; itemId?: string; salesOrderId?: string; limit: number; cursor?: string }) {
     return this.database.run(auth, async (tx) => {
       const term = q.q?.replace(/[%_\\]/g, '');
       const rows = await tx
@@ -106,6 +114,7 @@ export class WorkOrdersService implements OnModuleInit {
           docDate: documents.docDate,
           kind: workOrders.kind,
           stage: workOrders.stage,
+          batchNo: workOrders.batchNo,
           item: { id: items.id, code: items.code, name: items.name },
           qty: workOrders.qty,
           producedQty: workOrders.producedQty,
@@ -123,6 +132,7 @@ export class WorkOrdersService implements OnModuleInit {
             eq(documents.docType, DOC_TYPE),
             q.status ? eq(documents.status, q.status as 'approved') : undefined,
             q.stage ? eq(workOrders.stage, q.stage) : undefined,
+            q.kind ? eq(workOrders.kind, q.kind) : undefined,
             q.itemId ? eq(workOrders.itemId, q.itemId) : undefined,
             q.salesOrderId ? eq(workOrders.salesOrderId, q.salesOrderId) : undefined,
             term ? or(ilike(documents.number, `%${term}%`), ilike(items.code, `%${term}%`), ilike(items.name, `%${term}%`)) : undefined,
@@ -240,7 +250,7 @@ export class WorkOrdersService implements OnModuleInit {
           await this.createTx(
             tx,
             auth,
-            { kind: 'mto', itemId: l.itemId, bomId, qty: need.toFixed(4), salesOrderLineId: l.id, sourceWarehouseId: input.sourceWarehouseId ?? wh, targetWarehouseId: wh, plannedEnd: l.deliveryDate, priority: 2, backflush: false, notes: null },
+            { kind: 'mto', itemId: l.itemId, bomId, batchNo: null, qty: need.toFixed(4), salesOrderLineId: l.id, sourceWarehouseId: input.sourceWarehouseId ?? wh, targetWarehouseId: wh, plannedEnd: l.deliveryDate, priority: 2, backflush: false, notes: null },
             meta,
           ),
         );
@@ -266,8 +276,18 @@ export class WorkOrdersService implements OnModuleInit {
     if (!whs.some((w) => w.id === input.targetWarehouseId)) errors.push({ path: 'targetWarehouseId', message: 'Choose the store output goes to' });
     if (input.plannedStart && input.plannedEnd && input.plannedEnd < input.plannedStart) errors.push({ path: 'plannedEnd', message: 'The end is before the start' });
 
-    let bomId = input.bomId ?? null;
-    if (bomId) {
+    // Process batches are made from a formula instead of a BOM.
+    const batch = input.kind === 'batch';
+    let formula: Awaited<ReturnType<WorkOrdersService['formulaFor']>> = null;
+    if (batch) {
+      formula = await this.formulaFor(tx, input.itemId, input.formulaId ?? null);
+      if (!formula) errors.push({ path: 'formulaId', message: input.formulaId ? 'That formula is not an approved formula of this item' : `${item.code} has no approved formula` });
+      else if (formula.batchMultiple && D(input.qty).div(D(formula.batchMultiple)).round(0).mul(D(formula.batchMultiple)).cmp(D(input.qty)) !== 0) errors.push({ path: 'qty', message: `Batches of ${item.code} are made in multiples of ${Number(formula.batchMultiple)}` });
+    }
+    let bomId = batch ? null : (input.bomId ?? null);
+    if (batch) {
+      // no BOM
+    } else if (bomId) {
       const [b] = await tx.select({ itemId: boms.itemId, status: documents.status }).from(boms).innerJoin(documents, eq(documents.id, boms.id)).where(eq(boms.id, bomId));
       if (!b || b.itemId !== input.itemId) errors.push({ path: 'bomId', message: 'That BOM is for another item' });
       else if (b.status !== 'approved') errors.push({ path: 'bomId', message: 'Only approved BOMs can be produced' });
@@ -290,12 +310,21 @@ export class WorkOrdersService implements OnModuleInit {
     }
     if (errors.length) fail(errors);
 
-    const materials: { kind: string; itemId: string; requiredQty: Decimal; operationSeq: number | null; recoveryRate: string | null }[] = [];
+    const materials: { kind: string; itemId: string; requiredQty: Decimal; operationSeq: number | null; recoveryRate: string | null; basis?: string; stdPotency?: string | null; tolerancePct?: string | null }[] = [];
     const add = (m: (typeof materials)[number]) => {
-      const same = materials.find((x) => x.kind === m.kind && x.itemId === m.itemId && x.operationSeq === m.operationSeq);
+      const same = materials.find((x) => x.kind === m.kind && x.itemId === m.itemId && x.operationSeq === m.operationSeq && x.basis === m.basis);
       if (same) same.requiredQty = same.requiredQty.add(m.requiredQty);
       else materials.push(m);
     };
+    let stages: { seq: number; name: string; workCenterId: string; minutes: string; parameters: { name: string; unit: string | null; min: string | null; max: string | null }[]; instructions: string | null }[] = [];
+    if (formula) {
+      // Ingredients become components, co-products and by-products expected outputs.
+      for (const l of scale(formula.data, input.qty)) {
+        add({ kind: l.kind === 'ingredient' ? 'component' : l.kind === 'coproduct' ? 'coproduct' : 'byproduct', itemId: l.itemId, requiredQty: D(l.required), operationSeq: l.stageSeq ?? null, recoveryRate: l.recoveryRate ?? null, basis: l.basis, stdPotency: l.stdPotency ?? null, tolerancePct: l.tolerancePct ?? null });
+      }
+      const factor = D(input.qty).div(D(formula.data.batchSize));
+      stages = formula.stages.map((s) => ({ ...s, minutes: D(s.minutes).mul(factor).toFixed(2) }));
+    }
     // Rework issues the item itself (from the rejected store) and adds the routing's work.
     if (input.kind === 'rework') add({ kind: 'component', itemId: input.itemId, requiredQty: D(input.qty), operationSeq: null, recoveryRate: null });
     let ops: (typeof bomOperations.$inferSelect)[] = [];
@@ -329,6 +358,8 @@ export class WorkOrdersService implements OnModuleInit {
         kind: input.kind,
         itemId: input.itemId,
         bomId,
+        formulaId: formula?.id ?? null,
+        batchNo: batch ? (input.batchNo ?? null) : null,
         qty: input.qty,
         salesOrderId,
         salesOrderLineId: input.salesOrderLineId ?? null,
@@ -341,8 +372,24 @@ export class WorkOrdersService implements OnModuleInit {
         backflush: input.backflush,
         notes: input.notes,
       },
-      materials: materials.map((m, i) => ({ lineNo: i + 1, kind: m.kind, itemId: m.itemId, uomId: its.find((x) => x.id === m.itemId)!.baseUomId, requiredQty: m.requiredQty.toFixed(4), operationSeq: m.operationSeq, recoveryRate: m.recoveryRate })),
-      operations: ops.map((o) => ({
+      materials: materials.map((m, i) => ({ lineNo: i + 1, kind: m.kind, itemId: m.itemId, uomId: its.find((x) => x.id === m.itemId)!.baseUomId, requiredQty: m.requiredQty.toFixed(4), operationSeq: m.operationSeq, recoveryRate: m.recoveryRate, basis: m.basis ?? null, stdPotency: m.stdPotency ?? null, tolerancePct: m.tolerancePct ?? null })),
+      operations: [
+        ...stages.map((s) => ({
+          seq: s.seq,
+          name: s.name,
+          workCenterId: s.workCenterId,
+          toolId: null,
+          setupMinutes: '0',
+          runMinutes: '0',
+          plannedMinutes: s.minutes,
+          isSubcontract: false,
+          vendorId: null,
+          subcontractRate: null,
+          inspection: false,
+          instructions: s.instructions,
+          parameters: s.parameters.length ? s.parameters : null,
+        })),
+        ...ops.map((o) => ({
         seq: o.seq,
         name: o.name,
         workCenterId: o.workCenterId,
@@ -355,8 +402,31 @@ export class WorkOrdersService implements OnModuleInit {
         subcontractRate: o.subcontractRate,
         inspection: o.inspection,
         instructions: o.instructions,
+        parameters: null,
       })),
+      ],
     };
+  }
+
+  /** The approved formula a batch is made from (the given one, or the item's default) with its data. */
+  async formulaFor(tx: Transaction, itemId: string, formulaId: string | null) {
+    const [f] = await tx
+      .select({ f: formulas })
+      .from(formulas)
+      .innerJoin(documents, eq(documents.id, formulas.id))
+      .where(and(eq(formulas.itemId, itemId), eq(documents.status, 'approved'), formulaId ? eq(formulas.id, formulaId) : eq(formulas.isDefault, true)))
+      .limit(1);
+    if (!f) return null;
+    const lines = await tx.select().from(formulaLines).where(eq(formulaLines.formulaId, f.f.id)).orderBy(asc(formulaLines.lineNo));
+    const stages = await tx.select().from(formulaStages).where(eq(formulaStages.formulaId, f.f.id)).orderBy(asc(formulaStages.seq));
+    const data: FormulaData = {
+      itemId: f.f.itemId,
+      batchSize: f.f.batchSize,
+      yieldPct: f.f.yieldPct,
+      lines: lines.map((l) => ({ kind: l.kind as 'ingredient', itemId: l.itemId, basis: l.basis as Basis, qty: l.qty, stdPotency: l.stdPotency, tolerancePct: l.tolerancePct, costSharePct: l.costSharePct, recoveryRate: l.recoveryRate, stageSeq: l.stageSeq })),
+      stages: stages.map((s) => ({ seq: s.seq, workCenterId: s.workCenterId, minutes: s.minutes })),
+    };
+    return { id: f.f.id, batchMultiple: f.f.batchMultiple, formula: f.f, data, stages: stages.map((s) => ({ seq: s.seq, name: s.name, workCenterId: s.workCenterId, minutes: s.minutes, parameters: s.parameters, instructions: s.instructions })) };
   }
 
   private async writeLines(tx: Transaction, auth: AuthContext, woId: string, p: Awaited<ReturnType<WorkOrdersService['prepare']>>) {
@@ -376,6 +446,10 @@ export class WorkOrdersService implements OnModuleInit {
     let std = { stdMaterial: '0', stdOperation: '0', stdSubcontract: '0', stdByproduct: '0', stdUnitCost: '0' };
     if (wo.kind === 'rework') {
       // Rework is costed at actual: the item's own value plus the work done on it.
+    } else if (wo.formulaId) {
+      const [f] = await tx.select().from(formulas).where(eq(formulas.id, wo.formulaId));
+      const [it] = await tx.select({ standardCost: items.standardCost }).from(items).where(eq(items.id, wo.itemId));
+      std = { stdMaterial: f.materialCost, stdOperation: f.conversionCost, stdSubcontract: '0', stdByproduct: '0', stdUnitCost: it?.standardCost && D(it.standardCost).cmp(ZERO) > 0 ? it.standardCost : f.unitCost };
     } else if (wo.bomId) {
       const [b] = await tx.select().from(boms).where(eq(boms.id, wo.bomId));
       const [it] = await tx.select({ standardCost: items.standardCost }).from(items).where(eq(items.id, wo.itemId));

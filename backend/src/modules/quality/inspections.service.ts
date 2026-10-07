@@ -343,7 +343,7 @@ export class InspectionsService implements OnModuleInit {
         const rw = await this.workOrders.createTx(
           tx,
           auth,
-          { kind: 'rework', itemId: qi.itemId, qty: qi.reworkQty, parentWorkOrderId: qi.workOrderId, sourceWarehouseId: qi.rejectWarehouseId, targetWarehouseId: qi.releaseWarehouseId ?? wo.targetWarehouseId, priority: 2, backflush: false, notes: `Rework from inspection ${doc.number}` },
+          { kind: 'rework', itemId: qi.itemId, batchNo: null, qty: qi.reworkQty, parentWorkOrderId: qi.workOrderId, sourceWarehouseId: qi.rejectWarehouseId, targetWarehouseId: qi.releaseWarehouseId ?? wo.targetWarehouseId, priority: 2, backflush: false, notes: `Rework from inspection ${doc.number}` },
           SYSTEM_META,
         );
         await tx.update(qualityInspections).set({ reworkOrderId: rw.id }).where(eq(qualityInspections.id, doc.id));

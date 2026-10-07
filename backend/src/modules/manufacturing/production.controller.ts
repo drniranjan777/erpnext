@@ -17,6 +17,7 @@ const listPipe = new ZodValidationPipe(
   z.object({
     status: z.string().optional(),
     stage: z.enum(['planned', 'released', 'in_progress', 'completed', 'closed', 'cancelled']).optional(),
+    kind: z.enum(['mts', 'mto', 'rework', 'batch']).optional(),
     q: z.string().trim().max(60).optional(),
     itemId: z.uuid().optional(),
     salesOrderId: z.uuid().optional(),
@@ -26,7 +27,7 @@ const listPipe = new ZodValidationPipe(
 );
 const closeSchema = z.object({ docDate: z.iso.date().optional(), notes: optionalText(1000) });
 
-type ListQuery = { status?: string; stage?: string; q?: string; itemId?: string; salesOrderId?: string; limit: number; cursor?: string };
+type ListQuery = { status?: string; stage?: string; kind?: string; q?: string; itemId?: string; salesOrderId?: string; limit: number; cursor?: string };
 
 @ApiTags('Manufacturing')
 @ApiBearerAuth()

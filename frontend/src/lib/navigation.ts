@@ -1,4 +1,5 @@
 import {
+  FlaskConical,
   LifeBuoy,
   Rocket,
   Tablet,
@@ -127,6 +128,7 @@ export const NAVIGATION: NavSection[] = [
       { label: "Shop floor", href: "/manufacturing/shop-floor", icon: MonitorPlay, permissions: ["manufacturing.production.read"] },
       { label: "Shop-floor kiosk", href: "/manufacturing/kiosk", icon: Tablet, permissions: ["manufacturing.shopfloor.record"] },
       { label: "Scrap and rejects", href: "/manufacturing/scrap", icon: TrendingDown, permissions: ["manufacturing.production.read"] },
+      { label: "Formulas", href: "/process/formulas", icon: FlaskConical, permissions: ["manufacturing.engineering.read"] },
       { label: "Bills of materials", href: "/manufacturing/boms", icon: Network, permissions: ["manufacturing.engineering.read"] },
       { label: "Work centres & tools", href: "/manufacturing/resources", icon: Cog, permissions: ["manufacturing.engineering.read"] },
       { label: "Inspections", href: "/quality/inspections", icon: ClipboardCheck, permissions: ["quality.inspections.read"] },
