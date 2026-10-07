@@ -252,6 +252,15 @@ export const DOC_TYPES = {
     readPermission: 'manufacturing.production.read',
     gstDocument: false,
   },
+  ncr: {
+    label: 'Non-conformance Report',
+    code: 'NCR',
+    module: 'quality',
+    path: '/quality/ncrs',
+    defaultPattern: 'NCR/{FY}/{SEQ}',
+    readPermission: 'quality.inspections.read',
+    gstDocument: false,
+  },
   quality_inspection: {
     label: 'Quality Inspection',
     code: 'QI',

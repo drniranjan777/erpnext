@@ -1,5 +1,8 @@
 import {
+  BadgeCheck,
   CalendarClock,
+  FileWarning,
+  FlaskRound,
   CalendarRange,
   FileCog,
   LayoutGrid,
@@ -150,6 +153,9 @@ export const NAVIGATION: NavSection[] = [
       { label: "Work centres & tools", href: "/manufacturing/resources", icon: Cog, permissions: ["manufacturing.engineering.read"] },
       { label: "Inspections", href: "/quality/inspections", icon: ClipboardCheck, permissions: ["quality.inspections.read"] },
       { label: "Inspection plans", href: "/quality/plans", icon: Ruler, permissions: ["quality.inspections.read"] },
+      { label: "Lot status", href: "/quality/lots", icon: BadgeCheck, permissions: ["quality.inspections.read"] },
+      { label: "Non-conformance", href: "/quality/ncrs", icon: FileWarning, permissions: ["quality.inspections.read"] },
+      { label: "Retain samples", href: "/quality/retain-samples", icon: FlaskRound, permissions: ["quality.inspections.read"] },
       { label: "Traceability", href: "/quality/traceability", icon: GitBranch, permissions: ["quality.inspections.read"] },
     ],
   },

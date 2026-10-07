@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import {
+  batches,
   documents,
   goodsReceiptLines,
   goodsReceipts,
@@ -11,6 +12,8 @@ import {
   productionEntries,
   productionEntryLines,
   qualityInspections,
+  salesOrders,
+  skipLots,
   uoms,
   warehouses,
   workOrderOperations,
@@ -88,6 +91,8 @@ export const decisionSchema = z.object({
 });
 export type DecisionInput = z.infer<typeof decisionSchema>;
 
+export const coaSchema = z.object({ vendorCoaRef: optionalText(120), coaVerified: z.boolean().default(false) });
+
 const SYSTEM_META: RequestMeta = { ip: null, userAgent: null, requestId: 'quality' };
 
 /**
@@ -132,9 +137,9 @@ export class InspectionsService implements OnModuleInit {
   async raise(
     tx: Transaction,
     auth: AuthContext,
-    input: { stage: string; itemId: string; plan: typeof inspectionPlans.$inferSelect | null; lotQty: string; warehouseId?: string | null; batchNo?: string | null; sourceDocId?: string | null; workOrderId?: string | null; operationId?: string | null; jobCardId?: string | null; companyId?: string; branchId?: string | null; remarks?: string | null },
+    input: { stage: string; itemId: string; plan: typeof inspectionPlans.$inferSelect | null; lotQty: string; warehouseId?: string | null; batchNo?: string | null; sourceDocId?: string | null; workOrderId?: string | null; operationId?: string | null; jobCardId?: string | null; partyId?: string | null; companyId?: string; branchId?: string | null; remarks?: string | null },
   ) {
-    const [it] = await tx.select({ code: items.code }).from(items).where(eq(items.id, input.itemId));
+    const [it] = await tx.select({ code: items.code, trackBatch: items.trackBatch }).from(items).where(eq(items.id, input.itemId));
     const doc = await this.documents.create(tx, auth, { docType: DOC_TYPE, companyId: input.companyId, branchId: input.branchId ?? null, docDate: todayIST(), title: `${it.code} · ${input.stage.replace('_', '-')} · ${Number(input.lotQty)}`, amount: null });
     await tx.insert(qualityInspections).values({
       id: doc.id,
@@ -149,20 +154,58 @@ export class InspectionsService implements OnModuleInit {
       warehouseId: input.warehouseId ?? null,
       batchNo: input.batchNo ?? null,
       lotQty: input.lotQty,
+      partyId: input.partyId ?? null,
       remarks: input.remarks ?? null,
       ...this.sampling(input.plan, input.lotQty),
     });
+    // The lot is held until QC decides.
+    if (input.batchNo && it.trackBatch && input.stage !== 'in_process') await this.setLotStatus(tx, input.itemId, input.batchNo, 'quarantine', `Awaiting inspection ${doc.number ?? ''}`.trim(), ['released']);
     return doc;
   }
 
+  /** Moves a lot's QC status (only from the listed statuses, when given). */
+  async setLotStatus(tx: Transaction, itemId: string, batchNo: string, status: string, note: string | null, from?: string[]) {
+    await tx
+      .update(batches)
+      .set({ qcStatus: status, qcNote: note, qcUpdatedAt: new Date() })
+      .where(and(eq(batches.itemId, itemId), sql`${batches.batchNo} = ${batchNo}`, from ? inArray(batches.qcStatus, from) : undefined));
+  }
+
+  /**
+   * Skip-lot: once the last `skipLotAfter` inspections of this plan (and vendor) were all
+   * accepted, only one lot in `skipEvery` is inspected; the others are logged and released.
+   */
+  private async skipLot(tx: Transaction, plan: typeof inspectionPlans.$inferSelect, partyId: string | null) {
+    if (!plan.skipLotAfter || !plan.skipEvery) return false;
+    const recent = await tx
+      .select({ result: qualityInspections.result, createdAt: documents.createdAt })
+      .from(qualityInspections)
+      .innerJoin(documents, eq(documents.id, qualityInspections.id))
+      .where(and(eq(qualityInspections.planId, plan.id), partyId ? eq(qualityInspections.partyId, partyId) : sql`${qualityInspections.partyId} is null`, sql`${documents.status} <> 'cancelled'`))
+      .orderBy(desc(documents.id))
+      .limit(plan.skipLotAfter);
+    if (recent.length < plan.skipLotAfter || recent.some((r) => r.result !== 'accepted')) return false;
+    const [{ n }] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(skipLots)
+      .where(and(eq(skipLots.planId, plan.id), partyId ? eq(skipLots.partyId, partyId) : sql`${skipLots.partyId} is null`, sql`${skipLots.createdAt} > ${recent[0].createdAt}`));
+    return n < plan.skipEvery - 1;
+  }
+
   private async fromReceipt(tx: Transaction, auth: AuthContext, doc: DocumentRow) {
-    const [grn] = await tx.select({ warehouseId: goodsReceipts.warehouseId }).from(goodsReceipts).where(eq(goodsReceipts.id, doc.id));
+    const [grn] = await tx.select({ warehouseId: goodsReceipts.warehouseId, vendorId: goodsReceipts.vendorId }).from(goodsReceipts).where(eq(goodsReceipts.id, doc.id));
     const lines = await tx.select().from(goodsReceiptLines).where(eq(goodsReceiptLines.grnId, doc.id)).orderBy(asc(goodsReceiptLines.lineNo));
     for (const l of lines) {
       if (D(l.acceptedBaseQty).cmp(ZERO) <= 0) continue;
-      const plan = await this.plans.planFor(tx, l.itemId, 'incoming');
+      const plan = await this.plans.planFor(tx, l.itemId, 'incoming', null, grn.vendorId);
       if (!plan) continue;
-      const qi = await this.raise(tx, auth, { stage: 'incoming', itemId: l.itemId, plan, lotQty: l.acceptedBaseQty, warehouseId: grn.warehouseId, batchNo: l.batchNo, sourceDocId: doc.id, companyId: doc.companyId, branchId: doc.branchId });
+      const partyId = plan.partyId ? grn.vendorId : null;
+      if (await this.skipLot(tx, plan, partyId)) {
+        await tx.insert(skipLots).values({ tenantId: auth.tenantId, planId: plan.id, partyId, itemId: l.itemId, sourceDocId: doc.id, batchNo: l.batchNo, lotQty: l.acceptedBaseQty });
+        await this.documents.activity(tx, auth, doc.id, 'quality', `Line ${l.lineNo} skipped inspection (skip-lot)`, { planId: plan.id });
+        continue;
+      }
+      const qi = await this.raise(tx, auth, { stage: 'incoming', itemId: l.itemId, plan, lotQty: l.acceptedBaseQty, warehouseId: grn.warehouseId, batchNo: l.batchNo, sourceDocId: doc.id, partyId, companyId: doc.companyId, branchId: doc.branchId });
       await this.documents.activity(tx, auth, doc.id, 'quality', `Inspection raised for line ${l.lineNo}`, { inspectionId: qi.id });
     }
   }
@@ -171,10 +214,12 @@ export class InspectionsService implements OnModuleInit {
     const [e] = await tx.select().from(productionEntries).where(eq(productionEntries.id, doc.id));
     if (e.kind !== 'receipt') return;
     const outs = await tx.select().from(productionEntryLines).where(and(eq(productionEntryLines.entryId, doc.id), eq(productionEntryLines.kind, 'output')));
+    // Made to order: the customer's own specification applies when there is one.
+    const [so] = await tx.select({ customerId: salesOrders.customerId }).from(workOrders).innerJoin(salesOrders, eq(salesOrders.id, workOrders.salesOrderId)).where(eq(workOrders.id, e.workOrderId));
     for (const l of outs) {
-      const plan = await this.plans.planFor(tx, l.itemId, 'final');
+      const plan = await this.plans.planFor(tx, l.itemId, 'final', null, so?.customerId ?? null);
       if (!plan) continue;
-      await this.raise(tx, auth, { stage: 'final', itemId: l.itemId, plan, lotQty: l.qty, warehouseId: l.warehouseId, batchNo: l.batchNo, sourceDocId: doc.id, workOrderId: e.workOrderId, companyId: doc.companyId, branchId: doc.branchId });
+      await this.raise(tx, auth, { stage: 'final', itemId: l.itemId, plan, lotQty: l.qty, warehouseId: l.warehouseId, batchNo: l.batchNo, sourceDocId: doc.id, workOrderId: e.workOrderId, partyId: plan.partyId ? (so?.customerId ?? null) : null, companyId: doc.companyId, branchId: doc.branchId });
     }
   }
 
@@ -267,6 +312,7 @@ export class InspectionsService implements OnModuleInit {
       if (kept.length) await tx.insert(inspectionReadings).values(kept.map((r) => ({ tenantId: auth.tenantId, inspectionId: id, parameterId: r.parameterId, sampleNo: r.sampleNo, value: r.value, passed: r.passed ?? null, note: r.note })));
       const ev = evaluate(params.map((p) => ({ ...p, kind: p.kind as 'numeric' })), kept, { accept: qi.acceptNo, reject: qi.rejectNo });
       await tx.update(qualityInspections).set({ defectives: ev.defectives, suggestion: kept.length ? ev.suggestion : null, inspectedBy: auth.userId }).where(eq(qualityInspections.id, id));
+      if (qi.batchNo && kept.length) await this.setLotStatus(tx, qi.itemId, qi.batchNo, 'under_test', `Under test: ${doc.number ?? 'inspection'}`, ['quarantine']);
       return this.view(tx, auth, await this.documents.update(tx, auth, doc, {}));
     });
   }
@@ -302,10 +348,23 @@ export class InspectionsService implements OnModuleInit {
     });
   }
 
+  /** The vendor's certificate of analysis for an incoming lot (drafts only). */
+  setCoa(auth: AuthContext, id: string, input: z.infer<typeof coaSchema>) {
+    return this.database.run(auth, async (tx) => {
+      const doc = await this.documents.lock(tx, id, DOC_TYPE);
+      this.documents.assertEditable(doc);
+      await tx.update(qualityInspections).set({ vendorCoaRef: input.vendorCoaRef, coaVerified: input.coaVerified }).where(eq(qualityInspections.id, id));
+      return this.view(tx, auth, await this.documents.update(tx, auth, doc, {}));
+    });
+  }
+
   remove(auth: AuthContext, id: string, version: number, meta: RequestMeta) {
     return this.database.run(auth, async (tx) => {
       const doc = await this.documents.lock(tx, id, DOC_TYPE, version);
+      const [qi] = await tx.select().from(qualityInspections).where(eq(qualityInspections.id, id));
       await this.documents.deleteDraft(tx, auth, doc, meta);
+      // No inspection any more: the hold goes with it.
+      if (qi?.batchNo) await this.setLotStatus(tx, qi.itemId, qi.batchNo, 'released', 'Inspection deleted', ['quarantine', 'under_test']);
     });
   }
 
@@ -350,6 +409,7 @@ export class InspectionsService implements OnModuleInit {
       }
     }
     await tx.update(qualityInspections).set({ result }).where(eq(qualityInspections.id, doc.id));
+    if (qi.batchNo && qi.stage !== 'in_process') await this.setLotStatus(tx, qi.itemId, qi.batchNo, result === 'rejected' ? 'rejected' : 'released', `${result === 'rejected' ? 'Rejected' : 'Released'} by ${doc.number}`, ['quarantine', 'under_test']);
   }
 
   // ---- view -----------------------------------------------------------------------------------
@@ -369,6 +429,9 @@ export class InspectionsService implements OnModuleInit {
     const op = qi.operationId ? (await tx.select({ seq: workOrderOperations.seq, name: workOrderOperations.name }).from(workOrderOperations).where(eq(workOrderOperations.id, qi.operationId)))[0] : null;
     const vendor = source?.docType === 'goods_receipt' ? (await tx.select({ name: parties.name }).from(goodsReceipts).innerJoin(parties, eq(parties.id, goodsReceipts.vendorId)).where(eq(goodsReceipts.id, source.id)))[0]?.name : null;
     const rework = qi.reworkOrderId ? (await tx.select({ id: documents.id, number: documents.number }).from(documents).where(eq(documents.id, qi.reworkOrderId)))[0] : null;
+    const lot = qi.batchNo ? (await tx.select({ qcStatus: batches.qcStatus, qcNote: batches.qcNote }).from(batches).where(and(eq(batches.itemId, qi.itemId), sql`${batches.batchNo} = ${qi.batchNo}`)))[0] : null;
+    const party = qi.partyId ? (await tx.select({ id: parties.id, name: parties.name }).from(parties).where(eq(parties.id, qi.partyId)))[0] : null;
+    const ncrList = await tx.execute<{ id: string; number: string | null; status: string }>(sql`select d.id, d.number, d.status from ncrs n join documents d on d.id = n.id where n.inspection_id = ${doc.id} order by d.id`);
     const wh = (id: string | null) => (id ? (whs.find((w) => w.id === id) ?? null) : null);
     const { tenantId: _t, id: _i, ...rest } = qi;
     return {
@@ -386,6 +449,9 @@ export class InspectionsService implements OnModuleInit {
       workOrder: wo,
       operation: op,
       reworkOrder: rework,
+      lot: lot ?? null,
+      party: party ?? null,
+      ncrs: ncrList.rows,
     };
   }
 }

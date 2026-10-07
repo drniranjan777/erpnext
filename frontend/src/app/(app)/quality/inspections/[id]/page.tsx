@@ -1,22 +1,25 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save } from "lucide-react";
+import { FileWarning, Printer, Save } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { DocumentActions } from "@/components/documents/document-actions";
 import { DocPageHeader, Info } from "@/components/documents/doc-page";
+import { StatusBadge } from "@/components/documents/document-parts";
 import { ActivityFeed } from "@/components/documents/document-parts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Select } from "@/components/ui/field";
 import { ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
-import { formatQty } from "@/lib/documents";
+import { useAuth } from "@/lib/auth";
+import { formatQty, type DocumentStatus } from "@/lib/documents";
 import { useWarehouses } from "@/lib/masters";
-import { QA, RESULT, STAGE, type Inspection, type Parameter } from "@/lib/quality";
+import { LOT_STATUS, QA, RESULT, STAGE, type Inspection, type Ncr, type Parameter } from "@/lib/quality";
 
 const P = `${QA}/inspections`;
 /** Rows shown in the grid; very large samples are recorded as defectives only. */
@@ -49,6 +52,9 @@ export default function InspectionPage() {
 
 function InspectionView({ d, queryKey }: { d: Inspection; queryKey: unknown[] }) {
   const qc = useQueryClient();
+  const router = useRouter();
+  const { can } = useAuth();
+  const [coa, setCoa] = useState({ ref: d.vendorCoaRef ?? "", verified: d.coaVerified });
   const whs = useWarehouses();
   const draft = d.can.edit || d.can.submit;
   const rows = Math.min(d.sampleSize, GRID_MAX);
@@ -101,6 +107,27 @@ function InspectionView({ d, queryKey }: { d: Inspection; queryKey: unknown[] })
     }
   }
 
+  async function saveCoa() {
+    setMsg(null);
+    try {
+      await api(`${P}/${d.id}/coa`, { method: "PUT", body: { vendorCoaRef: coa.ref || null, coaVerified: coa.verified } });
+      refresh();
+    } catch (e) {
+      setMsg({ tone: "danger", text: e instanceof ApiError ? e.message : "Could not reach the server." });
+    }
+  }
+
+  async function raiseNcr() {
+    setMsg(null);
+    try {
+      const n = await api<Ncr>(`${QA}/ncrs/from-inspection/${d.id}`, { method: "POST" });
+      router.push(`${QA}/ncrs/${n.id}`);
+    } catch (e) {
+      setMsg({ tone: "danger", text: e instanceof ApiError ? e.message : "Could not reach the server." });
+    }
+  }
+  const canNcr = can("quality.ncr.manage") && (Number(d.rejectedQty) + Number(d.reworkQty) > 0 || d.suggestion === "reject");
+
   const failedSamples = new Set(
     Object.entries(grid)
       .filter(([k, v]) => {
@@ -118,7 +145,13 @@ function InspectionView({ d, queryKey }: { d: Inspection; queryKey: unknown[] })
         back={{ href: P, label: "Inspections" }}
         badges={<><Badge>{STAGE[d.stage]}</Badge>{d.result !== "pending" && <Badge tone={RESULT[d.result].tone}>{RESULT[d.result].label}</Badge>}</>}
         subtitle={`${d.item.code} ${d.item.name} · lot ${formatQty(d.lotQty)} ${d.item.uom}${d.batchNo ? ` · batch ${d.batchNo}` : ""}`}
-        actions={<DocumentActions doc={{ ...d, can: { ...d.can, submit: false, edit: false } }} apiBase={P} routeBase={P} queryKey={queryKey} />}
+        actions={
+          <>
+            {d.status === "approved" && d.result !== "rejected" && d.stage !== "in_process" && <Link href={`/print/coa/${d.id}`} target="_blank" className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-medium hover:bg-surface-muted"><Printer className="size-4" aria-hidden /> Certificate of analysis</Link>}
+            {canNcr && <Button variant="secondary" onClick={raiseNcr}><FileWarning className="size-4" aria-hidden /> Raise NCR</Button>}
+            <DocumentActions doc={{ ...d, can: { ...d.can, submit: false, edit: false } }} apiBase={P} routeBase={P} queryKey={queryKey} />
+          </>
+        }
       />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Card>
@@ -132,9 +165,25 @@ function InspectionView({ d, queryKey }: { d: Inspection; queryKey: unknown[] })
           {d.workOrder && <Info label="Work order" value={<Link className="text-primary hover:underline" href={`/manufacturing/work-orders/${d.workOrder.id}`}>{d.workOrder.number}</Link>} />}
           {d.operation && <Info label="After operation" value={`${d.operation.seq} ${d.operation.name}`} />}
           <Info label="Lot is in" value={d.warehouse ? `${d.warehouse.code} ${d.warehouse.name}` : "On the line"} />
+          {d.lot && <Info label="Lot status" value={<Badge tone={LOT_STATUS[d.lot.qcStatus].tone}>{LOT_STATUS[d.lot.qcStatus].label}</Badge>} />}
+          {d.party && <Info label="Specification for" value={d.party.name} />}
+          {d.ncrs.length > 0 && <Info label="Non-conformance" value={d.ncrs.map((n) => <Link key={n.id} className="mr-2 inline-flex items-center gap-1 text-primary hover:underline" href={`${QA}/ncrs/${n.id}`}>{n.number ?? "Draft NCR"} <StatusBadge status={n.status as DocumentStatus} /></Link>)} />}
           {d.reworkOrder && <Info label="Rework order" value={<Link className="text-primary hover:underline" href={`/manufacturing/work-orders/${d.reworkOrder.id}`}>{d.reworkOrder.number ?? "Draft"}</Link>} />}
         </dl>
         {d.plan?.instructions && <p className="border-t border-border px-5 py-3 text-sm text-muted">{d.plan.instructions}</p>}
+        {d.stage === "incoming" && (
+          <div className="flex flex-wrap items-end gap-3 border-t border-border px-5 py-3 text-sm">
+            {draft ? (
+              <>
+                <Field label="Vendor certificate of analysis">{(p) => <Input {...p} className="w-56" placeholder="CoA number" value={coa.ref} onChange={(e) => setCoa({ ...coa, ref: e.target.value })} />}</Field>
+                <Checkbox label="Checked against our specification" checked={coa.verified} onChange={(e) => setCoa({ ...coa, verified: e.target.checked })} />
+                <Button size="sm" variant="secondary" onClick={saveCoa}>Save</Button>
+              </>
+            ) : (
+              <span className="text-muted">Vendor CoA: {d.vendorCoaRef ?? "none recorded"}{d.vendorCoaRef && (d.coaVerified ? " · checked against our specification" : " · not checked")}</span>
+            )}
+          </div>
+        )}
       </Card>
 
       {d.parameters.length > 0 && (

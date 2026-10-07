@@ -218,6 +218,13 @@
       "when": 1791339294297,
       "tag": "0030_capacity_kanban_engineering",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791341303217,
+      "tag": "0031_qc_lots_ncr",
+      "breakpoints": true
     }
   ]
 }

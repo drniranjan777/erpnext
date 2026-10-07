@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ItemPicker } from "@/components/item-picker";
+import { PartyPicker, type PickedParty } from "@/components/party-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
@@ -46,7 +47,7 @@ export default function PlansPage() {
                 {manage && <Button size="sm" variant="ghost" aria-label={`Edit ${p.code}`} onClick={() => setEditing(p)}><Pencil className="size-4" aria-hidden /></Button>}
               </div>
             </div>
-            <p className="text-xs text-muted">{p.sampling === "aql" ? `AQL ${p.aql}, general level ${p.inspectionLevel}` : p.sampling === "fixed" ? `Fixed sample of ${p.fixedSampleSize}` : "100% inspection"}</p>
+            <p className="text-xs text-muted">{p.sampling === "aql" ? `AQL ${p.aql}, general level ${p.inspectionLevel}` : p.sampling === "fixed" ? `Fixed sample of ${p.fixedSampleSize}` : "100% inspection"}{p.party && ` · only ${p.party.name}`}{p.skipLotAfter && ` · skip-lot after ${p.skipLotAfter}, 1 in ${p.skipEvery}`}</p>
             <ul className="space-y-1 text-sm">
               {p.parameters.map((x) => (
                 <li key={x.id} className="flex justify-between gap-2">
@@ -82,7 +83,10 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
     fixedSampleSize: plan?.fixedSampleSize ? String(plan.fixedSampleSize) : "",
     isActive: plan?.isActive ?? true,
     instructions: plan?.instructions ?? "",
+    skipLotAfter: plan?.skipLotAfter ? String(plan.skipLotAfter) : "",
+    skipEvery: plan?.skipEvery ? String(plan.skipEvery) : "",
   });
+  const [party, setParty] = useState<PickedParty | null>(plan?.party ? { id: plan.party.id, code: plan.party.code, name: plan.party.name, gstin: null, stateCode: null, creditDays: null } : null);
   const [params, setParams] = useState<ParamRow[]>(
     plan?.parameters.map((p) => ({ key: k(), name: p.name, kind: p.kind, unit: p.unit ?? "", nominal: num(p.nominal), lowerLimit: num(p.lowerLimit), upperLimit: num(p.upperLimit), isCritical: p.isCritical, method: p.method ?? "" })) ?? [{ key: k(), name: "", kind: "numeric", unit: "mm", nominal: "", lowerLimit: "", upperLimit: "", isCritical: false, method: "" }],
   );
@@ -102,6 +106,9 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
       operationSeq: f.stage === "in_process" && f.operationSeq ? Number(f.operationSeq) : null,
       fixedSampleSize: f.sampling === "fixed" ? Number(f.fixedSampleSize) || null : null,
       instructions: f.instructions || null,
+      partyId: f.stage === "in_process" ? null : (party?.id ?? null),
+      skipLotAfter: f.stage === "incoming" && f.skipLotAfter ? Number(f.skipLotAfter) : null,
+      skipEvery: f.stage === "incoming" && f.skipEvery ? Number(f.skipEvery) : null,
       parameters: params.map((p) => ({ name: p.name, kind: p.kind, unit: p.unit || null, nominal: p.kind === "numeric" ? p.nominal || null : null, lowerLimit: p.kind === "numeric" ? p.lowerLimit || null : null, upperLimit: p.kind === "numeric" ? p.upperLimit || null : null, isCritical: p.isCritical, method: p.method || null })),
     };
     try {
@@ -137,7 +144,11 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
         </Field>
         {f.stage === "in_process" ? (
           <Field label="After operation" hint="Blank = any flagged operation" error={errors.operationSeq}>{(p) => <Input {...p} inputMode="numeric" value={f.operationSeq} onChange={(e) => setF({ ...f, operationSeq: e.target.value })} />}</Field>
-        ) : <div />}
+        ) : (
+          <Field label={f.stage === "incoming" ? "Only for vendor" : "Only for customer"} hint="Blank = the general specification" error={errors.partyId}>
+            {(p) => <PartyPicker id={p.id} role={f.stage === "incoming" ? "vendor" : "customer"} value={party} onChange={setParty} />}
+          </Field>
+        )}
         <Field label="Sampling" error={errors.sampling}>
           {(p) => (
             <Select {...p} value={f.sampling} onChange={(e) => setF({ ...f, sampling: e.target.value as Plan["sampling"] })}>
@@ -154,6 +165,12 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
           </>
         )}
         {f.sampling === "fixed" && <Field label="Sample size" error={errors.fixedSampleSize}>{(p) => <Input {...p} inputMode="numeric" value={f.fixedSampleSize} onChange={(e) => setF({ ...f, fixedSampleSize: e.target.value })} />}</Field>}
+        {f.stage === "incoming" && (
+          <>
+            <Field label="Skip-lot after" hint="accepted lots in a row" error={errors.skipLotAfter}>{(p) => <Input {...p} inputMode="numeric" placeholder="Off" value={f.skipLotAfter} onChange={(e) => setF({ ...f, skipLotAfter: e.target.value })} />}</Field>
+            <Field label="Then inspect 1 in" error={errors.skipEvery}>{(p) => <Input {...p} inputMode="numeric" placeholder="e.g. 3" value={f.skipEvery} onChange={(e) => setF({ ...f, skipEvery: e.target.value })} />}</Field>
+          </>
+        )}
         <div className="flex items-end pb-2"><Checkbox label="Active" checked={f.isActive} onChange={(e) => setF({ ...f, isActive: e.target.checked })} /></div>
         <Field label="Instructions for the inspector" className="sm:col-span-4">{(p) => <Input {...p} value={f.instructions} onChange={(e) => setF({ ...f, instructions: e.target.value })} />}</Field>
       </div>

@@ -38,6 +38,10 @@ export const batches = pgTable(
     /** Supplier's own lot number, for traceability back to the vendor. */
     supplierBatchNo: text('supplier_batch_no'),
     notes: text('notes'),
+    /** QC status: quarantine | under_test | released | conditional | rejected. Held lots cannot be issued or sold. */
+    qcStatus: text('qc_status').notNull().default('released'),
+    qcNote: text('qc_note'),
+    qcUpdatedAt: timestamp('qc_updated_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('batches_item_no_uq').on(t.tenantId, t.itemId, t.batchNo), index('batches_expiry_idx').on(t.tenantId, t.expiryDate)],

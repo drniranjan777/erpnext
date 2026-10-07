@@ -17,6 +17,18 @@ import { issue, receive, revalue, reverse, type Method, type Pool } from './valu
 
 export const NO_BATCH = '00000000-0000-0000-0000-000000000000';
 
+/** Vouchers that may move a lot still in quarantine or under test: counts, the inspection itself, returns to the vendor (plus moves marked allowHeld). */
+const MOVES_HELD_LOTS = new Set(['stock_count', 'quality_inspection', 'debit_note']);
+/** Vouchers that may not take a rejected lot (rework orders may). */
+const REJECTED_BLOCKED = new Set(['delivery_note', 'sales_invoice', 'job_work_challan', 'blend']);
+
+/** Why a lot with this QC status cannot leave on this voucher, or null. */
+export function qcHold(status: string, voucherType: string, allowHeld = false) {
+  if ((status === 'quarantine' || status === 'under_test') && !allowHeld && !MOVES_HELD_LOTS.has(voucherType)) return status === 'quarantine' ? 'in quarantine awaiting QC release' : 'under test and not released by QC';
+  if (status === 'rejected' && REJECTED_BLOCKED.has(voucherType)) return 'rejected by QC';
+  return null;
+}
+
 export interface StockMove {
   itemId: string;
   warehouseId: string;
@@ -32,6 +44,8 @@ export interface StockMove {
   line?: number;
   /** Expired batches may only leave via write-offs (adjustments, moves to scrap / rejected). */
   allowExpired?: boolean;
+  /** Lots on QC hold may move between stores (transfers, adjustments) but not be issued or sold. */
+  allowHeld?: boolean;
 }
 
 export interface Voucher {
@@ -123,7 +137,7 @@ export class StockService {
       // ---- batch ----
       let batchId: string | null = null;
       if (it.trackBatch) {
-        batchId = incoming ? await this.receiveBatch(tx, auth, it, m, p) : await this.findBatch(tx, it, m, p, voucher.postingDate);
+        batchId = incoming ? await this.receiveBatch(tx, auth, it, m, p) : await this.findBatch(tx, it, m, p, voucher.postingDate, voucher.type);
       }
 
       // ---- availability (per batch bucket) ----
@@ -395,9 +409,11 @@ export class StockService {
     return row.id;
   }
 
-  private async findBatch(tx: Transaction, it: { id: string; code: string }, m: StockMove, p: string, postingDate: string): Promise<string> {
+  private async findBatch(tx: Transaction, it: { id: string; code: string }, m: StockMove, p: string, postingDate: string, voucherType: string): Promise<string> {
     const [b] = await tx.select().from(batches).where(and(eq(batches.itemId, it.id), sql`${batches.batchNo} = ${m.batchNo}`));
     if (!b) throw new StockError([{ path: `${p}.batchNo`, message: `Batch ${m.batchNo} of ${it.code} not found` }]);
+    const hold = qcHold(b.qcStatus, voucherType, m.allowHeld);
+    if (hold) throw new StockError([{ path: `${p}.batchNo`, message: `Batch ${m.batchNo} of ${it.code} is ${hold}` }]);
     if (b.expiryDate && b.expiryDate < postingDate && !m.allowExpired) {
       throw new StockError([{ path: `${p}.batchNo`, message: `Batch ${m.batchNo} expired on ${b.expiryDate}. Write it off or move it to a scrap / rejected location.` }]);
     }

@@ -29,6 +29,10 @@ export interface Plan {
   inspectionLevel: string;
   aql: string;
   fixedSampleSize: number | null;
+  partyId: string | null;
+  party: { id: string; code: string; name: string } | null;
+  skipLotAfter: number | null;
+  skipEvery: number | null;
   isActive: boolean;
   instructions: string | null;
   parameters: Parameter[];
@@ -61,6 +65,58 @@ export interface Inspection extends DocumentHeader {
   operation: { seq: number; name: string } | null;
   reworkOrder: { id: string; number: string | null } | null;
   remarks: string | null;
+  vendorCoaRef: string | null;
+  coaVerified: boolean;
+  lot: { qcStatus: LotStatus; qcNote: string | null } | null;
+  party: { id: string; name: string } | null;
+  ncrs: { id: string; number: string | null; status: string }[];
+}
+
+export type LotStatus = "quarantine" | "under_test" | "released" | "conditional" | "rejected";
+export const LOT_STATUS: Record<LotStatus, { label: string; tone: "neutral" | "success" | "danger" | "warning" | "primary" }> = {
+  quarantine: { label: "Quarantine", tone: "warning" },
+  under_test: { label: "Under test", tone: "primary" },
+  released: { label: "Released", tone: "success" },
+  conditional: { label: "Conditional release", tone: "warning" },
+  rejected: { label: "Rejected", tone: "danger" },
+};
+
+export type NcrSource = "incoming" | "in_process" | "final" | "customer" | "supplier" | "internal";
+export const NCR_SOURCE: Record<NcrSource, string> = { incoming: "Incoming", in_process: "In-process", final: "Final", customer: "Customer", supplier: "Supplier", internal: "Internal" };
+export const DISPOSITION_FIELDS = [
+  ["useAsIsQty", "Use as is"],
+  ["reworkQty", "Rework"],
+  ["scrapQty", "Scrap"],
+  ["returnQty", "Return to vendor"],
+  ["sortQty", "Sort / 100% check"],
+] as const;
+
+export interface Ncr extends DocumentHeader {
+  source: NcrSource;
+  severity: "minor" | "major" | "critical";
+  item: { id: string; code: string; name: string; uom: string };
+  batchNo: string | null;
+  qtyAffected: string;
+  defectCategory: string;
+  description: string;
+  party: { id: string; name: string } | null;
+  inspection: { id: string; number: string | null } | null;
+  workOrder: { id: string; number: string | null } | null;
+  containment: string | null;
+  useAsIsQty: string;
+  reworkQty: string;
+  scrapQty: string;
+  returnQty: string;
+  sortQty: string;
+  dispositionNotes: string | null;
+  scrapCost: string;
+  reworkCost: string;
+  sortingCost: string;
+  otherCost: string;
+  recovered: string;
+  copq: string;
+  closedAt: string | null;
+  canClose: boolean;
 }
 
 export interface TraceNode {

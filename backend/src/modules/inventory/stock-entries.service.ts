@@ -233,7 +233,7 @@ export class StockEntriesService implements OnModuleInit {
         break;
       case 'adjustment': {
         const wh = (entry.toWarehouseId ?? entry.fromWarehouseId)!;
-        posted = await this.stock.post(tx, auth, voucher, lines.map((l) => ({ ...base(l), warehouseId: wh, qty: l.baseQty, allowExpired: true })));
+        posted = await this.stock.post(tx, auth, voucher, lines.map((l) => ({ ...base(l), warehouseId: wh, qty: l.baseQty, allowExpired: true, allowHeld: true })));
         break;
       }
       case 'transfer': {
@@ -244,7 +244,7 @@ export class StockEntriesService implements OnModuleInit {
           tx,
           auth,
           voucher,
-          lines.map((l) => ({ ...base(l), rate: null, warehouseId: entry.fromWarehouseId!, qty: neg(l.baseQty), allowExpired: writeOff })),
+          lines.map((l) => ({ ...base(l), rate: null, warehouseId: entry.fromWarehouseId!, qty: neg(l.baseQty), allowExpired: writeOff, allowHeld: true })),
         );
         await this.stock.post(
           tx,
