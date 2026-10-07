@@ -52,6 +52,7 @@ import { GmpModule } from './modules/gmp/gmp.module';
 import { PharmaModule } from './modules/pharma/pharma.module';
 import { ValidationModule } from './modules/validation/validation.module';
 import { AutoModule } from './modules/auto/auto.module';
+import { FoodModule } from './modules/food/food.module';
 import { PredictModule } from './modules/predict/predict.module';
 import { VoiceModule } from './modules/voice/voice.module';
 import { TmsModule } from './modules/tms/tms.module';
@@ -126,6 +127,7 @@ import { ProcessModule } from './modules/process/process.module';
     PharmaModule,
     ValidationModule,
     AutoModule,
+    FoodModule,
     AdminModule,
     PrivacyModule,
   ],

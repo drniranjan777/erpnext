@@ -41,4 +41,5 @@ export * from './gmp';
 export * from './pharma';
 export * from './validation';
 export * from './auto';
+export * from './food';
 export * from './ai';

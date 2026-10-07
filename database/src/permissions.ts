@@ -67,6 +67,12 @@ export const PERMISSIONS = {
   'auto.lpa.audit': 'Carry out layered process audits and keep their checklists',
   'auto.edi.manage': 'Set up EDI partners, receive schedules and send dispatch advices and invoices',
   'auto.quality.read': 'See APQP, PPAP, FMEA, control plans, audits, customer requirements and EDI messages',
+  'food.haccp.manage': 'Build and approve HACCP plans and keep the allergen matrix',
+  'food.ccp.record': 'Record critical control point checks and corrective actions',
+  'food.recalls.manage': 'Run recalls and mock-recall drills',
+  'food.labels.manage': 'Keep food label content (nutrition, ingredients, veg mark)',
+  'food.reports.read': 'See HACCP plans, CCP records, recalls, allergens, labels and the FSSAI return',
+  'compliance.certificates.manage': 'Keep supplier, product and company certificates with their expiry',
   'ai.governance.manage': 'Set the AI policy (features, consent, PII masking, budget, models) and see AI usage and evaluations',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',
   // Purchase

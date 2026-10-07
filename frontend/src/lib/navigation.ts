@@ -8,6 +8,11 @@ import {
   HardHat,
   ShieldAlert,
   BadgeCheck,
+  Award,
+  Tag,
+  Undo2,
+  Wheat,
+  Salad,
   TriangleAlert,
   FileStack,
   Milestone,
@@ -311,6 +316,16 @@ export const NAVIGATION: NavSection[] = [
       { label: "Product quality review", href: "/pharma/apqr", icon: BookOpenCheck, permissions: ["pharma.reports.read"] },
       { label: "Serialisation & DPCO", href: "/pharma/serialisation", icon: Barcode, permissions: ["pharma.reports.read"] },
       { label: "System validation", href: "/validation", icon: BadgeCheck, permissions: ["validation.projects.manage"] },
+    ],
+  },
+  {
+    title: "Food safety",
+    items: [
+      { label: "HACCP", href: "/food/haccp", icon: Salad, permissions: ["food.reports.read"] },
+      { label: "Allergens", href: "/food/allergens", icon: Wheat, permissions: ["food.reports.read"] },
+      { label: "Recalls & drills", href: "/food/recalls", icon: Undo2, permissions: ["food.reports.read"] },
+      { label: "Labels & FSSAI", href: "/food/labels", icon: Tag, permissions: ["food.reports.read"] },
+      { label: "Certificates", href: "/compliance/certificates", icon: Award, permissions: ["quality.inspections.read"] },
     ],
   },
   {

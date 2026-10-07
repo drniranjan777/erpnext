@@ -18,6 +18,6 @@ import { TraceabilityService } from './traceability.service';
   imports: [InventoryModule, ManufacturingModule],
   controllers: [QualityController, QmsController, ImprovementController],
   providers: [PlansService, InspectionsService, TraceabilityService, LotsService, NcrsService, CapasService, ComplaintsService, SupplierQualityService],
-  exports: [CapasService],
+  exports: [CapasService, TraceabilityService],
 })
 export class QualityModule {}

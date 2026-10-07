@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 14.1–14.4 done |
+| **Status** | In progress: 14.1–14.5 done |
 | **Code** | `backend/src/modules/gmp/`, `backend/src/modules/pharma/`, `database/src/schema/gmp.ts`, `pharma.ts`, `frontend/src/app/(app)/gmp/`, `pharma/` |
 
 Phase 8 already provides: lot status with QA release under electronic signature, specifications and CoA, NCR / CAPA / SCAR, complaints, SPC, supplier quality and approved manufacturers, deviations with risk and change control, calibration and MSA, internal audits, SOPs and training, HSE incidents, the hazardous waste register, EPR targets, and licences with renewal tracking. Phase 7 provides formulas, dispensing with tolerances, machine cleaning, process batches and engineering change. Phase 14 builds the packs on top of these.
@@ -93,3 +93,19 @@ Migration 0062 adds `apqp_projects`, `ppap_submissions`, `fmeas`, `control_plans
 **EDI with OEMs (EDIFACT D.96A).** A partner links a customer to the interchange ids on both sides and maps the customer's part numbers to items.
 - Incoming DELFOR (delivery schedules, firm and forecast by commitment level) and DELJIT (JIT calls, firm) are read — including the UNA service string advice and the release character — into dated quantities per part. Unknown senders and unmapped part numbers are reported and the message kept with its error. When every part is known, the quantities are loaded into the customer's delivery schedules (one schedule per item and month, as a new revision with the EDI reference), so schedule adherence and ASNs (Phase 9) work on them.
 - Outgoing DESADV (despatch advice) is built from a submitted delivery note (order reference, parts mapped back to the customer's part numbers, quantities) and INVOIC from a submitted sales invoice (lines with price, taxable value and GST rate, and the invoice's taxable, tax and total amounts). Every message in or out is kept.
+
+## 14.5 Food safety (done)
+
+Migration 0063 adds `haccp_plans`, `ccp_records`, `item_allergens`, `recalls`, `compliance_certificates` (generic: suppliers, products and the company, reused by 14.6) and `food_labels`. Code: `backend/src/modules/food/` (`food-rules.ts` is pure and unit tested). Permissions: `food.haccp.manage`, `food.ccp.record`, `food.recalls.manage`, `food.labels.manage`, `food.reports.read`, `compliance.certificates.manage`. Pages: `/food/haccp` (and `/:id`), `/food/allergens`, `/food/recalls`, `/food/labels`, `/compliance/certificates`; print page `/print/food-label/:id`.
+
+**HACCP plans.** A plan lists the process steps and, per step, the hazards (biological, chemical, physical, allergen) rated for severity and likelihood 1–3. Significant hazards go through the Codex decision tree (Q1–Q4); the decision (CCP, not a CCP, or a prerequisite programme) is computed with its reason. Each CCP has its critical limits, monitoring, frequency, responsibility, corrective action and verification, and optionally the IoT signal that measures it. A plan is approved under electronic signature once every significant hazard is decided and every CCP decision has a CCP; editing an approved plan creates a new draft version. On approval, a critical alarm rule is created for every CCP with a sensor.
+
+**CCP monitoring.** Readings are recorded by hand (value, batch, corrective action and whether product was held; a reading outside the limits needs a corrective action) or come from the sensor; the plan shows the last seven days, with sensor excursions and minutes outside the limits.
+
+**Allergens.** The EU 14 major allergens are declared per material as "contains" or "may contain" (cross-contact) and rolled up through bills of materials to products, which gives the label's allergen statement. The changeover check tells whether moving a line from one product to another needs a validated allergen clean, and for which allergens.
+
+**Recalls and mock recalls.** Starting a recall or a drill for a lot traces it at once, backward and forward through the lot genealogy: lots it was made from, products made from it, stock still on hand, and every customer it was dispatched to (delivery notes and sales invoices) with quantities. The trace time is measured from the start to the confirmation that every customer was contacted; recovered quantities are recorded per customer, giving the recovery percentage. A recall is closed with a conclusion.
+
+**Labels and FSSAI return.** Label content per product under the FSS (Labelling and Display) Regulations 2020: veg / non-veg mark, ingredients, nutrition per 100 g and per serve with % RDA, the allergen statement from the matrix, net quantity, storage and the 14-digit FSSAI licence number; printable as a back-of-pack label. The FSSAI annual return lists, per finished product, the quantities made and sold in the period.
+
+**Certificates.** Food-safety and quality certificates of suppliers (FSSC 22000, BRCGS, ISO 22000, FSSAI, halal, organic), product certifications and the company's own, with issuer, scope and validity, flagged as expiring 60 days before they lapse.
