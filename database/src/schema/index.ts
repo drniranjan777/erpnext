@@ -38,4 +38,5 @@ export * from './mes';
 export * from './plant';
 export * from './twin';
 export * from './gmp';
+export * from './pharma';
 export * from './ai';

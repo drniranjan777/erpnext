@@ -57,6 +57,10 @@ export const PERMISSIONS = {
   'gmp.batchrecords.review': 'Review electronic batch records by exception and sign the release decision',
   'gmp.environment.manage': 'Set up environmental monitoring locations and record samples',
   'gmp.settings.manage': 'Set GMP controls (line clearance) and check the signature chain',
+  'pharma.stability.manage': 'Set up stability studies and record their results',
+  'pharma.serials.manage': 'Commission serial numbers, aggregate cartons and pallets, and export serialisation data',
+  'pharma.pricing.manage': 'Record DPCO ceiling prices and check sales against them',
+  'pharma.reports.read': 'See stability data, annual product quality reviews, serialisation and DPCO checks',
   'ai.governance.manage': 'Set the AI policy (features, consent, PII masking, budget, models) and see AI usage and evaluations',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',
   // Purchase

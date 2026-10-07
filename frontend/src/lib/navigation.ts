@@ -304,6 +304,9 @@ export const NAVIGATION: NavSection[] = [
       { label: "Line clearance", href: "/gmp/line-clearance", icon: ClipboardCheck, permissions: ["quality.inspections.read"] },
       { label: "Batch record review", href: "/gmp/batch-reviews", icon: FileCheck2, permissions: ["gmp.batchrecords.review"] },
       { label: "Environmental monitoring", href: "/gmp/environment", icon: Wind, permissions: ["quality.inspections.read"] },
+      { label: "Stability studies", href: "/pharma/stability", icon: FlaskRound, permissions: ["pharma.reports.read"] },
+      { label: "Product quality review", href: "/pharma/apqr", icon: BookOpenCheck, permissions: ["pharma.reports.read"] },
+      { label: "Serialisation & DPCO", href: "/pharma/serialisation", icon: Barcode, permissions: ["pharma.reports.read"] },
     ],
   },
   {

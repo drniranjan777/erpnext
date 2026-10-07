@@ -49,6 +49,7 @@ import { MesModule } from './modules/mes/mes.module';
 import { PlantModule } from './modules/plant/plant.module';
 import { TwinModule } from './modules/twin/twin.module';
 import { GmpModule } from './modules/gmp/gmp.module';
+import { PharmaModule } from './modules/pharma/pharma.module';
 import { PredictModule } from './modules/predict/predict.module';
 import { VoiceModule } from './modules/voice/voice.module';
 import { TmsModule } from './modules/tms/tms.module';
@@ -120,6 +121,7 @@ import { ProcessModule } from './modules/process/process.module';
     PlantModule,
     TwinModule,
     GmpModule,
+    PharmaModule,
     AdminModule,
     PrivacyModule,
   ],
