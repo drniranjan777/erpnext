@@ -40,6 +40,11 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
       a('3330', 'Job-work charges accrued', 'liability', 'jobwork_accrued'),
       a('3340', 'Customs duty payable', 'liability', 'customs_payable'),
       a('3350', 'Advances from customers', 'liability', 'customer_advance'),
+      a('3360', 'Salaries payable', 'liability', 'salary_payable'),
+      a('3361', 'Provident fund payable', 'liability', 'pf_payable'),
+      a('3362', 'ESI payable', 'liability', 'esi_payable'),
+      a('3363', 'Professional tax payable', 'liability', 'pt_payable'),
+      a('3364', 'Labour welfare fund payable', 'liability', 'lwf_payable'),
     ]),
     g('3400', 'Duties and taxes', 'liability', 'bs.cl.other', [
       a('3410', 'Output CGST', 'liability', 'gst_out_cgst'),
@@ -76,6 +81,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     g('5400', 'Short-term loans and advances', 'asset', 'bs.ca.loans_advances', [
       a('5410', 'Advances to suppliers', 'asset', 'vendor_advance'),
       a('5420', 'TDS receivable', 'asset', 'tds_receivable'),
+      a('5430', 'Loans and advances to employees', 'asset', 'employee_loans'),
     ]),
     g('5500', 'Other current assets', 'asset', 'bs.ca.other', [
       a('5510', 'Input CGST', 'asset', 'gst_in_cgst'),
@@ -105,7 +111,11 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     a('7500', 'Production variances', 'expense', 'production_variance'),
     a('7600', 'Labour and overheads absorbed', 'expense', 'production_absorbed', { manual: false }),
   ]),
-  g('8000', 'Employee benefits expense', 'expense', 'pl.employee', [a('8100', 'Salaries and wages', 'expense')]),
+  g('8000', 'Employee benefits expense', 'expense', 'pl.employee', [
+    a('8100', 'Salaries and wages', 'expense'),
+    a('8110', 'Salaries and wages (payroll)', 'expense', 'payroll_salaries'),
+    a('8120', 'Contribution to PF, ESI and welfare funds', 'expense', 'payroll_contributions'),
+  ]),
   g('8500', 'Finance costs', 'expense', 'pl.finance', [a('8510', 'Interest expense', 'expense'), a('8520', 'Bank charges', 'expense', 'bank_charges')]),
   g('9000', 'Depreciation and amortisation', 'expense', 'pl.depreciation', [a('9010', 'Depreciation', 'expense', 'depreciation')]),
   g('9500', 'Other expenses', 'expense', 'pl.other_expenses', [
@@ -129,5 +139,6 @@ export const REQUIRED_KEYS = [
   'gst_rcm_cgst', 'gst_rcm_sgst', 'gst_rcm_igst', 'gst_rcm_cess', 'tds_payable', 'landed_cost_accrued', 'jobwork_accrued', 'customs_payable',
   'bank_charges', 'tds_receivable', 'bad_debts', 'cash', 'customer_advance', 'vendor_advance', 'interest_income', 'depreciation', 'accumulated_depreciation',
   'gst_payable', 'asset_disposal', 'cwip', 'ppe_plant', 'wip', 'production_variance', 'production_absorbed', 'maintenance_consumed',
+  'salary_payable', 'pf_payable', 'esi_payable', 'pt_payable', 'lwf_payable', 'employee_loans', 'payroll_salaries', 'payroll_contributions',
 ] as const;
 export type SystemKey = (typeof REQUIRED_KEYS)[number];

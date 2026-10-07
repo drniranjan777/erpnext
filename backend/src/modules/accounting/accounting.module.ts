@@ -23,6 +23,6 @@ import { PostingRulesService } from './posting-rules.service';
   imports: [ComplianceModule],
   controllers: [AccountingController, MoneyController, TaxAssetsController, ReportsController],
   providers: [LedgerService, PostingRulesService, JournalsService, AccountsService, MoneyService, ReceivablesService, BankService, TdsService, AssetsService, StatementsService, CloseService, BudgetsService, InsightsService],
-  exports: [LedgerService],
+  exports: [LedgerService, JournalsService],
 })
 export class AccountingModule {}

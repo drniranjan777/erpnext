@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 9.1 and 9.2 done |
+| **Status** | In progress: 9.1–9.3 done |
 | **Code** | `backend/src/modules/hr/`, `backend/src/modules/payroll/`, `database/src/schema/hr.ts`, `database/src/schema/payroll.ts`, `frontend/src/app/(app)/hr/` |
 
 ## Sprint plan
@@ -101,3 +101,59 @@ Schema: `database/src/schema/attendance.ts`, migration 0036. Rules: `backend/src
 **Permissions**: `hr.attendance.read`, `hr.attendance.manage`, `hr.leave.read`, `hr.leave.manage`, `hr.self.use`.
 
 **UI**: `/hr/punch`, `/hr/attendance` (muster roll, process, import), `/hr/shifts` (shifts, roster, holidays), `/hr/regularisations`, `/hr/leave`, `/hr/leave/types` (types, accrual, year end, opening balances).
+
+## 9.3 Payroll (done)
+
+Schema: `database/src/schema/payroll.ts`, migration 0037. Code: `backend/src/modules/payroll/`. Statutory rules live in `statutory.ts` and the CTC split in `salary.ts`; both are pure and unit tested.
+
+**Statutory rules** (FY 2025-26)
+- PF: employee 12 % of PF wages (basic + DA), restricted to ₹15,000 by default. Of the employer's 12 %, 8.33 % (on wages up to ₹15,000) goes to EPS, which stops at age 58, and the rest to EPF. EDLI is 0.5 %.
+- ESI: employee 0.75 %, employer 3.25 %, both rounded up to the rupee.
+  - Coverage depends on fixed monthly ESI wages of ₹21,000 or less.
+  - Once covered, an employee stays covered for the rest of the contribution period (April–September or October–March).
+  - Overtime counts toward ESI wages; bonus and reimbursements do not.
+- Professional tax: monthly slabs for TS, AP, MH (with separate slabs for women and ₹300 in February), KA, GJ, WB and MP, based on the state of the work location. Other states get no PT.
+- LWF: amounts and deduction months for TS, AP, MH, KA, GJ, WB and TN. **Check the state tables against current notifications before going live.**
+- TDS (section 192):
+  - Each month the year's income is projected: taxable pay so far, plus this month, plus the regular monthly salary for the months left (one-off pay is not projected).
+  - Deductions: the standard deduction (₹75,000 new regime, ₹50,000 old). In the old regime also 80C (capped at ₹1.5 lakh), 80D, HRA exemption, other deductions and PT.
+  - Tax is worked out on new or old regime slabs with the 87A rebate: up to ₹12 lakh in the new regime, with marginal relief; ₹5 lakh in the old. Then surcharge and 4 % cess.
+  - Tax still due is spread over the months left.
+  - The employee chooses the regime and declares deductions (including a previous employer's income and TDS) under **My pay**.
+- Gratuity (`gratuity()`, used for F&F in 9.4): 15/26 of monthly wages for each completed year; a part year over six months counts as a year; minimum five years; capped at ₹20 lakh.
+
+**Masters**
+- Built-in components are created on first use: BASIC and DA (PF wages), HRA, CONV, SPL, OT and PIECE (computed), ARREAR, INCENT, BONUS (not ESI wages), REIMB (not taxable), CANTEEN and OTHDED.
+- The codes PF, ESI, PT, LWF, TDS, LOAN and the employer codes are reserved.
+- Templates split an annual CTC into monthly amounts: % of CTC, % of basic, a fixed amount, or the balance. When the employer's PF is part of the CTC, it comes out before the balance.
+- Salaries take effect from a date. A revision dated in a month whose payroll is already approved is refused; pay the difference as arrears.
+- Loans and advances are recovered in instalments.
+- Monthly inputs cover one-off earnings and deductions.
+- Piece rates are set per work centre, in rupees per good unit on completed job cards. The operator's login must be linked to their employee record.
+
+**Run** (`POST /payroll/runs {month}`): computes or recomputes the month's draft.
+- Payable days, LOP and overtime hours come from the attendance muster. An employee with no processed attendance is paid for every day employed, with a warning.
+- Monthly earnings are paid in proportion to payable days out of calendar days.
+- Overtime pay = hours × 2 × (basic + DA) ÷ (26 × 8); all three numbers are configurable.
+- Piece-rate pay comes from job cards completed in the month.
+
+**Approve**
+- Locks the month's attendance for everyone paid.
+- Recovers loans.
+- Posts a system journal document dated the month end:
+  - Debits: salaries 8110 (gross), employer contributions 8120
+  - Credits: salaries payable 3360 (net), PF 3361, ESI 3362, PT 3363, LWF 3364, TDS 3430, employee loans 5430
+  - Canteen and other recoveries are credited back to 8110.
+
+**Reopen** cancels the journal (which reverses it), unlocks attendance and restores the loans. It is refused once the month is marked paid, or when a later month is approved.
+
+**Files**
+- Bank salary CSV with full account numbers: needs `payroll.payments.export` and is audited.
+- PF ECR 2.0 text: members without a UAN are left out and listed.
+- Payslip print view: `/print/payslips/:id`. Employees see only their own approved payslips.
+
+**Permissions**: `payroll.setup.manage`, `payroll.salaries.read`, `payroll.salaries.manage`, `payroll.runs.read`, `payroll.runs.manage`, `payroll.runs.approve`, `payroll.payments.export`.
+
+**UI**: `/payroll` (runs), `/payroll/runs/:id` (payslips and statutory summary), `/payroll/salaries`, `/payroll/inputs` (inputs, loans), `/payroll/setup` (components, templates, settings, piece rates), `/payroll/my` (my payslips and declaration).
+
+**Not covered by automated tests**: piece-rate pay from job cards, which is SQL only and has no e2e test. Paying salaries is not posted by payroll; the payment itself goes through the normal bank payment voucher against salaries payable.

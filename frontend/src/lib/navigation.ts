@@ -104,6 +104,9 @@ import {
   Plane,
   CalendarCog,
   Fingerprint,
+  Wallet,
+  IndianRupee,
+  Calculator,
 } from "lucide-react";
 
 export interface NavItem {
@@ -211,6 +214,16 @@ export const NAVIGATION: NavSection[] = [
       { label: "Leave", href: "/hr/leave", icon: Plane, permissions: ["hr.self.use"] },
       { label: "Leave setup", href: "/hr/leave/types", icon: CalendarCog, permissions: ["hr.leave.read"] },
       { label: "Punch", href: "/hr/punch", icon: Fingerprint, permissions: ["hr.self.use"] },
+    ],
+  },
+  {
+    title: "Payroll",
+    items: [
+      { label: "Payroll runs", href: "/payroll", icon: Calculator, permissions: ["payroll.runs.read"] },
+      { label: "Salaries", href: "/payroll/salaries", icon: IndianRupee, permissions: ["payroll.salaries.read"] },
+      { label: "Inputs & loans", href: "/payroll/inputs", icon: HandCoins, permissions: ["payroll.salaries.read"] },
+      { label: "Payroll setup", href: "/payroll/setup", icon: Settings2, permissions: ["payroll.salaries.read"] },
+      { label: "My pay", href: "/payroll/my", icon: Wallet, permissions: ["hr.self.use"] },
     ],
   },
   {

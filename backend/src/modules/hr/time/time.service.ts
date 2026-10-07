@@ -485,7 +485,11 @@ export class TimeService {
 
   /** The muster roll for a month with each employee's totals (what payroll reads). */
   month(auth: AuthContext, q: { month: string; departmentId?: string; locationId?: string; employeeId?: string }) {
-    return this.database.run(auth, async (tx) => {
+    return this.database.run(auth, (tx) => this.monthSummary(tx, q));
+  }
+
+  async monthSummary(tx: Transaction, q: { month: string; departmentId?: string; locationId?: string; employeeId?: string }) {
+    {
       const { from, to } = monthRange(q.month);
       const emps = await many<{ id: string; code: string; fullName: string; department: string | null; doj: string; exitDate: string | null }>(
         tx,
@@ -495,7 +499,7 @@ export class TimeService {
               ${q.departmentId ? sql`and e.department_id = ${q.departmentId}` : sql``}
               ${q.locationId ? sql`and e.location_id = ${q.locationId}` : sql``}
               ${q.employeeId ? sql`and e.id = ${q.employeeId}` : sql``}
-            order by e.code limit 2000`,
+            order by e.code limit 5000`,
       );
       const ids = emps.map((e) => e.id);
       const rows = ids.length
@@ -553,7 +557,7 @@ export class TimeService {
           };
         }),
       };
-    });
+    }
   }
 
   /** One employee's day: the computed result, the raw punches and any regularisation. */

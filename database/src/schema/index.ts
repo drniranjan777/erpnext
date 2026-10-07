@@ -23,3 +23,4 @@ export * from './qms';
 export * from './maintenance';
 export * from './hr';
 export * from './attendance';
+export * from './payroll';
