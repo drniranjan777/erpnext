@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { DiskBuffer } from './buffer.mjs';
 import { decodeWords, ModbusTcpClient, wordsFor } from './modbus.mjs';
-import { MqttSubscriber, topicMatches } from './mqtt.mjs';
+import { mqttPublish, MqttSubscriber, topicMatches } from './mqtt.mjs';
 import { DeadbandFilter, scaled, Simulator, valueFrom } from './signals.mjs';
 
-export const AGENT_VERSION = '1.0.0';
+export const AGENT_VERSION = '1.1.0';
 
 /**
  * The NextGen edge agent. It downloads its signal list from the ERP, reads the machines (Modbus
@@ -145,6 +145,49 @@ export class EdgeAgent {
     return out.accepted;
   }
 
+  /**
+   * Fetches commands from the ERP (recipe set-points to write) and reports each result.
+   * Every write of a command must succeed for it to count as done.
+   */
+  async runCommands() {
+    const res = await this.fetch(`${this.server}/iot/device/commands`, { headers: this.headers() });
+    if (!res.ok) return 0;
+    const commands = await res.json();
+    for (const c of commands) {
+      const done = [];
+      let error = null;
+      for (const w of c.payload.writes ?? []) {
+        try {
+          await this.write(w);
+          done.push(`${w.name}=${w.value}`);
+        } catch (e) {
+          error = `${w.name}: ${e instanceof Error ? e.message : e}`;
+          break;
+        }
+      }
+      await this.fetch(`${this.server}/iot/device/commands/${c.id}/result`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({ ok: !error, message: error ?? `Written: ${done.join(', ')}` }),
+      });
+      this.log(error ? `Command ${c.id} failed: ${error}` : `Command ${c.id}: wrote ${done.join(', ')}`);
+    }
+    return commands.length;
+  }
+
+  /** Writes one set-point: a Modbus holding register or an MQTT message. */
+  async write(w) {
+    if (w.protocol === 'modbus-tcp') {
+      const [host, port] = String(w.endpoint ?? 'localhost:502').split(':');
+      const key = `${host}:${port ?? 502}`;
+      if (!this.modbus.has(key)) this.modbus.set(key, new ModbusTcpClient({ host, port: Number(port ?? 502) }));
+      const raw = (w.value - (w.offset ?? 0)) / (w.scale ?? 1);
+      return this.modbus.get(key).write(Number(w.unitId ?? 1), Number(w.address), raw, w.dataType ?? 'uint16', !!w.swap);
+    }
+    if (w.protocol === 'mqtt') return mqttPublish({ url: w.endpoint ?? 'mqtt://localhost:1883', username: w.username, password: w.password }, w.address, JSON.stringify({ value: w.value, name: w.name }));
+    throw new Error(`Writing over ${w.protocol} is not supported`);
+  }
+
   async start() {
     await this.refreshConfig().catch((e) => this.log(`${e.message}; using no signals until the ERP is reachable`));
     let polling = false;
@@ -160,6 +203,7 @@ export class EdgeAgent {
         flushing = true;
         try {
           while ((await this.flushOnce()) > 0 && this.buffer.size > 0);
+          await this.runCommands().catch(() => undefined);
         } finally {
           flushing = false;
         }

@@ -9,6 +9,7 @@ import { LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { LOSS_LABEL, type Reason } from "@/lib/mes";
+import { SkillsCard } from "./skills";
 
 interface Shift { code: string; name: string; startMinute: number; endMinute: number; breakMinutes: number }
 interface MachineRow { id: string; code: string; name: string; workCenterCode: string; idealCycleSeconds: number | null; stopAfterSeconds: number; minorStopSeconds: number; targetOeePct: number; signals: number }
@@ -53,7 +54,7 @@ function SetupForm({ data, msg, setMsg }: { data: Setup; msg: Msg; setMsg: (m: M
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader title="Shifts, reasons and machines" description="How OEE is measured: the shifts it is reported by, the reasons for stops and each machine's ideal speed and stop limits." />
+      <PageHeader title="Shifts, reasons, machines and skills" description="How OEE is measured: the shifts it is reported by, the reasons for stops and each machine's ideal speed and stop limits." />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Card>
         <CardHeader title="Shifts" description="India time. A shift that ends before it starts runs past midnight. Breaks are planned time, not a loss." />
@@ -121,6 +122,7 @@ function SetupForm({ data, msg, setMsg }: { data: Setup; msg: Msg; setMsg: (m: M
           </form>
         )}
       </Card>
+      <SkillsCard />
     </div>
   );
 }

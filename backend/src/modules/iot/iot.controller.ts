@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { AppRequest, AuthContext } from '../../common/auth-context';
 import { ApiZodBody, Auth, Public, RequirePermissions } from '../../common/decorators';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
-import { gatewaySchema, ingestSchema, IotService, ruleSchema, signalSchema } from './iot.service';
+import { commandResultSchema, gatewaySchema, ingestSchema, IotService, ruleSchema, signalSchema } from './iot.service';
 
 const body = <T extends z.ZodType>(s: T) => new ZodValidationPipe(s);
 const idPipe = new ZodValidationPipe(z.object({ id: z.uuid() }));
@@ -124,5 +124,17 @@ export class IotDeviceController {
   @ApiZodBody(ingestSchema)
   ingest(@Headers('x-device-token') token: string | undefined, @Body(body(ingestSchema)) b: z.infer<typeof ingestSchema>, @Req() req: AppRequest) {
     return this.iot.ingest(token, b, req.ip ?? null);
+  }
+
+  @Get('commands')
+  commands(@Headers('x-device-token') token: string | undefined) {
+    return this.iot.deviceCommands(token);
+  }
+
+  @Post('commands/:id/result')
+  @HttpCode(200)
+  @ApiZodBody(commandResultSchema)
+  result(@Headers('x-device-token') token: string | undefined, @Param(idPipe) p: { id: string }, @Body(body(commandResultSchema)) b: z.infer<typeof commandResultSchema>) {
+    return this.iot.commandResult(token, p.id, b);
   }
 }

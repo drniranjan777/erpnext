@@ -173,3 +173,27 @@ export const iotAlarms = pgTable(
   },
   (t) => [index('iot_alarms_open_idx').on(t.tenantId, t.clearedAt), index('iot_alarms_rule_idx').on(t.ruleId, t.clearedAt)],
 );
+
+/** A command for an edge gateway, such as writing a recipe's set-points to a PLC. */
+export const iotCommands = pgTable(
+  'iot_commands',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    gatewayId: uuid('gateway_id')
+      .notNull()
+      .references(() => iotGateways.id, { onDelete: 'cascade' }),
+    /** write */
+    kind: text('kind').notNull().default('write'),
+    payload: jsonb('payload').$type<{ writes: (SignalSource & { name: string; value: number })[] }>().notNull(),
+    /** pending | sent | done | failed */
+    status: text('status').notNull().default('pending'),
+    result: text('result'),
+    /** What asked for it (e.g. an MES execution). */
+    ref: uuid('ref'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    doneAt: timestamp('done_at', { withTimezone: true }),
+  },
+  (t) => [index('iot_commands_gateway_idx').on(t.tenantId, t.gatewayId, t.status)],
+);

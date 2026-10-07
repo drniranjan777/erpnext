@@ -113,6 +113,7 @@ import {
   Zap,
   AudioWaveform,
   Thermometer,
+  MonitorSmartphone,
   ScanText,
   Mic,
   Bot,
@@ -274,6 +275,7 @@ export const NAVIGATION: NavSection[] = [
     title: "Smart factory",
     items: [
       { label: "Live machines", href: "/iot", icon: Activity, permissions: ["iot.data.read"] },
+      { label: "Machine terminal", href: "/mes/terminal", icon: MonitorSmartphone, permissions: ["mes.shopfloor.use"] },
       { label: "Andon board", href: "/mes/andon", icon: Tv, permissions: ["mes.oee.read"] },
       { label: "OEE", href: "/mes/oee", icon: PieChart, permissions: ["mes.oee.read"] },
       { label: "Downtime", href: "/mes/downtime", icon: TimerOff, permissions: ["mes.oee.read"] },
@@ -283,7 +285,9 @@ export const NAVIGATION: NavSection[] = [
       { label: "Cold chain", href: "/plant/cold-chain", icon: Thermometer, permissions: ["iot.data.read"] },
       { label: "Signals", href: "/iot/signals", icon: Cable, permissions: ["iot.data.read"] },
       { label: "Edge gateways", href: "/iot/gateways", icon: Router, permissions: ["iot.data.read"] },
-      { label: "Shifts & reasons", href: "/mes/setup", icon: SlidersHorizontal, permissions: ["mes.oee.read"] },
+      { label: "Work instructions", href: "/mes/instructions", icon: ListChecks, permissions: ["mes.oee.read"] },
+      { label: "Recipes", href: "/mes/recipes", icon: FlaskConical, permissions: ["mes.oee.read"] },
+      { label: "Shifts, reasons & skills", href: "/mes/setup", icon: SlidersHorizontal, permissions: ["mes.oee.read"] },
     ],
   },
   {

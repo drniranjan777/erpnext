@@ -51,18 +51,34 @@ export class ModbusTcpClient {
     return run;
   }
 
-  async request(unitId, fc, address, count) {
+  /**
+   * Writes a value to holding registers: function 6 for one register, 16 for 32-bit types.
+   * @param {number} unitId @param {number} address @param {number} value @param {string} [dataType] @param {boolean} [swap]
+   */
+  write(unitId, address, value, dataType = 'uint16', swap = false) {
+    const words = encodeWords(value, dataType, swap);
+    const run = this.chain.then(() => (words.length === 1 ? this.request(unitId, 6, address, words[0]) : this.request(unitId, 16, address, words.length, words)));
+    this.chain = run.catch(() => undefined);
+    return run;
+  }
+
+  async request(unitId, fc, address, count, words = []) {
     await this.connect();
     const s = /** @type {net.Socket} */ (this.socket);
     const tid = (this.tid = (this.tid + 1) & 0xffff);
-    const req = Buffer.alloc(12);
+    const extra = fc === 16 ? 1 + words.length * 2 : 0;
+    const req = Buffer.alloc(12 + extra);
     req.writeUInt16BE(tid, 0);
     req.writeUInt16BE(0, 2);
-    req.writeUInt16BE(6, 4);
+    req.writeUInt16BE(6 + extra, 4);
     req.writeUInt8(unitId, 6);
     req.writeUInt8(fc, 7);
     req.writeUInt16BE(address, 8);
     req.writeUInt16BE(count, 10);
+    if (fc === 16) {
+      req.writeUInt8(words.length * 2, 12);
+      words.forEach((w, i) => req.writeUInt16BE(w, 13 + i * 2));
+    }
     return new Promise((resolve, reject) => {
       let buf = Buffer.alloc(0);
       const done = (err, val) => {
@@ -83,6 +99,7 @@ export class ModbusTcpClient {
         const frame = buf.subarray(0, 6 + len);
         if (frame.readUInt16BE(0) !== tid) return done(new Error('Modbus transaction id mismatch'));
         if (frame.readUInt8(7) & 0x80) return done(new Error(`Modbus exception ${frame.readUInt8(8)} (function ${fc})`));
+        if (fc === 6 || fc === 16) return done(null, []);
         const bytes = frame.readUInt8(8);
         const data = frame.subarray(9, 9 + bytes);
         if (fc === 1) {
@@ -129,4 +146,28 @@ export function decodeWords(words, dataType = 'uint16', swap = false) {
     default:
       return words[0];
   }
+}
+
+/** Registers for a value (the inverse of decodeWords). */
+export function encodeWords(value, dataType = 'uint16', swap = false) {
+  const b = Buffer.alloc(4);
+  switch (dataType) {
+    case 'int16':
+      b.writeInt16BE(Math.round(value), 0);
+      return [b.readUInt16BE(0)];
+    case 'uint32':
+      b.writeUInt32BE(Math.round(value) >>> 0, 0);
+      break;
+    case 'int32':
+      b.writeInt32BE(Math.round(value), 0);
+      break;
+    case 'float32':
+      b.writeFloatBE(value, 0);
+      break;
+    default:
+      return [Math.round(value) & 0xffff];
+  }
+  const hi = b.readUInt16BE(0);
+  const lo = b.readUInt16BE(2);
+  return swap ? [lo, hi] : [hi, lo];
 }

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { iotAlarmRules, iotAlarms, iotBatches, iotGateways, iotReadings, iotSignals, maintAssets, type Transaction } from '@nextgen/database';
+import { iotAlarmRules, iotAlarms, iotBatches, iotCommands, iotGateways, iotReadings, iotSignals, maintAssets, type SignalSource, type Transaction } from '@nextgen/database';
 import { and, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
@@ -60,6 +60,8 @@ export const ingestSchema = z.object({
     .array(z.object({ s: z.string().trim().min(1).max(60), t: z.union([z.number(), z.string().max(40)]), v: z.union([z.number().finite(), z.boolean()]) }))
     .max(5000),
 });
+
+export const commandResultSchema = z.object({ ok: z.boolean(), message: z.string().trim().max(500).nullable().optional() });
 
 export interface IngestedSignal {
   id: string;
@@ -353,6 +355,38 @@ export class IotService {
       await this.evaluateAlarms(tx, ctx, touched);
       for (const hook of this.hooks) await hook(tx, ctx, touched);
       return { batchId: input.batchId, duplicate: false, accepted: accepted.length, unknown: [...unknown].slice(0, 50), rejected };
+    });
+  }
+
+  // ---- commands --------------------------------------------------------------------------------
+
+  /** Queues values for a gateway to write to its machines (picked up on the agent's next call). */
+  async createCommand(tx: Transaction, tenantId: string, gatewayId: string, writes: (SignalSource & { name: string; value: number })[], ref: string | null) {
+    const [c] = await tx.insert(iotCommands).values({ tenantId, gatewayId, kind: 'write', payload: { writes }, ref }).returning();
+    return c;
+  }
+
+  /** Commands waiting for this gateway; they are marked sent. */
+  deviceCommands(token: string | undefined) {
+    return this.device(token, async (tx, g) => {
+      const rows = await tx
+        .update(iotCommands)
+        .set({ status: 'sent', sentAt: new Date() })
+        .where(and(eq(iotCommands.gatewayId, g.id), sql`${iotCommands.status} in ('pending', 'sent')`))
+        .returning({ id: iotCommands.id, kind: iotCommands.kind, payload: iotCommands.payload });
+      return rows;
+    });
+  }
+
+  commandResult(token: string | undefined, id: string, input: z.infer<typeof commandResultSchema>) {
+    return this.device(token, async (tx, g) => {
+      const [c] = await tx
+        .update(iotCommands)
+        .set({ status: input.ok ? 'done' : 'failed', result: input.message ?? null, doneAt: new Date() })
+        .where(and(eq(iotCommands.id, id), eq(iotCommands.gatewayId, g.id), sql`${iotCommands.status} in ('pending', 'sent')`))
+        .returning({ id: iotCommands.id, status: iotCommands.status });
+      if (!c) throw new NotFoundException('Command not found or already finished');
+      return c;
     });
   }
 

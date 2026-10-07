@@ -47,6 +47,8 @@ export const PERMISSIONS = {
   'mes.oee.read': 'See machine states, downtime, OEE and the Andon board',
   'mes.shopfloor.use': 'Set machine states, explain downtime and raise or answer Andon calls',
   'mes.setup.manage': 'Set shifts, downtime reasons and machine monitoring settings',
+  'mes.instructions.manage': 'Write and release work instructions and recipes, and record operator skills',
+  'mes.firstoff.approve': 'Approve or reject first-off pieces at the machine',
   'ai.governance.manage': 'Set the AI policy (features, consent, PII masking, budget, models) and see AI usage and evaluations',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',
   // Purchase

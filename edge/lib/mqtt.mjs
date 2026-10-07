@@ -166,3 +166,39 @@ export function topicMatches(filter, topic) {
   }
   return f.length === t.length;
 }
+
+/**
+ * Publishes one message and disconnects (QoS 0): used to send set-points to a broker.
+ * @param {{ url: string, username?: string, password?: string, timeoutMs?: number }} opts
+ * @param {string} topic @param {string} payload
+ */
+export function mqttPublish(opts, topic, payload) {
+  const u = new URL(opts.url);
+  return new Promise((resolve, reject) => {
+    const s = net.createConnection({ host: u.hostname, port: Number(u.port || 1883) });
+    let buf = Buffer.alloc(0);
+    const timer = setTimeout(() => {
+      s.destroy();
+      reject(new Error(`MQTT ${opts.url} timeout`));
+    }, opts.timeoutMs ?? 5000);
+    s.on('error', (e) => {
+      clearTimeout(timer);
+      reject(e);
+    });
+    s.on('connect', () => s.write(connectPacket(`nextgen-edge-pub-${process.pid}`, 10, opts.username, opts.password)));
+    s.on('data', (chunk) => {
+      buf = Buffer.concat([buf, chunk]);
+      const p = readPacket(buf);
+      if (!p || p.type !== 2) return;
+      clearTimeout(timer);
+      if (p.body[1] !== 0) {
+        s.destroy();
+        return reject(new Error(`MQTT connection refused (${p.body[1]})`));
+      }
+      s.write(publishPacket(topic, payload), () => {
+        s.end(Buffer.from([0xe0, 0]));
+        resolve(undefined);
+      });
+    });
+  });
+}

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 13.1–13.3 done |
+| **Status** | In progress: 13.1–13.4 done |
 | **Code** | `edge/` (edge agent), `backend/src/modules/iot/`, `backend/src/modules/mes/`, `backend/src/modules/plant/`, `database/src/schema/iot.ts`, `mes.ts`, `plant.ts`, `frontend/src/app/(app)/iot/` |
 
 ## Sprint plan
@@ -86,3 +86,29 @@ Migration 0056 adds `energy_settings`, `energy_minutes`, `cm_models` and `cm_ano
 - The overview shows each logger's current value, whether it is in range or has gone quiet (15 minutes), and the last 24 hours: minimum, maximum, mean kinetic temperature and excursions.
 - The report gives readings, minimum / average / maximum, mean kinetic temperature (ICH method, ΔH/R = 10,000 K), time outside the range and each excursion with its start, length and worst value. A reading holds until the next, so an excursion runs from the first reading outside to the first reading back inside.
 - A transport trip shows the loggers whose vehicle number matches the trip's (ignoring spaces and dashes) between dispatch and completion.
+
+## 13.4 MES at the machine (done)
+
+Migration 0057 adds `mes_instructions`, `mes_skills`, `mes_machine_sessions`, `mes_recipes`, `mes_executions`, `mes_inline_checks` and `iot_commands`. Code: `backend/src/modules/mes/execution.service.ts`, `poka-yoke.ts` (pure and unit tested); the edge agent writes set-points (version 1.1.0). Permissions: `mes.instructions.manage` (instructions, recipes, skills) and `mes.firstoff.approve`; the terminal uses `mes.shopfloor.use` and starting a job also needs `manufacturing.shopfloor.record`. Pages: `/mes/terminal`, `/mes/instructions`, `/mes/recipes`, skills on `/mes/setup`, and the printable batch record `/print/batch-record/:id`.
+
+**Work instructions** are written per item and operation number: a title, steps (text, a picture or drawing link, "confirm" for steps the operator must tick, "caution" for safety or quality warnings), the characteristics to measure (limits and, for in-line checks, how often), whether a first-off approval is needed and whether materials must be scanned. They are versioned: editing a released version starts a new draft, and releasing a draft retires the previous release. The terminal always shows the latest released version, and the batch record keeps which version was used.
+
+**Recipes** hold an item's set-points (optionally for one machine, else any machine), each with limits, the signal that measures it and, optionally, where to write it: a Modbus holding register (data type, scaling) or an MQTT topic. Set-points outside their limits are refused. Versioning works as for instructions.
+
+**Operators.** An operator logs in at the machine (one at a time; a new log-in closes the previous one). Skills record who may run a work centre's machines (trainee, qualified, expert, trainer) and until when. Once a work centre has any skill recorded, only qualified, unexpired operators can start jobs there.
+
+**Starting a job (poka-yoke).** The terminal lists the released operations waiting at the machine's work centre. For the chosen one it shows the instructions and the recipe; the operator ticks the confirm steps, scans the tool and materials (item code and batch), checks and starts. The start is refused, with the reasons, when:
+- no operator is named, or the operator is not qualified (no skill, trainee, expired);
+- the machine is on another work centre, has an open breakdown, or needs cleaning;
+- the scanned tool is not the operation's tool, the tool is in maintenance or retired, or its shot life is used up;
+- a scanned material is unknown or not used in the operation, its batch does not exist, is held by quality (quarantine, under test, rejected) or has expired, or (when the instructions require scanning) a required material was not scanned;
+- a confirm step was not ticked.
+Warnings do not stop the start: another operator logged in, tool life above 90 %, a conditionally released batch, no released instructions.
+
+**Recipe download.** When the job starts, the recipe's writable set-points are queued as a command for the gateway that serves the machine. The agent picks commands up after each send, writes each value (Modbus function 6, or 16 for 32-bit values, with scaling reversed; or an MQTT message `{"value", "name"}`), and reports success or the first failure; the result shows on the terminal and in the batch record.
+
+**First-off and in-line quality.** When the instructions require it, the job starts with the first-off "waiting for approval": a person with `mes.firstoff.approve` records the readings of the first piece and approves (all readings within limits) or rejects it. Until it is approved, the job card cannot be stopped with good pieces. While the job runs, in-line readings are recorded against the characteristics; the terminal shows which checks are due by their frequency, and any reading out of limits calls quality on the Andon board.
+
+**Batch record** (`GET /mes/executions/:id`, printable): work order, item, operation, machine, tool, operator, start and end, good and rejected quantities and shots; the instruction version and the steps confirmed; every start check with its result and the materials scanned; the first-off readings and who approved them; the in-line checks; the recipe's set-points with what the machine's signals measured during the job (minimum, average, maximum) and whether that stayed within the limits; and every other process signal of the machine over the job.
+
+SCADA / MES systems that already run the line (Ignition, AVEVA, WinCC) connect through the same paths: they publish values over MQTT or REST (read by the agent) or post to the ingest API, and can take recipe set-points over MQTT.
