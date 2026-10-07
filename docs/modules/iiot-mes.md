@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 13.1 done |
-| **Code** | `edge/` (edge agent), `backend/src/modules/iot/`, `database/src/schema/iot.ts`, `frontend/src/app/(app)/iot/` |
+| **Status** | In progress: 13.1–13.2 done |
+| **Code** | `edge/` (edge agent), `backend/src/modules/iot/`, `backend/src/modules/mes/`, `database/src/schema/iot.ts`, `database/src/schema/mes.ts`, `frontend/src/app/(app)/iot/` |
 
 ## Sprint plan
 
@@ -41,3 +41,27 @@ Migration 0054 adds `iot_gateways`, `iot_signals`, `iot_readings`, `iot_batches`
 - readings the ERP refuses as invalid (HTTP 400) are dropped so they cannot block the buffer.
 
 Not in this sprint: OPC UA, Sparkplug B, Siemens S7, EtherNet/IP and Mitsubishi MC connectors. They need protocol libraries on the gateway; until then, plants with these PLCs can publish through an OPC UA or S7-to-MQTT bridge (most SCADA systems and many PLCs have one) or post to the ingest API. TimescaleDB is not used; the readings table is a plain indexed table and can be converted to a hypertable later without changes to the API.
+
+## 13.2 Real-time production and OEE (done)
+
+Migration 0055 adds `mes_shifts`, `mes_downtime_reasons`, `mes_machine_settings`, `mes_machine_states`, `mes_counters`, `mes_counts` and `mes_andon_calls`. Permissions: `mes.oee.read`, `mes.shopfloor.use` (set states, give reasons, Andon calls) and `mes.setup.manage`. Notification event `mes.andon_call`. Pages: `/mes/andon`, `/mes/oee`, `/mes/downtime`, `/mes/setup`; the shop-floor kiosk now starts the stop form from the machine's counts. The OEE engine (`mes/oee.ts`) is pure and unit tested.
+
+**From signals to production.** `MesService` subscribes to new readings through `IotService.onIngest`. For each machine with a part counter, reject counter or run-state signal:
+- Counters are turned into counts with the last value kept per signal; a lower value means the counter was reset and counts from zero. Readings older than the last one are ignored.
+- Parts are counted per minute (`mes_counts`), with the ideal time they should have taken: the routing's run time per piece on the running job card, otherwise the machine's ideal cycle. A part counter counts shots; a mould with several cavities multiplies them. A reject counter counts rejects among the parts made (they move from good to rejected).
+- Counts also go to the job card running on the machine (good, rejected, shots), so the kiosk shows them when the operator stops the card; the operator can correct them.
+- The machine state comes from the run-state signal (1 running, 0 stopped) if there is one; otherwise it is running while parts are counted and stopped when no part has been counted for the machine's stop limit (2 minutes by default), from the last part.
+- People can set a machine to setup, planned stop or stopped from the Andon board. A setup or planned stop set by hand stays until the machine produces again; an automatic "stopped" does not replace it.
+- A machine with no signal for 5 minutes shows as "no signal".
+
+**Downtime.** Stops at least as long as the machine's minor-stop limit (5 minutes by default), and setups, are listed for a reason. Reasons belong to a loss: breakdown, setup, minor stop, speed, defects, start-up, other or planned (not a loss). Twelve common reasons and three 8-hour shifts (06:00, 14:00, 22:00 with 30-minute breaks) are created on first use and can be changed.
+
+**OEE** (`GET /mes/oee?from&to&by=machine|workCenter|shift|day`):
+- time with data, less planned stops and shift breaks, is planned time; time without any state is shown as "no data" and left out;
+- downtime is setups and stops of at least the minor-stop length; shorter stops are minor stops (a performance loss);
+- availability = (planned − downtime) / planned; performance = ideal time of the parts made / operating time (at most 100 %); quality = good / (good + rejected); OEE is their product;
+- the six big losses are reported in time: breakdowns, setup and adjustments, minor stops, reduced speed (running time beyond the ideal), defects and start-up rejects (rejects within 10 minutes after a setup), plus stops without a reason and other stops;
+- shift breaks are spread over the part of the shift in the period and taken out of unexplained stops first;
+- each machine is computed per shift occurrence and the results are added up for the grouping (ratios are recomputed from the totals, not averaged).
+
+**Andon board** (`GET /mes/board`, refreshed every 5 seconds, with a full-screen mode for a TV): each machine's state and for how long, the reason, the job card running (work order, item, operation, good of ordered, operator), this shift's OEE against the machine's target, and open calls. From the board, people can call maintenance, quality, material or a supervisor (one open call of each kind per machine; everyone with `mes.shopfloor.use` is notified), answer ("coming") and close calls, and set the machine state. Call response times are kept.

@@ -655,7 +655,7 @@ export class ProductionService implements OnModuleInit {
         .where(and(inArray(workOrders.stage, ['released', 'in_progress']), eq(documents.status, 'approved'), ne(workOrderOperations.status, 'done'), q.workCenterId ? eq(workOrderOperations.workCenterId, q.workCenterId) : undefined))
         .orderBy(asc(workOrders.priority), sql`${workOrders.plannedEnd} nulls last`, asc(documents.number), asc(workOrderOperations.seq));
       const running = await tx
-        .select({ id: jobCards.id, operationId: jobCards.operationId, operatorName: jobCards.operatorName, startedAt: jobCards.startedAt, clientRef: jobCards.clientRef, machine: machines.code, tool: tools.code })
+        .select({ id: jobCards.id, operationId: jobCards.operationId, operatorName: jobCards.operatorName, startedAt: jobCards.startedAt, clientRef: jobCards.clientRef, machine: machines.code, tool: tools.code, countedGood: jobCards.goodQty, countedReject: jobCards.rejectQty })
         .from(jobCards)
         .leftJoin(machines, eq(machines.id, jobCards.machineId))
         .leftJoin(tools, eq(tools.id, jobCards.toolId))

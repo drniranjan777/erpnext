@@ -251,6 +251,13 @@ Kindly reply by ${d.dueDate}, quoting ${d.number}. ${d.contact}`,
     defaults: { in_app: true, email: false, whatsapp: false },
     render: (d: { title: string; body: string; link: string }) => ({ title: d.title, body: d.body, link: d.link, action: 'Open alarms' }),
   },
+  'mes.andon_call': {
+    label: 'Andon call',
+    description: 'Someone on the line asked for maintenance, quality, material or a supervisor',
+    group: 'Shop floor',
+    defaults: { in_app: true, email: false, whatsapp: false },
+    render: (d: { title: string; body: string; link: string }) => ({ title: d.title, body: d.body, link: d.link, action: 'Open the Andon board' }),
+  },
   'agent.message': {
     label: 'Message from an AI agent',
     description: 'A follow-up an agent drafted and someone approved, such as asking a vendor for a delivery date',

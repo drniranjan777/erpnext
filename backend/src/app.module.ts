@@ -45,6 +45,7 @@ import { PortalModule } from './modules/portal/portal.module';
 import { AgentsModule } from './modules/agents/agents.module';
 import { AiGovModule } from './modules/ai-gov/ai-gov.module';
 import { IotModule } from './modules/iot/iot.module';
+import { MesModule } from './modules/mes/mes.module';
 import { PredictModule } from './modules/predict/predict.module';
 import { VoiceModule } from './modules/voice/voice.module';
 import { TmsModule } from './modules/tms/tms.module';
@@ -112,6 +113,7 @@ import { ProcessModule } from './modules/process/process.module';
     VoiceModule,
     PredictModule,
     IotModule,
+    MesModule,
     AdminModule,
     PrivacyModule,
   ],

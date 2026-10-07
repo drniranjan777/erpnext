@@ -34,4 +34,5 @@ export * from './portal';
 export * from './wms';
 export * from './tms';
 export * from './iot';
+export * from './mes';
 export * from './ai';

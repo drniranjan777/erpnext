@@ -9,7 +9,7 @@ import { formatQty } from "@/lib/documents";
 import { enqueue, flush, newRef, readQueue, type KioskEvent, type SyncResult } from "@/lib/kiosk-queue";
 import { MFG, type Machine, type WorkCenter } from "@/lib/manufacturing";
 
-interface Running { id: string; operationId: string; operatorName: string | null; startedAt: string; clientRef: string | null; machine: string | null }
+interface Running { id: string; operationId: string; operatorName: string | null; startedAt: string; clientRef: string | null; machine: string | null; countedGood?: string; countedReject?: string }
 interface BoardOp {
   id: string;
   seq: number;
@@ -24,7 +24,7 @@ interface BoardOp {
   running: Running[];
 }
 /** A sitting shown as running: confirmed by the server, or still waiting on the tablet. */
-interface Sitting { key: string; cardId?: string; clientRef?: string; operatorName: string | null; startedAt: string; pending: boolean }
+interface Sitting { key: string; cardId?: string; clientRef?: string; operatorName: string | null; startedAt: string; pending: boolean; counted?: { good: number; reject: number } }
 
 const REASONS = ["Dimension out", "Surface defect", "Burr", "Crack", "Setup piece", "Material defect", "Other"];
 const LS = { wc: "ngerp.kiosk.wc", operator: "ngerp.kiosk.operator", board: "ngerp.kiosk.board" };
@@ -125,7 +125,7 @@ export function Kiosk() {
     const stopped = new Set(queue.filter((e) => e.type === "stop").map((e) => (e.type === "stop" ? (e.clientRef ?? e.cardId) : "")));
     const out = new Map<string, Sitting[]>();
     for (const o of ops) {
-      const list: Sitting[] = o.running.filter((r) => !stopped.has(r.clientRef ?? "") && !stopped.has(r.id)).map((r) => ({ key: r.id, cardId: r.id, clientRef: r.clientRef ?? undefined, operatorName: r.operatorName, startedAt: r.startedAt, pending: false }));
+      const list: Sitting[] = o.running.filter((r) => !stopped.has(r.clientRef ?? "") && !stopped.has(r.id)).map((r) => ({ key: r.id, cardId: r.id, clientRef: r.clientRef ?? undefined, operatorName: r.operatorName, startedAt: r.startedAt, pending: false, counted: Number(r.countedGood) + Number(r.countedReject) > 0 ? { good: Number(r.countedGood), reject: Number(r.countedReject) } : undefined }));
       for (const e of queue) {
         if (e.type === "start" && e.operationId === o.id && !stopped.has(e.clientRef) && !list.some((s) => s.clientRef === e.clientRef)) list.push({ key: e.clientRef, clientRef: e.clientRef, operatorName: e.operatorName, startedAt: e.at, pending: true });
       }
@@ -255,10 +255,18 @@ export function Kiosk() {
 
 function OperationSheet({ op, runs, now, operator, machines, onClose, onEvent }: { op: BoardOp; runs: Sitting[]; now: number; operator: string; machines: Machine[]; onClose: () => void; onEvent: (e: KioskEvent) => void }) {
   const [machineId, setMachineId] = useState(machines[0]?.id ?? "");
-  const [stopping, setStopping] = useState<Sitting | null>(runs.length === 1 ? runs[0] : null);
+  const [stopping, setStoppingRaw] = useState<Sitting | null>(runs.length === 1 ? runs[0] : null);
   const [field, setField] = useState<"good" | "reject">("good");
-  const [good, setGood] = useState("");
-  const [reject, setReject] = useState("");
+  // Machines connected to the IoT platform count parts into the running job card: start from those counts.
+  const [good, setGood] = useState(runs.length === 1 && runs[0].counted ? String(runs[0].counted.good) : "");
+  const [reject, setReject] = useState(runs.length === 1 && runs[0].counted ? String(runs[0].counted.reject || "") : "");
+  const setStopping = (r: Sitting | null) => {
+    setStoppingRaw(r);
+    if (r?.counted) {
+      setGood(String(r.counted.good));
+      setReject(r.counted.reject ? String(r.counted.reject) : "");
+    }
+  };
   const [reason, setReason] = useState("");
   const set = field === "good" ? setGood : setReject;
   const val = field === "good" ? good : reject;
@@ -317,6 +325,7 @@ function OperationSheet({ op, runs, now, operator, machines, onClose, onEvent }:
         {stopping && (
           <div className="mt-5 space-y-4">
             <p className="text-lg">Stopping {stopping.operatorName ?? "the job card"}, started {since(stopping.startedAt, now)} ago</p>
+            {stopping.counted && <p className="text-base text-muted">Counted by the machine: {stopping.counted.good} good{stopping.counted.reject ? `, ${stopping.counted.reject} rejected` : ""}. Correct the figures if needed.</p>}
             <div className="grid grid-cols-2 gap-3">
               {(["good", "reject"] as const).map((f) => (
                 <button key={f} onClick={() => setField(f)} className={`rounded-xl border-2 px-4 py-3 text-left ${field === f ? "border-primary" : "border-border"}`}>

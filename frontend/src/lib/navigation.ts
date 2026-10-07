@@ -108,6 +108,8 @@ import {
   BellRing,
   Cable,
   Router,
+  Tv,
+  TimerOff,
   ScanText,
   Mic,
   Bot,
@@ -269,9 +271,13 @@ export const NAVIGATION: NavSection[] = [
     title: "Smart factory",
     items: [
       { label: "Live machines", href: "/iot", icon: Activity, permissions: ["iot.data.read"] },
+      { label: "Andon board", href: "/mes/andon", icon: Tv, permissions: ["mes.oee.read"] },
+      { label: "OEE", href: "/mes/oee", icon: PieChart, permissions: ["mes.oee.read"] },
+      { label: "Downtime", href: "/mes/downtime", icon: TimerOff, permissions: ["mes.oee.read"] },
       { label: "Alarms", href: "/iot/alarms", icon: BellRing, permissions: ["iot.data.read"] },
       { label: "Signals", href: "/iot/signals", icon: Cable, permissions: ["iot.data.read"] },
       { label: "Edge gateways", href: "/iot/gateways", icon: Router, permissions: ["iot.data.read"] },
+      { label: "Shifts & reasons", href: "/mes/setup", icon: SlidersHorizontal, permissions: ["mes.oee.read"] },
     ],
   },
   {
