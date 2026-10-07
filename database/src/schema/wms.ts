@@ -108,6 +108,10 @@ export const wmsItemProfiles = pgTable(
     minShelfLifeDays: smallint('min_shelf_life_days'),
     /** Moisture sensitivity level (J-STD-033): 1, 2, 2a, 3, 4, 5, 5a, 6. */
     mslLevel: text('msl_level'),
+    /** 3PL: the client who owns this item (goods we store for them, kept at no value in our books). */
+    ownerPartyId: uuid('owner_party_id').references(() => parties.id, { onDelete: 'set null' }),
+    /** Base units on one pallet, for pallet-day storage billing. */
+    unitsPerPallet: numeric('units_per_pallet', { precision: 12, scale: 3 }),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('wms_item_profiles_item_uq').on(t.itemId)],
@@ -516,4 +520,99 @@ export const wmsConsignments = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('wms_consignments_wh_uq').on(t.warehouseId)],
+);
+
+/** A warehousing client (3PL): their tariff for storage and handling in a warehouse. */
+export const wms3plClients = pgTable(
+  'wms_3pl_clients',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    partyId: uuid('party_id')
+      .notNull()
+      .references(() => parties.id, { onDelete: 'restrict' }),
+    warehouseId: uuid('warehouse_id')
+      .notNull()
+      .references(() => warehouses.id, { onDelete: 'restrict' }),
+    storagePerPalletDay: numeric('storage_per_pallet_day', { precision: 10, scale: 2 }).notNull(),
+    inboundPerUnit: numeric('inbound_per_unit', { precision: 10, scale: 4 }).notNull().default('0'),
+    outboundPerUnit: numeric('outbound_per_unit', { precision: 10, scale: 4 }).notNull().default('0'),
+    minimumMonthly: numeric('minimum_monthly', { precision: 12, scale: 2 }),
+    /** Units on a pallet when the item's storage profile does not say. */
+    defaultUnitsPerPallet: numeric('default_units_per_pallet', { precision: 12, scale: 3 }).notNull().default('1'),
+    /** Service item the invoice lines use (with its SAC and GST rate). */
+    serviceItemId: uuid('service_item_id').notNull(),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('wms_3pl_clients_uq').on(t.partyId, t.warehouseId)],
+);
+
+export const wms3plBills = pgTable(
+  'wms_3pl_bills',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => wms3plClients.id, { onDelete: 'restrict' }),
+    fromDate: text('from_date').notNull(),
+    toDate: text('to_date').notNull(),
+    palletDays: numeric('pallet_days', { precision: 14, scale: 2 }).notNull(),
+    unitsIn: numeric('units_in', { precision: 18, scale: 4 }).notNull(),
+    unitsOut: numeric('units_out', { precision: 18, scale: 4 }).notNull(),
+    storageAmount: numeric('storage_amount', { precision: 12, scale: 2 }).notNull(),
+    handlingAmount: numeric('handling_amount', { precision: 12, scale: 2 }).notNull(),
+    minimumTopUp: numeric('minimum_top_up', { precision: 12, scale: 2 }).notNull().default('0'),
+    total: numeric('total', { precision: 12, scale: 2 }).notNull(),
+    invoiceId: uuid('invoice_id').references(() => documents.id, { onDelete: 'set null' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('wms_3pl_bills_period_uq').on(t.clientId, t.fromDate)],
+);
+
+/** Client references of scans replayed from a handheld's offline queue (each applied once). */
+export const wmsClientRefs = pgTable(
+  'wms_client_refs',
+  {
+    tenantId: tenantId(),
+    ref: text('ref').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.tenantId, t.ref] })],
+);
+
+/** Tags encoded for our items and serials (EPCs not in GS1 SGTIN form, or to pin a serial). */
+export const wmsRfidTags = pgTable(
+  'wms_rfid_tags',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    epc: text('epc').notNull(),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => items.id, { onDelete: 'cascade' }),
+    serialNo: text('serial_no'),
+    batchId: uuid('batch_id').references(() => batches.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('wms_rfid_tags_epc_uq').on(t.tenantId, t.epc)],
+);
+
+/** Reads from RFID gates and handhelds. */
+export const wmsRfidReads = pgTable(
+  'wms_rfid_reads',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    gate: text('gate').notNull(),
+    epc: text('epc').notNull(),
+    gtin: text('gtin'),
+    itemId: uuid('item_id').references(() => items.id, { onDelete: 'set null' }),
+    serialNo: text('serial_no'),
+    deliveryId: uuid('delivery_id').references(() => documents.id, { onDelete: 'set null' }),
+    readAt: timestamp('read_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('wms_rfid_reads_gate_idx').on(t.tenantId, t.gate, t.readAt), index('wms_rfid_reads_delivery_idx').on(t.deliveryId)],
 );

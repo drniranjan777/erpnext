@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate, formatQty } from "@/lib/documents";
 import { CONDITIONS, WMS } from "@/lib/wms";
 
-interface Profile { condition: string; hazardClass: string | null; unitWeightKg: string | null; unitVolumeM3: string | null; abcClass: string | null; minShelfLifeDays: number | null; mslLevel: string | null }
+interface Profile { condition: string; hazardClass: string | null; unitWeightKg: string | null; unitVolumeM3: string | null; abcClass: string | null; minShelfLifeDays: number | null; mslLevel: string | null; ownerPartyId: string | null; unitsPerPallet: string | null }
 interface Location { warehouse: string; bin: string; batchNo: string | null; expiryDate: string | null; qty: string; batchKey: string; binId: string }
 
 export default function StorageProfiles() {
@@ -54,12 +54,13 @@ function ProfileForm({ id, label }: { id: string; label: string }) {
 
 function Form({ id, label, p, manage }: { id: string; label: string; p: Profile | null; manage: boolean }) {
   const s = (v: string | null | undefined) => (v ? String(Number(v)) : "");
-  const [f, setF] = useState({ condition: p?.condition ?? "ambient", hazardClass: p?.hazardClass ?? "", unitWeightKg: s(p?.unitWeightKg), unitVolumeM3: s(p?.unitVolumeM3), abcClass: p?.abcClass ?? "", minShelfLifeDays: p?.minShelfLifeDays ? String(p.minShelfLifeDays) : "", mslLevel: p?.mslLevel ?? "" });
+  const [f, setF] = useState({ condition: p?.condition ?? "ambient", hazardClass: p?.hazardClass ?? "", unitWeightKg: s(p?.unitWeightKg), unitVolumeM3: s(p?.unitVolumeM3), abcClass: p?.abcClass ?? "", minShelfLifeDays: p?.minShelfLifeDays ? String(p.minShelfLifeDays) : "", mslLevel: p?.mslLevel ?? "", ownerPartyId: p?.ownerPartyId ?? "", unitsPerPallet: s(p?.unitsPerPallet) });
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+  const clients = useQuery({ queryKey: ["/masters/parties", "customers"], queryFn: () => api<{ items: { id: string; name: string }[] }>("/masters/parties", { query: { role: "customer", limit: 200 } }) });
   async function save() {
     setMsg(null);
     try {
-      await api(`${WMS}/items/${id}/profile`, { method: "PUT", body: { condition: f.condition, hazardClass: f.hazardClass || null, unitWeightKg: f.unitWeightKg ? Number(f.unitWeightKg) : null, unitVolumeM3: f.unitVolumeM3 ? Number(f.unitVolumeM3) : null, abcClass: f.abcClass || null, minShelfLifeDays: f.minShelfLifeDays ? Number(f.minShelfLifeDays) : null, mslLevel: f.mslLevel || null } });
+      await api(`${WMS}/items/${id}/profile`, { method: "PUT", body: { condition: f.condition, hazardClass: f.hazardClass || null, unitWeightKg: f.unitWeightKg ? Number(f.unitWeightKg) : null, unitVolumeM3: f.unitVolumeM3 ? Number(f.unitVolumeM3) : null, abcClass: f.abcClass || null, minShelfLifeDays: f.minShelfLifeDays ? Number(f.minShelfLifeDays) : null, mslLevel: f.mslLevel || null, ownerPartyId: f.ownerPartyId || null, unitsPerPallet: f.unitsPerPallet ? Number(f.unitsPerPallet) : null } });
       setMsg({ tone: "success", text: "Saved." });
     } catch (err) {
       setMsg({ tone: "danger", text: err instanceof ApiError ? err.message : "Could not reach the server." });
@@ -76,6 +77,8 @@ function Form({ id, label, p, manage }: { id: string; label: string; p: Profile 
           <Field label="ABC class">{(pp) => <Select {...pp} disabled={!manage} value={f.abcClass} onChange={(e) => setF({ ...f, abcClass: e.target.value })}><option value="">Not set</option><option value="A">A (fast)</option><option value="B">B</option><option value="C">C (slow)</option></Select>}</Field>
           <Field label="Weight per unit (kg)">{(pp) => <Input {...pp} disabled={!manage} inputMode="decimal" value={f.unitWeightKg} onChange={(e) => setF({ ...f, unitWeightKg: e.target.value })} />}</Field>
           <Field label="Volume per unit (m³)">{(pp) => <Input {...pp} disabled={!manage} inputMode="decimal" value={f.unitVolumeM3} onChange={(e) => setF({ ...f, unitVolumeM3: e.target.value })} />}</Field>
+          <Field label="Owned by (3PL client)">{(pp) => <Select {...pp} disabled={!manage} value={f.ownerPartyId} onChange={(e) => setF({ ...f, ownerPartyId: e.target.value })}><option value="">Our own stock</option>{clients.data?.items.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}</Field>
+          <Field label="Units per pallet">{(pp) => <Input {...pp} disabled={!manage} inputMode="decimal" value={f.unitsPerPallet} onChange={(e) => setF({ ...f, unitsPerPallet: e.target.value })} />}</Field>
           <Field label="Moisture sensitivity (MSL)">{(pp) => <Select {...pp} disabled={!manage} value={f.mslLevel} onChange={(e) => setF({ ...f, mslLevel: e.target.value })}><option value="">Not sensitive</option>{["1", "2", "2a", "3", "4", "5", "5a", "6"].map((l) => <option key={l} value={l}>Level {l}</option>)}</Select>}</Field>
           <Field label="Least shelf life at dispatch (days)">{(pp) => <Input {...pp} disabled={!manage} type="number" value={f.minShelfLifeDays} onChange={(e) => setF({ ...f, minShelfLifeDays: e.target.value })} />}</Field>
         </div>

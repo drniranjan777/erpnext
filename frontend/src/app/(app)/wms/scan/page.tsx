@@ -5,6 +5,7 @@ import { ArrowRightLeft, ScanLine } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ItemPicker } from "@/components/item-picker";
+import { OfflineBanner } from "@/components/wms/offline-banner";
 import { NoWmsWarehouse, WarehouseSelect } from "@/components/wms/warehouse-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatQty } from "@/lib/documents";
+import { clientRef, sendOrQueue } from "@/lib/offline-queue";
 import { CONDITION_TONE, useWarehouseParam, WMS, type BinContent, type BinView } from "@/lib/wms";
 
 interface Location { warehouseId: string; warehouse: string; binId: string; bin: string; zoneKind: string; condition: string; batchKey: string; batchNo: string | null; expiryDate: string | null; qty: string; isBlocked: boolean }
@@ -40,6 +42,7 @@ function Scan() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <PageHeader title={`Scan · ${current.code}`} actions={<WarehouseSelect />} />
+      <OfflineBanner />
       <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setBin(code.trim().toUpperCase()); }}>
         <Input className="h-11 flex-1 font-mono text-lg uppercase" autoFocus placeholder="Scan a bin label" aria-label="Bin code" value={code} onChange={(e) => setCode(e.target.value)} />
         <Button type="submit" size="lg"><ScanLine className="size-5" aria-hidden /></Button>
@@ -95,11 +98,12 @@ function MoveForm({ wh, fromBinId, c, onDone }: { wh: string; fromBinId: string;
   const qc = useQueryClient();
   const [f, setF] = useState({ to: "", qty: String(Number(c.qty)), reason: "" });
   const [error, setError] = useState<string | null>(null);
+  const [ref] = useState(clientRef);
   async function save() {
     setError(null);
     try {
       const to = await api<BinView>(`${WMS}/warehouses/${wh}/bins/${encodeURIComponent(f.to.trim().toUpperCase())}`);
-      await api(`${WMS}/moves`, { body: { itemId: c.itemId, batchId: c.batchKey === "00000000-0000-0000-0000-000000000000" ? null : c.batchKey, fromBinId, toBinId: to.id, qty: Number(f.qty), overrideReason: f.reason || null } });
+      await sendOrQueue(`${WMS}/moves`, { itemId: c.itemId, batchId: c.batchKey === "00000000-0000-0000-0000-000000000000" ? null : c.batchKey, fromBinId, toBinId: to.id, qty: Number(f.qty), overrideReason: f.reason || null, clientRef: ref }, `Move ${c.code} to ${f.to.toUpperCase()}`);
       await qc.invalidateQueries({ queryKey: [WMS] });
       onDone();
     } catch (err) {

@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScanLine } from "lucide-react";
 import { Suspense, useState } from "react";
+import { OfflineBanner } from "@/components/wms/offline-banner";
 import { NoWmsWarehouse, WarehouseSelect } from "@/components/wms/warehouse-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/documents";
+import { sendOrQueue } from "@/lib/offline-queue";
 import { useWarehouseParam, WMS, type Task } from "@/lib/wms";
 
 export default function TasksPage() {
@@ -52,6 +54,7 @@ function Tasks() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader title={`Floor tasks · ${current.code}`} description="Put-away suggested by the rules (fixed bin, same batch, storage condition, hazard segregation, capacity, nearest empty). Confirm each by scanning the bin used." actions={<><WarehouseSelect />{exec && <Button onClick={plan}>Plan put-away</Button>}</>} />
+      <OfflineBanner />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Select className="h-9 w-40" aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}><option value="open">Open</option><option value="done">Done</option><option value="cancelled">Cancelled</option><option value="">All</option></Select>
       {q.isLoading && <LoadingBlock />}
@@ -98,7 +101,7 @@ function ConfirmDialog({ t, onClose }: { t: Task; onClose: () => void }) {
     setError(null);
     setBusy(true);
     try {
-      await api(`${WMS}/tasks/${t.id}/confirm`, { body: { binCode: f.binCode, qty: Number(f.qty), overrideReason: f.overrideReason || null } });
+      await sendOrQueue(`${WMS}/tasks/${t.id}/confirm`, { binCode: f.binCode, qty: Number(f.qty), overrideReason: f.overrideReason || null }, `${t.number} to ${f.binCode.toUpperCase()}`);
       onClose();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not reach the server.");

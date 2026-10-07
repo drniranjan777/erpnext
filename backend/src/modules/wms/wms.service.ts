@@ -52,8 +52,10 @@ export const profileSchema = z.object({
   abcClass: z.enum(['A', 'B', 'C']).nullable().optional(),
   minShelfLifeDays: z.number().int().min(0).max(3650).nullable().optional(),
   mslLevel: z.enum(['1', '2', '2a', '3', '4', '5', '5a', '6']).nullable().optional(),
+  ownerPartyId: z.uuid().nullable().optional(),
+  unitsPerPallet: num(1e7),
 });
-export const moveSchema = z.object({ itemId: z.uuid(), batchId: z.uuid().nullable().optional(), fromBinId: z.uuid(), toBinId: z.uuid(), qty: z.number().positive().max(1e10), overrideReason: text(200) });
+export const moveSchema = z.object({ itemId: z.uuid(), batchId: z.uuid().nullable().optional(), fromBinId: z.uuid(), toBinId: z.uuid(), qty: z.number().positive().max(1e10), overrideReason: text(200), /** Set by a handheld replaying its offline queue: the move is applied once. */ clientRef: z.string().trim().min(8).max(64).optional() });
 export const confirmSchema = z.object({ binId: z.uuid().optional(), binCode: z.string().trim().max(30).optional(), qty: z.number().positive().max(1e10), overrideReason: text(200) });
 
 /**
@@ -247,6 +249,8 @@ export class WmsService {
         abcClass: input.abcClass ?? null,
         minShelfLifeDays: input.minShelfLifeDays ?? null,
         mslLevel: input.mslLevel ?? null,
+        ownerPartyId: input.ownerPartyId ?? null,
+        unitsPerPallet: input.unitsPerPallet?.toString() ?? null,
         updatedAt: new Date(),
       };
       return (
@@ -379,6 +383,10 @@ export class WmsService {
   /** Moves stock between two bins of one warehouse (no value change). */
   move(auth: AuthContext, input: z.infer<typeof moveSchema>) {
     return this.database.run(auth, async (tx) => {
+      if (input.clientRef) {
+        const fresh = await tx.execute(sql`insert into wms_client_refs (tenant_id, ref) values (${auth.tenantId}, ${input.clientRef}) on conflict do nothing returning ref`);
+        if (!fresh.rows.length) return { ok: true, duplicate: true };
+      }
       const [from] = await tx.select().from(wmsBins).where(eq(wmsBins.id, input.fromBinId));
       const [to] = await tx.select().from(wmsBins).where(eq(wmsBins.id, input.toBinId));
       if (!from || !to) throw new NotFoundException('Bin not found');

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 11.1–11.4 done |
+| **Status** | Done (11.1–11.5) |
 | **Code** | `backend/src/modules/wms/`, `backend/src/modules/tms/`, `backend/src/modules/inventory/bins.ts`, `database/src/schema/wms.ts`, `tms.ts`, `frontend/src/app/(app)/wms/`, `tms/` |
 
 ## Approach
@@ -207,3 +207,43 @@ Schema: `database/src/schema/tms.ts`, migration 0048. Code: `backend/src/modules
 - Someone other than the person who entered it approves the bill (a reason is needed if it is above the contract) or disputes it with a reason. A disputed bill frees its trips to be billed again.
 
 Not built: route optimisation across drops, live map view, e-way bill Part-B vehicle update from the trip, and FASTag/telematics provider integrations (the positions endpoint takes their feed).
+
+## 11.5 3PL, insights, offline scanning and RFID (done)
+
+Schema: added to `database/src/schema/wms.ts`, migration 0049. Code: `backend/src/modules/wms/smart.service.ts`, `smart.ts` (pallets, pick-face levels, SGTIN-96 decoding; pure and unit tested), `frontend/src/lib/offline-queue.ts`. Pages: `/wms/3pl`, `/wms/insights`, `/wms/rfid`.
+
+**Contract warehousing (3PL)**
+- A client's goods are items whose storage profile names the client as owner, with units per pallet. They are received at no value (rate 0), so they never count as our stock value.
+- A client has a tariff per warehouse:
+  - ₹ per pallet-day;
+  - ₹ per unit received and per unit dispatched;
+  - a monthly minimum;
+  - default units per pallet;
+  - the service item used for invoicing (SAC and GST come from it). A client must be a customer, and the service item cannot be a stock item.
+- A bill for a period works out:
+  - pallet-days: each day's closing quantity of each owned item in that warehouse, rounded up to whole pallets;
+  - units in and out, ignoring reversed vouchers;
+  - a top-up to the minimum.
+- Billing (`sales.invoices.manage` too) saves the bill and raises a draft sales invoice with one line per charge. Overlapping periods are refused.
+
+**Floor insights** (`/wms/insights`)
+- Per person over a period: picks, short picks, put-aways and replenishments, units, active minutes (gaps of up to 10 minutes between confirmations) and picks per hour.
+- Count accuracy: the average over posted counts. This measures the phase's exit targets.
+- Pick-face levels from demand: the item's outbound quantity per day over 30 days.
+  - min = one day's average + half the gap to the busiest day;
+  - max = min + 3 days' average, within the bin's quantity limit.
+  - "Apply" sets them on the faces.
+
+**Offline scanning**
+- A move or task confirmation that cannot reach the server is kept in the handheld browser (localStorage). It is sent again when the connection returns; the screens show how many are waiting.
+- Moves carry a client reference (`clientRef`, kept in `wms_client_refs`), so a replay is applied once. A confirmation already done answers 409 and is dropped.
+- Other refusals on replay are shown to the user.
+
+**RFID gate (pilot)**
+- Readers post EPCs to `POST /wms/rfid/reads` (with an API key holding `wms.tasks.execute`), optionally against a delivery note. Duplicates within a batch count once.
+- A tag is resolved:
+  - first from registered tags (`/wms/rfid/tags`: EPC → item and serial);
+  - otherwise, if it is GS1 SGTIN-96, its GTIN-14 (and shorter forms) is matched against item barcodes, and its serial is kept.
+- The gate check compares a delivery's lines (quantity and serial numbers) with the tags read against it: missing units or serials, and unexpected tags.
+
+**Not built in Phase 11**: photo damage detection (needs a vision model), FASTag / telematics provider integrations, route optimisation, a client portal view for 3PL stock (the customer portal from 10.5 can be extended), and putting RFID-read cartons straight onto vehicles.
