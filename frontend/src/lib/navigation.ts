@@ -104,6 +104,7 @@ import {
   Plane,
   CalendarCog,
   Fingerprint,
+  Bot,
   Radio,
   Route,
   RotateCcw,
@@ -383,6 +384,8 @@ export const NAVIGATION: NavSection[] = [
     title: "Insights",
     items: [
       { label: "Reports", href: "/reports", icon: BarChart3 },
+      { label: "AI Inbox", href: "/ai/inbox", icon: Inbox, permissions: ["ai.inbox.use"] },
+      { label: "AI agents", href: "/ai/agents", icon: Bot, permissions: ["ai.inbox.use"] },
       { label: "AI Copilot", href: "/copilot", icon: Sparkles, comingInPhase: 6 },
     ],
   },

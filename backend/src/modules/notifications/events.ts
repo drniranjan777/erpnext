@@ -243,6 +243,15 @@ Kindly reply by ${d.dueDate}, quoting ${d.number}. ${d.contact}`,
     }),
   },
   /** Sent to a customer or dealer contact's email (not a user). */
+  /** Sent to a party's email when a person approves an agent's message (or within its guardrails). */
+  'agent.message': {
+    label: 'Message from an AI agent',
+    description: 'A follow-up an agent drafted and someone approved, such as asking a vendor for a delivery date',
+    group: 'Vendors',
+    defaults: { in_app: false, email: true, whatsapp: false },
+    mandatory: true,
+    render: (d: { subject: string; body: string }) => ({ title: d.subject, body: d.body }),
+  },
   'portal.invite': {
     label: 'Portal invitation',
     description: 'Link for a customer or dealer contact to set their portal password',

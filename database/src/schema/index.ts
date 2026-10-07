@@ -33,3 +33,4 @@ export * from './service';
 export * from './portal';
 export * from './wms';
 export * from './tms';
+export * from './ai';
