@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { documentKeys, type InboxItem } from "@/lib/documents";
 import { CommandPalette } from "@/components/command-palette";
+import { Copilot } from "@/components/copilot";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/auth";
@@ -222,6 +223,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         )}
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
         {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
+        <Copilot />
       </div>
     </div>
   );

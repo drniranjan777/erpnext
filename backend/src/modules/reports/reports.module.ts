@@ -9,6 +9,6 @@ import { ReportsService } from './reports.service';
 @Module({
   controllers: [ReportsController, BuilderController, SchedulesController],
   providers: [ReportsService, BuilderService, SchedulesService],
-  exports: [ReportsService],
+  exports: [ReportsService, BuilderService],
 })
 export class ReportsModule {}

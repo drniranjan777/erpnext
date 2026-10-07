@@ -34,6 +34,7 @@ import { ManufacturingModule } from './modules/manufacturing/manufacturing.modul
 import { QualityModule } from './modules/quality/quality.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
+import { CopilotModule } from './modules/copilot/copilot.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { DashboardsModule } from './modules/dashboards/dashboards.module';
     QualityModule,
     ReportsModule,
     DashboardsModule,
+    CopilotModule,
     AdminModule,
     PrivacyModule,
   ],

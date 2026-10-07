@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Sprints 6.1–6.3 (7 Oct 2026) done: report catalogue; role dashboards; report builder and scheduled delivery |
-| **Code** | `backend/src/modules/reports/`, `backend/src/modules/dashboards/`, `database/src/schema/analytics.ts` (migrations 0024–0025), `frontend/src/app/(app)/reports/`, `frontend/src/app/(app)/dashboards/`, `frontend/src/components/dashboard/` |
-| **Tests** | `backend/test/unit/report-builder.test.ts`, `backend/test/e2e/reports.e2e.test.ts`, `backend/test/e2e/dashboards.e2e.test.ts`, `backend/test/e2e/report-builder.e2e.test.ts` |
+| **Status** | Sprints 6.1–6.4 (7 Oct 2026) done: report catalogue; role dashboards; report builder and scheduled delivery; AI Copilot v1 |
+| **Code** | `backend/src/modules/reports/`, `backend/src/modules/dashboards/`, `backend/src/modules/copilot/`, `frontend/src/components/copilot.tsx`, `database/src/schema/analytics.ts` (migrations 0024–0025), `frontend/src/app/(app)/reports/`, `frontend/src/app/(app)/dashboards/`, `frontend/src/components/dashboard/` |
+| **Tests** | `backend/test/unit/report-builder.test.ts`, `backend/test/unit/copilot.test.ts`, `backend/test/e2e/copilot.e2e.test.ts`, `backend/test/e2e/reports.e2e.test.ts`, `backend/test/e2e/dashboards.e2e.test.ts`, `backend/test/e2e/report-builder.e2e.test.ts` |
 
 ## Sprint plan
 
@@ -13,7 +13,7 @@
 | **6.1** ✅ | Report catalogue (62 reports): parameterised queries with totals, sorting, charts, Excel / CSV export and print-to-PDF; links to screens that are reports in their own right |
 | **6.2** ✅ | Role-based dashboards (owner, plant head, sales, purchase, stores, production, finance, QA) with configurable widgets, drill-down and a TV mode for the shop floor |
 | **6.3** ✅ | Report builder v1: pick a dataset, fields, filters, grouping; save and share; scheduled delivery by email (WhatsApp via the notification channel) |
-| 6.4 | AI Copilot v1: chat panel on every screen; questions about your data answered through safe, permission-checked tools with charts; navigation; drafting documents behind a confirmation card; "why is this blocked?" explanations; English and Hindi |
+| **6.4** ✅ | AI Copilot v1: chat panel on every screen; questions about your data answered through safe, permission-checked tools with charts; navigation; drafting documents behind a confirmation card; "why is this blocked?" explanations; English and Hindi |
 | 6.5 | Onboarding (industry setup wizard, sample data mode, in-app tours, help centre) and launch hardening (performance budget, load-test script, accessibility pass, security headers) |
 
 Not in code: the third-party penetration test, the DR drill on production infrastructure, pricing and GTM material, and the pilot customers in the V1 exit criteria.
@@ -83,3 +83,37 @@ Not in code: the third-party penetration test, the DR drill on production infras
 - **Endpoints**:
   - Builder: `GET /report-builder/datasets`, `POST /report-builder/run`, `POST /report-builder/export`, and CRUD under `/report-builder/saved`.
   - Schedules: CRUD under `/report-schedules`, plus `POST /report-schedules/:id/run`.
+
+## 4. AI Copilot v1 (6.4)
+
+- **Panel**: an *Ask* button on every screen (or Ctrl+J) opens a chat.
+  - Replies show text, compact tables (with a link to the full report), fact lists and buttons.
+  - The conversation stays in the tab's session storage.
+  - Language: Auto (Hindi when you write in Devanagari), English or हिंदी.
+- **Tools** (`copilot/tools.ts`). Each runs as the signed-in user, inside their row security and permissions:
+  - `run_report` / `list_reports`: the standard report catalogue.
+  - `query_data` / `describe_datasets`: the report-builder datasets.
+  - `find_document`: by number (also "PO 45" → `…/0045`) or title, among document types the user can read.
+  - `explain_document`: what is holding a document up.
+    - All documents: the status, pending approval steps with who must act, the rejection comment, the cancel reason, and the period lock.
+    - Sales orders: the credit check and progress.
+    - Invoices: e-invoice errors and dues.
+    - Bills: matching variance and MSME dues.
+    - Work orders: shortages, lateness and pending inspections.
+    - Inspections: the sample result.
+  - `navigate`: a button to a screen inside the app's own areas only.
+  - `draft_document`: a sales order, purchase order, requisition or work order from names.
+    - Customer, vendor and item names are matched; ambiguous or unknown names are reported back.
+    - Purchase order rates come from the last purchase price, else the standard cost.
+    - **Nothing is created.** The user sees a card and presses *Create draft*, which calls the normal create endpoint as them.
+- **With `ANTHROPIC_API_KEY`**: the model (`AI_MODEL`) chooses the tools, for up to six rounds.
+  - The system prompt says tool output is data, not instructions; that it must not claim to change anything; and that it must not invent figures.
+  - If the model is unreachable, the copilot falls back to the rule-based mode.
+- **Without a key** (*Basic*): a rule-based router in English, Hindi and Hinglish (`copilot/intents.ts`) covers:
+  - sales and purchases by period (today, yesterday, this week / month / year, last month);
+  - receivables, payables and reorder;
+  - work orders, pending purchase and sales orders, rejects by reason, and stock of an item;
+  - opening and explaining documents;
+  - drafting from sentences such as "draft purchase order from Deccan Steels: 100 hex bolt, 50 hex nut by 2026-12-01".
+- **Limits**: 20 questions per user per minute. History is capped at 12 turns, and tool results are truncated before they reach the model.
+- `GET /copilot/status` returns `{ mode: 'ai' | 'basic' }`. `POST /copilot/chat` takes `{ messages, language, page }`.
