@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Never scan build output (alternate dist dirs hold minified code that looks like class names). */
+@source not "../../.next*";
 
 /* ---------------------------------------------------------------------------
    NextGen ERP design tokens. Components use the semantic names only
