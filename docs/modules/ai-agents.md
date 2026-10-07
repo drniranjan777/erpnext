@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 12.1–12.4 done |
+| **Status** | Done (12.1–12.5) |
 | **Code** | `backend/src/modules/agents/`, `database/src/schema/ai.ts`, `frontend/src/app/(app)/ai/` |
 
 ## Sprint plan
@@ -181,3 +181,34 @@ Code: `backend/src/modules/docai/` (`extractors.ts`, pure and unit tested), `bac
 - Periods: financial-year quarters, month names, last / this month, last quarter. The comparison is the period before unless two are named.
 - Margin is split into selling-price, cost and product-mix effects in three steps that add up to the change, naming the items behind the cost and price effects and the lower-margin items that grew.
 - Sales are split into price, volume, new and lost items, with the biggest movers.
+
+## 12.5 AI governance (done)
+
+Code: `backend/src/modules/ai-gov/` (`policy.ts` and `evals.ts` are pure and unit tested; `ai-gateway.service.ts`; `ai-gov.service.ts`). Migration 0053 adds the governance columns to `ai_settings` and the tables `ai_model_changes`, `ai_usage` and `ai_eval_runs`. Permission: `ai.governance.manage`. Page: `/ai/governance`.
+
+**One way out to the model.** Copilot, Document AI (scans), bill capture (scans / PDFs) and ticket replies no longer call the provider themselves; they go through `AiGateway.call(auth, feature, request)`. For every call the gateway:
+1. checks, in order: an AI key is set, the kill switch is off, the feature is on, the workspace has consented to external model use, and this month's spend is below the budget. If any check fails, nothing is sent, the attempt is recorded as `blocked` with the reason, and the caller falls back to its rule-based path (copilot, ticket replies) or shows the reason (scans);
+2. masks personal data when masking is on (the default): emails, mobile numbers, PAN, Aadhaar and labelled bank account numbers become placeholders such as `[EMAIL_1]`, and the model's answer is put back with the real values. GSTINs are kept because documents are matched on them; file data (base64) is not touched;
+3. uses the model chosen for the feature, or `AI_MODEL`;
+4. records tokens, cost, time taken, how many values were masked, and failures (`http_429`, `timeout`, …) in `ai_usage`.
+
+**Policy** (`GET` / `POST /ai/governance`)
+- Feature switches: copilot, Document AI, bill capture, ticket replies (model features) and voice, predictions (rule-based). A switched-off feature returns 403 for everyone; for bill capture and ticket replies, off means "no model".
+- Consent: recorded with who and when; withdrawing it stops all model calls. A new workspace starts **without** consent.
+- Budget: each plan includes a monthly AI budget (trial and Starter ₹500, Growth ₹2,500, Enterprise ₹15,000). A workspace may set a lower cap; a higher one is held at the plan budget. Months run in India time.
+- Cost is computed from list prices per million tokens by model family (Haiku $1 / $5, Sonnet and others $3 / $15, Opus $5 / $25) at ₹88 per US$.
+- Changes are written to the audit log.
+
+**Model registry** (`/ai/governance/models`): choose a Claude model per model feature, with a reason. Every change is a new row; the latest is in force; the list is the history.
+
+**Usage** (`/ai/governance/usage?days=30`): calls, blocked and failed calls, tokens, average time, masked values and cost by feature; cost by day; top users; reasons calls were not sent; this month's total.
+
+**Evaluations** (`/ai/governance/evals`): fixed test sets for the rule-based features, run on demand and kept as history with the previous score for comparison:
+- voice commands (the 42-phrase set from 12.3; target ≥ 90 %);
+- ticket triage (12 tickets, category and priority). Its first run found that "commissioning" was not recognised as installation; the triage rule was fixed;
+- document reading (5 documents: type and key fields).
+
+**Exit criteria for Phase 12**
+- Voice accuracy ≥ 90 % in Hindi and English: measured by the voice evaluation (unit tested).
+- AI cost within the plan budget: enforced by the gateway; spend is shown against the budget.
+- AI Inbox acceptance ≥ 60 %: measured per agent by the 12.1 evaluation (`GET /ai/evaluation`); this needs pilot data.

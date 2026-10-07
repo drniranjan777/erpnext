@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CopilotService } from '../../src/modules/copilot/copilot.service';
+import { fakeGateway } from './fake-gateway';
 import { isHindi, parseIntent, periodOf } from '../../src/modules/copilot/intents';
 
 describe('rule-based intents', () => {
@@ -64,8 +65,7 @@ describe('model loop', () => {
     );
     const tools = { run: vi.fn(async () => ({ content: '{"totals":{"value":"1000.00"}}', blocks: [{ kind: 'table', title: 'Stock summary', columns: [], rows: [] }], actions: [{ kind: 'navigate', label: 'Open', href: '/reports/stock-summary' }] })) };
     const database = { run: vi.fn(async () => [{ name: 'Asha' }]) };
-    const config = { get: (k: string) => (k === 'ANTHROPIC_API_KEY' ? 'test-key' : 'claude-test') };
-    const svc = new CopilotService(database as never, tools as never, config as never);
+    const svc = new CopilotService(database as never, tools as never, fakeGateway('test-key'));
     const out = await svc.chat({ tenantId: 't', userId: 'u', membershipId: 'm', sessionId: 's' } as never, { messages: [{ role: 'user', content: 'what is my stock worth' }], language: 'auto' });
     expect(out).toMatchObject({ mode: 'ai', reply: 'Stock is worth ₹1,000.', blocks: [{ title: 'Stock summary' }], actions: [{ href: '/reports/stock-summary' }] });
     expect(tools.run).toHaveBeenCalledWith(expect.anything(), 'run_report', { key: 'stock-summary' });
@@ -78,13 +78,13 @@ describe('model loop', () => {
   it('falls back to the rule-based answers when the model is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 529, text: async () => 'overloaded' })));
     const tools = { run: vi.fn(async () => ({ content: '{}', blocks: [{ kind: 'table', title: 'Stock summary', columns: [], rows: [], totals: { value: '250.00' } }] })) };
-    const svc = new CopilotService({ run: vi.fn(async () => []) } as never, tools as never, { get: (k: string) => (k === 'ANTHROPIC_API_KEY' ? 'k' : 'm') } as never);
+    const svc = new CopilotService({ run: vi.fn(async () => []) } as never, tools as never, fakeGateway('k'));
     const out = await svc.chat({ userId: 'u2' } as never, { messages: [{ role: 'user', content: 'stock' }], language: 'en' });
     expect(out).toMatchObject({ mode: 'basic', reply: 'Stock on hand is worth ₹250.' });
   });
 
   it('limits questions per minute', async () => {
-    const svc = new CopilotService({} as never, { run: vi.fn(async () => ({ content: '' })) } as never, { get: () => '' } as never);
+    const svc = new CopilotService({} as never, { run: vi.fn(async () => ({ content: '' })) } as never, fakeGateway(''));
     const auth = { userId: 'busy' } as never;
     for (let i = 0; i < 20; i++) await svc.chat(auth, { messages: [{ role: 'user', content: 'hello' }], language: 'en' });
     await expect(svc.chat(auth, { messages: [{ role: 'user', content: 'hello' }], language: 'en' })).rejects.toThrow(/Too many/);

@@ -391,6 +391,7 @@ export const NAVIGATION: NavSection[] = [
       { label: "Voice commands", href: "/ai/voice", icon: Mic },
       { label: "Predictions & why", href: "/ai/insights", icon: LineChart, permissions: ["ai.insights.read"] },
       { label: "Document AI", href: "/ai/documents", icon: ScanText, permissions: ["ai.documents.use"] },
+      { label: "AI governance", href: "/ai/governance", icon: Scale, permissions: ["ai.governance.manage"] },
       { label: "AI Copilot", href: "/copilot", icon: Sparkles, comingInPhase: 6 },
     ],
   },

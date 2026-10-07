@@ -372,6 +372,13 @@
       "when": 1791399718204,
       "tag": "0052_doc_captures",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1791401027084,
+      "tag": "0053_ai_governance",
+      "breakpoints": true
     }
   ]
 }

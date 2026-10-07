@@ -1,3 +1,4 @@
+import type { ModelRequest, ModelResponse } from '../../ai-gov/ai-gateway.service';
 import type { ExtractedBill } from './text-extractor';
 
 /**
@@ -47,7 +48,7 @@ const TOOL = {
 
 const clean = (v: unknown) => (v === null || v === undefined || v === '' ? null : String(v).replace(/[₹,\s]/g, ''));
 
-export async function extractWithAi(apiKey: string, model: string, file: { buffer: Buffer; mimeType: string }): Promise<ExtractedBill> {
+export async function extractWithAi(send: (req: ModelRequest) => Promise<ModelResponse>, file: { buffer: Buffer; mimeType: string }): Promise<ExtractedBill> {
   const data = file.buffer.toString('base64');
   const block =
     file.mimeType === 'application/pdf'
@@ -55,32 +56,24 @@ export async function extractWithAi(apiKey: string, model: string, file: { buffe
       : file.mimeType.startsWith('image/')
         ? { type: 'image', source: { type: 'base64', media_type: file.mimeType, data } }
         : { type: 'text', text: file.buffer.toString('utf8').slice(0, 100_000) };
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({
-      model,
-      max_tokens: 4096,
-      tools: [TOOL],
-      tool_choice: { type: 'tool', name: TOOL.name },
-      messages: [
-        {
-          role: 'user',
-          content: [
-            block,
-            {
-              type: 'text',
-              text: 'This is a purchase bill received by our company. Record every item row and the totals as printed. Use plain numbers without currency symbols or commas. Dates as YYYY-MM-DD (Indian bills are day-first). Leave a field null when it is not on the bill; never guess.',
-            },
-          ],
-        },
-      ],
-    }),
-    signal: AbortSignal.timeout(90_000),
+  const body = await send({
+    max_tokens: 4096,
+    tools: [TOOL],
+    tool_choice: { type: 'tool', name: TOOL.name },
+    messages: [
+      {
+        role: 'user',
+        content: [
+          block,
+          {
+            type: 'text',
+            text: 'This is a purchase bill received by our company. Record every item row and the totals as printed. Use plain numbers without currency symbols or commas. Dates as YYYY-MM-DD (Indian bills are day-first). Leave a field null when it is not on the bill; never guess.',
+          },
+        ],
+      },
+    ],
   });
-  if (!res.ok) throw new Error(`AI extraction failed (${res.status})`);
-  const body = (await res.json()) as { content: { type: string; input?: Record<string, unknown> }[] };
-  const out = body.content.find((c) => c.type === 'tool_use')?.input ?? {};
+  const out = (body.content.find((c) => c.type === 'tool_use') as { input?: Record<string, unknown> } | undefined)?.input ?? {};
   const lines = Array.isArray(out.lines) ? (out.lines as Record<string, unknown>[]) : [];
   return {
     supplierName: (out.supplierName as string) ?? null,

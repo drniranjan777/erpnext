@@ -67,7 +67,7 @@ export function triage(subject: string, description: string): { category: string
   const t = `${subject} ${description}`.toLowerCase();
   const reasons: string[] = [];
   let category = 'query';
-  if (/\b(install|installation|commission|setup|set up)\b/.test(t)) category = 'installation';
+  if (/\b(install|installation|installing|commission|commissioning|setup|set up)\b/.test(t)) category = 'installation';
   else if (/\b(breakdown|not working|stopped|dead|failed|failure|tripping|leak|leaking|noise|overheat)/.test(t)) category = 'breakdown';
   else if (/\b(warranty|guarantee|replace|replacement)\b/.test(t)) category = 'warranty';
   else if (/\b(complain|complaint|bad service|unhappy|poor quality|damaged|broken)/.test(t)) category = 'complaint';

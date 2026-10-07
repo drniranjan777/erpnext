@@ -1,12 +1,11 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { branches, companies, documents, gstinError, items, itemVendors, parties, purchaseInvoices } from '@nextgen/database';
 import { and, eq, ilike, isNotNull, ne } from 'drizzle-orm';
 import type { AuthContext } from '../../../common/auth-context';
 import { Decimal } from '../../../common/decimal';
 import { todayIST } from '../../../common/fiscal-year';
-import type { Env } from '../../../config/env';
 import { DatabaseService } from '../../../database/database.service';
+import { AiBlockedError, AiGateway } from '../../ai-gov/ai-gateway.service';
 import { InvoicesService } from '../invoices.service';
 import { extractWithAi } from './ai-extractor';
 import { extractFromText, type ExtractedBill } from './text-extractor';
@@ -53,20 +52,14 @@ export interface CapturedLine {
  */
 @Injectable()
 export class BillCaptureService {
-  private readonly apiKey: string;
-  private readonly model: string;
-
   constructor(
     private readonly database: DatabaseService,
     private readonly invoices: InvoicesService,
-    config: ConfigService<Env, true>,
-  ) {
-    this.apiKey = config.get('ANTHROPIC_API_KEY', { infer: true });
-    this.model = config.get('AI_MODEL', { infer: true });
-  }
+    private readonly gateway: AiGateway,
+  ) {}
 
   get aiEnabled() {
-    return !!this.apiKey;
+    return this.gateway.configured;
   }
 
   async capture(auth: AuthContext, file: { buffer: Buffer; fileName: string; mimeType: string }) {
@@ -79,8 +72,8 @@ export class BillCaptureService {
     let extracted: ExtractedBill;
     let extractor: 'ai' | 'text';
     if (this.aiEnabled && !isText) {
-      extracted = await extractWithAi(this.apiKey, this.model, file).catch((e: Error) => {
-        throw new UnprocessableEntityException(`Could not read the bill: ${e.message}`);
+      extracted = await extractWithAi((req) => this.gateway.call(auth, 'bill_capture', req, 90_000), file).catch((e: Error) => {
+        throw new UnprocessableEntityException(e instanceof AiBlockedError ? e.message : `Could not read the bill: ${e.message}`);
       });
       extractor = 'ai';
     } else if (isText) {

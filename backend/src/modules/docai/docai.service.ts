@@ -1,12 +1,11 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { aiDocCaptures, itemVendors, type Transaction } from '@nextgen/database';
 import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { loadPermissions } from '../../common/guards';
-import type { Env } from '../../config/env';
 import { DatabaseService } from '../../database/database.service';
+import { AiBlockedError, AiGateway } from '../ai-gov/ai-gateway.service';
 import { extractDocument, type DocKind, type Extracted } from './extractors';
 
 const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
@@ -21,28 +20,19 @@ export const textSchema = z.object({ text: z.string().min(10).max(200_000), kind
  */
 @Injectable()
 export class DocAiService {
-  private readonly apiKey: string;
-  private readonly model: string;
-
   constructor(
     private readonly database: DatabaseService,
-    config: ConfigService<Env, true>,
-  ) {
-    this.apiKey = config.get('ANTHROPIC_API_KEY', { infer: true });
-    this.model = config.get('AI_MODEL', { infer: true });
-  }
+    private readonly gateway: AiGateway,
+  ) {}
 
   /** Plain text of a file: text files directly; PDFs and images through the model. */
-  private async textOf(file: { buffer: Buffer; mimeType: string; name: string }): Promise<{ text: string; source: 'text' | 'ai' }> {
+  private async textOf(auth: AuthContext, file: { buffer: Buffer; mimeType: string; name: string }): Promise<{ text: string; source: 'text' | 'ai' }> {
     if (file.mimeType.startsWith('text/') || /\.(txt|csv)$/i.test(file.name)) return { text: file.buffer.toString('utf8'), source: 'text' };
-    if (!this.apiKey) throw new UnprocessableEntityException('Reading scans, photos and PDFs needs AI (set ANTHROPIC_API_KEY). Paste or upload the document as text instead.');
+    if (!this.gateway.configured) throw new UnprocessableEntityException('Reading scans, photos and PDFs needs AI (set ANTHROPIC_API_KEY). Paste or upload the document as text instead.');
     const data = file.buffer.toString('base64');
     const block = file.mimeType === 'application/pdf' ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } } : { type: 'image', source: { type: 'base64', media_type: file.mimeType, data } };
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': this.apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: this.model,
+    const body = await this.gateway
+      .call(auth, 'document_ai', {
         max_tokens: 4096,
         messages: [
           {
@@ -53,12 +43,11 @@ export class DocAiService {
             ],
           },
         ],
-      }),
-      signal: AbortSignal.timeout(90_000),
-    });
-    if (!res.ok) throw new UnprocessableEntityException(`Could not read the document (AI ${res.status})`);
-    const body = (await res.json()) as { content: { type: string; text?: string }[] };
-    return { text: body.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n'), source: 'ai' };
+      }, 90_000)
+      .catch((e: Error) => {
+        throw new UnprocessableEntityException(e instanceof AiBlockedError ? e.message : `Could not read the document (${e.message.slice(0, 60)})`);
+      });
+    return { text: body.content.filter((c) => c.type === 'text').map((c) => (c as { text: string }).text).join('\n'), source: 'ai' };
   }
 
   /** Links what was read to records: parties by GSTIN, items by name, documents by number. */
@@ -114,7 +103,8 @@ export class DocAiService {
   }
 
   async read(auth: AuthContext, input: { text?: string; file?: { buffer: Buffer; mimeType: string; name: string }; kind?: DocKind; fileName?: string }) {
-    const got = input.file ? await this.textOf(input.file) : { text: input.text ?? '', source: 'text' as const };
+    await this.gateway.assertEnabled(auth.tenantId, 'document_ai');
+    const got = input.file ? await this.textOf(auth, input.file) : { text: input.text ?? '', source: 'text' as const };
     if (got.text.trim().length < 10) throw new BadRequestException('The document is empty');
     const r = extractDocument(got.text, input.kind);
     return this.database.run(auth, async (tx) => {

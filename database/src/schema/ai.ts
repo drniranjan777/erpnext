@@ -25,6 +25,16 @@ export const aiSettings = pgTable(
     killedBy: uuid('killed_by').references(() => users.id, { onDelete: 'set null' }),
     killedAt: timestamp('killed_at', { withTimezone: true }),
     killReason: text('kill_reason'),
+    /** AI features switched off for the workspace (feature code → false). Missing means on. */
+    features: jsonb('features').$type<Record<string, boolean>>().notNull().default({}),
+    /** Consent to send workspace data to the external model provider; no model calls without it. */
+    externalConsentAt: timestamp('external_consent_at', { withTimezone: true }),
+    externalConsentBy: uuid('external_consent_by').references(() => users.id, { onDelete: 'set null' }),
+    /** Mask emails, phone numbers, PAN, Aadhaar and bank account numbers before they leave. */
+    maskPii: boolean('mask_pii').notNull().default(true),
+    /** Monthly model spend cap in ₹; null uses the plan's budget. */
+    monthlyBudgetInr: numeric('monthly_budget_inr', { precision: 12, scale: 2 }),
+    updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('ai_settings_tenant_uq').on(t.tenantId)],
@@ -186,4 +196,59 @@ export const aiDocCaptures = pgTable(
     appliedAt: timestamp('applied_at', { withTimezone: true }),
   },
   (t) => [index('ai_doc_captures_idx').on(t.tenantId, t.status, t.createdAt)],
+);
+
+/** Model chosen for an AI feature; every change is a new row, the latest is in force. */
+export const aiModelChanges = pgTable(
+  'ai_model_changes',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    feature: text('feature').notNull(),
+    model: text('model').notNull(),
+    note: text('note'),
+    changedBy: uuid('changed_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('ai_model_changes_idx').on(t.tenantId, t.feature, t.createdAt)],
+);
+
+/** One model call (or a call that was blocked by policy), with tokens and cost. */
+export const aiUsage = pgTable(
+  'ai_usage',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    feature: text('feature').notNull(),
+    model: text('model'),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    costInr: numeric('cost_inr', { precision: 12, scale: 4 }).notNull().default('0'),
+    latencyMs: integer('latency_ms'),
+    /** ok | error | blocked */
+    status: text('status').notNull(),
+    /** Why a call was blocked or failed (off, no_consent, budget, http_429, …). */
+    reason: text('reason'),
+    piiMasked: integer('pii_masked').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('ai_usage_idx').on(t.tenantId, t.createdAt)],
+);
+
+/** A run of an evaluation set against the AI features, kept to track quality over time. */
+export const aiEvalRuns = pgTable(
+  'ai_eval_runs',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    suite: text('suite').notNull(),
+    cases: integer('cases').notNull(),
+    passed: integer('passed').notNull(),
+    scorePct: numeric('score_pct', { precision: 5, scale: 1 }).notNull(),
+    details: jsonb('details').$type<Record<string, unknown>>().notNull().default({}),
+    runBy: uuid('run_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('ai_eval_runs_idx').on(t.tenantId, t.suite, t.createdAt)],
 );

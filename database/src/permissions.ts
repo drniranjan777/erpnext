@@ -42,6 +42,7 @@ export const PERMISSIONS = {
   'ai.inbox.use': 'See AI agent recommendations and approve or dismiss them (each action still needs its own permission)',
   'ai.documents.use': 'Read documents with Document AI (challans, e-way bills, CoAs, quotations, bank statements)',
   'ai.insights.read': 'See predictions: collections, price forecasts and why-analysis of sales and margin',
+  'ai.governance.manage': 'Set the AI policy (features, consent, PII masking, budget, models) and see AI usage and evaluations',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',
   // Purchase
   'purchase.requisitions.read': 'View purchase requisitions',

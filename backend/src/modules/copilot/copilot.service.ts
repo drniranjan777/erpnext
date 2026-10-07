@@ -1,12 +1,11 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { users } from '@nextgen/database';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
-import type { Env } from '../../config/env';
 import { DatabaseService } from '../../database/database.service';
+import { AiBlockedError, AiGateway } from '../ai-gov/ai-gateway.service';
 import { HELP, isHindi, parseIntent, periodOf, type Lang } from './intents';
 import { CopilotTools, TOOL_DEFS, type Action, type Block, type ToolResult } from './tools';
 
@@ -42,21 +41,16 @@ const money = (v: string | number | undefined) => `₹${Number(v ?? 0).toLocaleS
 @Injectable()
 export class CopilotService {
   private readonly logger = new Logger('Copilot');
-  private readonly apiKey: string;
-  private readonly model: string;
   private readonly calls = new Map<string, number[]>();
 
   constructor(
     private readonly database: DatabaseService,
     private readonly tools: CopilotTools,
-    config: ConfigService<Env, true>,
-  ) {
-    this.apiKey = config.get('ANTHROPIC_API_KEY', { infer: true });
-    this.model = config.get('AI_MODEL', { infer: true });
-  }
+    private readonly gateway: AiGateway,
+  ) {}
 
   get mode() {
-    return this.apiKey ? 'ai' : 'basic';
+    return this.gateway.configured ? 'ai' : 'basic';
   }
 
   private limit(userId: string) {
@@ -71,11 +65,12 @@ export class CopilotService {
     this.limit(auth.userId);
     const last = input.messages[input.messages.length - 1].content;
     const lang: Lang = input.language === 'auto' ? (isHindi(last) ? 'hi' : 'en') : input.language;
-    if (this.apiKey) {
+    await this.gateway.assertEnabled(auth.tenantId, 'copilot');
+    if (this.gateway.configured) {
       try {
         return await this.withModel(auth, input, lang);
       } catch (e) {
-        this.logger.warn(`Model call failed, answering without it: ${e instanceof Error ? e.message : e}`);
+        if (!(e instanceof AiBlockedError)) this.logger.warn(`Model call failed, answering without it: ${e instanceof Error ? e.message : e}`);
       }
     }
     return this.basic(auth, last, lang);
@@ -108,14 +103,8 @@ export class CopilotService {
     const blocks: Block[] = [];
     const actions: Action[] = [];
     for (let round = 0; round < MAX_ROUNDS; round++) {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-api-key': this.apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: this.model, max_tokens: 1500, system, tools: TOOL_DEFS, messages }),
-        signal: AbortSignal.timeout(60_000),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
-      const body = (await res.json()) as { stop_reason: string; content: ({ type: 'text'; text: string } | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> })[] };
+      const res = await this.gateway.call(auth, 'copilot', { max_tokens: 1500, system, tools: TOOL_DEFS, messages }, 60_000);
+      const body = res as { stop_reason: string; content: ({ type: 'text'; text: string } | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> })[] };
       messages.push({ role: 'assistant', content: body.content });
       const uses = body.content.filter((c): c is { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> } => c.type === 'tool_use');
       if (body.stop_reason !== 'tool_use' || !uses.length) {

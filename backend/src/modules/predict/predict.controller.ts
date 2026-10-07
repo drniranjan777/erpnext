@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { AppRequest, AuthContext } from '../../common/auth-context';
 import { Auth, RequirePermissions } from '../../common/decorators';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
+import { AiGateway } from '../ai-gov/ai-gateway.service';
 import { DocAiService, textSchema } from '../docai/docai.service';
 import type { DocKind } from '../docai/extractors';
 import { PredictService } from './predict.service';
@@ -16,24 +17,30 @@ const DOC_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp', '
 @ApiBearerAuth()
 @Controller('insights')
 export class PredictController {
-  constructor(private readonly predict: PredictService) {}
+  constructor(
+    private readonly predict: PredictService,
+    private readonly gateway: AiGateway,
+  ) {}
 
   @Get('collections')
   @RequirePermissions('ai.insights.read', 'sales.invoices.read')
-  collections(@Auth() auth: AuthContext, @Query(body(z.object({ weeks: z.coerce.number().int().min(1).max(26).default(8) }))) q: { weeks: number }) {
+  async collections(@Auth() auth: AuthContext, @Query(body(z.object({ weeks: z.coerce.number().int().min(1).max(26).default(8) }))) q: { weeks: number }) {
+    await this.gateway.assertEnabled(auth.tenantId, 'insights');
     return this.predict.collections(auth, q.weeks);
   }
 
   @Get('prices')
   @RequirePermissions('ai.insights.read', 'purchase.orders.read')
-  prices(@Auth() auth: AuthContext, @Query(body(z.object({ itemId: z.uuid().optional(), horizon: z.coerce.number().int().min(1).max(12).default(3) }))) q: { itemId?: string; horizon: number }) {
+  async prices(@Auth() auth: AuthContext, @Query(body(z.object({ itemId: z.uuid().optional(), horizon: z.coerce.number().int().min(1).max(12).default(3) }))) q: { itemId?: string; horizon: number }) {
+    await this.gateway.assertEnabled(auth.tenantId, 'insights');
     return this.predict.prices(auth, q.itemId, q.horizon);
   }
 
   @Post('why')
   @HttpCode(200)
   @RequirePermissions('ai.insights.read', 'sales.invoices.read')
-  why(@Auth() auth: AuthContext, @Body(body(z.object({ question: z.string().trim().min(3).max(300) }))) b: { question: string }) {
+  async why(@Auth() auth: AuthContext, @Body(body(z.object({ question: z.string().trim().min(3).max(300) }))) b: { question: string }) {
+    await this.gateway.assertEnabled(auth.tenantId, 'insights');
     return this.predict.why(auth, b.question);
   }
 }

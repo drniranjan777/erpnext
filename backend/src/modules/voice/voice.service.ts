@@ -7,6 +7,7 @@ import { todayIST } from '../../common/fiscal-year';
 import { loadPermissions } from '../../common/guards';
 import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
+import { AiGateway } from '../ai-gov/ai-gateway.service';
 import { CopilotService } from '../copilot/copilot.service';
 import { createWorkOrderSchema, WorkOrdersService } from '../manufacturing/work-orders.service';
 import { createRequisitionSchema } from '../purchase/requisitions.schemas';
@@ -43,6 +44,7 @@ export class VoiceService {
   constructor(
     private readonly database: DatabaseService,
     private readonly copilot: CopilotService,
+    private readonly gateway: AiGateway,
     private readonly workOrders: WorkOrdersService,
     private readonly requisitions: RequisitionsService,
   ) {}
@@ -64,6 +66,7 @@ export class VoiceService {
   }
 
   async interpret(auth: AuthContext, input: z.infer<typeof interpretSchema>): Promise<Reply> {
+    await this.gateway.assertEnabled(auth.tenantId, 'voice');
     const p = parseCommand(input.text);
     const hi = this.hi(input.lang);
     const log = async (outcome: string, extra: Partial<typeof aiVoiceLogs.$inferInsert> = {}) =>
