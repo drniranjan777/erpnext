@@ -104,6 +104,10 @@ import {
   Plane,
   CalendarCog,
   Fingerprint,
+  SlidersHorizontal,
+  Kanban,
+  Magnet,
+  Radar,
   ReceiptIndianRupee,
   House,
   GraduationCap,
@@ -238,6 +242,15 @@ export const NAVIGATION: NavSection[] = [
       { label: "Inputs & loans", href: "/payroll/inputs", icon: HandCoins, permissions: ["payroll.salaries.read"] },
       { label: "Payroll setup", href: "/payroll/setup", icon: Settings2, permissions: ["payroll.salaries.read"] },
       { label: "My pay", href: "/payroll/my", icon: Wallet, permissions: ["hr.self.use"] },
+    ],
+  },
+  {
+    title: "CRM",
+    items: [
+      { label: "CRM home", href: "/crm", icon: Radar, permissions: ["crm.leads.read"] },
+      { label: "Leads", href: "/crm/leads", icon: Magnet, permissions: ["crm.leads.read"] },
+      { label: "Pipeline", href: "/crm/pipeline", icon: Kanban, permissions: ["crm.opportunities.read"] },
+      { label: "CRM setup", href: "/crm/setup", icon: SlidersHorizontal, permissions: ["crm.opportunities.read"] },
     ],
   },
   {

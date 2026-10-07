@@ -13,6 +13,6 @@ import { SalesController } from './sales.controller';
   imports: [InventoryModule, ComplianceModule],
   controllers: [SalesController],
   providers: [QuotationsService, SalesOrdersService, DeliveriesService, SalesInvoicesService, CreditNotesService],
-  exports: [SalesInvoicesService],
+  exports: [SalesInvoicesService, QuotationsService, SalesOrdersService],
 })
 export class SalesModule {}

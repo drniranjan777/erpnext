@@ -26,3 +26,4 @@ export * from './attendance';
 export * from './payroll';
 export * from './talent';
 export * from './contract';
+export * from './crm';

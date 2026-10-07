@@ -39,6 +39,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { EngineeringModule } from './modules/engineering/engineering.module';
 import { HrModule } from './modules/hr/hr.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
+import { CrmModule } from './modules/crm/crm.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { QmsModule } from './modules/qms/qms.module';
 import { PlanningModule } from './modules/planning/planning.module';
@@ -90,6 +91,7 @@ import { ProcessModule } from './modules/process/process.module';
     MaintenanceModule,
     HrModule,
     PayrollModule,
+    CrmModule,
     AdminModule,
     PrivacyModule,
   ],

@@ -90,7 +90,12 @@ export class QuotationsService implements OnModuleInit {
   }
 
   create(auth: AuthContext, input: CreateQuotationInput, meta: RequestMeta) {
-    return this.database.run(auth, async (tx) => {
+    return this.database.run(auth, (tx) => this.createTx(tx, auth, input, meta));
+  }
+
+  /** Creates a draft quotation inside the caller's transaction (used by CRM and CPQ). */
+  async createTx(tx: Transaction, auth: AuthContext, input: CreateQuotationInput, meta: RequestMeta) {
+    {
       const customer = await loadCustomer(tx, input.customerId, input.shippingAddressId);
       const customFields = await this.customFields.validate(tx, DOC_TYPE, input.customFields);
       const doc = await this.documents.create(tx, auth, { customFields, docType: DOC_TYPE, companyId: input.companyId, branchId: input.branchId, docDate: input.docDate ?? todayIST(), title: null, amount: null });
@@ -100,7 +105,7 @@ export class QuotationsService implements OnModuleInit {
       const updated = await this.documents.update(tx, auth, doc, { title: `${customer.name}: ${priced.lines[0].description}${priced.lines.length > 1 ? ` + ${priced.lines.length - 1} more` : ''}`.slice(0, 200), amount: priced.header.grandTotal });
       await this.documents.log(tx, auth, updated, 'document.created', meta, { customer: customer.code, amount: updated.amount });
       return this.view(tx, auth, updated);
-    });
+    }
   }
 
   update(auth: AuthContext, id: string, input: CreateQuotationInput & { version: number }, meta: RequestMeta) {

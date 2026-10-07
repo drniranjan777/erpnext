@@ -32,7 +32,11 @@ async function bootstrap() {
     // Swagger UI needs inline scripts/styles
     contentSecurityPolicy: config.get('NODE_ENV', { infer: true }) === 'production' ? undefined : false,
   });
-  app.enableCors({ origin: config.get('CORS_ORIGINS', { infer: true }), credentials: true });
+  // Public endpoints (website enquiry forms) take requests from any site, without cookies.
+  const corsOrigins = config.get('CORS_ORIGINS', { infer: true });
+  app.enableCors({
+    delegator: (req, cb) => cb(null, req.url.startsWith('/api/v1/public/') ? { origin: '*', credentials: false } : { origin: corsOrigins, credentials: true }),
+  });
   // Performance budget: every response says how long it took, and slow ones are logged.
   const slowMs = config.get('SLOW_REQUEST_MS', { infer: true });
   const perf = new Logger('Perf');
