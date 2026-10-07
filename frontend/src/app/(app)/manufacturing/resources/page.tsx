@@ -83,7 +83,7 @@ function EditDialog({ edit, wcs, machines, onClose, onDone }: { edit: NonNullabl
   const [f, setF] = useState<Record<string, string>>((): Record<string, string> => {
     const s = (k: string, d = "") => (r?.[k] === null || r?.[k] === undefined ? d : String(r[k]));
     if (edit.kind === "wc") return { code: s("code"), name: s("name"), kind: s("kind", "machine"), hoursPerDay: s("hoursPerDay", "8"), units: s("units", "1"), efficiencyPct: s("efficiencyPct", "100"), labourRate: s("labourRate", "0"), machineRate: s("machineRate", "0"), overheadRate: s("overheadRate", "0") };
-    if (edit.kind === "machine") return { code: s("code"), name: s("name"), workCenterId: s("workCenterId", wcs[0]?.id ?? ""), make: s("make"), model: s("model"), serialNo: s("serialNo"), capacity: s("capacity") };
+    if (edit.kind === "machine") return { code: s("code"), name: s("name"), workCenterId: s("workCenterId", wcs[0]?.id ?? ""), make: s("make"), model: s("model"), serialNo: s("serialNo"), capacity: s("capacity"), requiresCleaning: s("requiresCleaning", "false") };
     return { code: s("code"), name: s("name"), kind: s("kind", "mould"), cavities: s("cavities", "1"), lifeShots: s("lifeShots"), maintenanceEvery: s("maintenanceEvery"), machineId: s("machineId"), status: s("status", "available") };
   });
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +98,7 @@ function EditDialog({ edit, wcs, machines, onClose, onDone }: { edit: NonNullabl
         ? { ...f, units: Number(f.units) }
         : edit.kind === "tool"
           ? { ...f, cavities: Number(f.cavities), lifeShots: f.lifeShots ? Number(f.lifeShots) : null, maintenanceEvery: f.maintenanceEvery ? Number(f.maintenanceEvery) : null, machineId: f.machineId || null }
-          : { ...f, make: f.make || null, model: f.model || null, serialNo: f.serialNo || null, capacity: f.capacity || null };
+          : { ...f, make: f.make || null, model: f.model || null, serialNo: f.serialNo || null, capacity: f.capacity || null, requiresCleaning: f.requiresCleaning === "true" };
     try {
       await api(`${MFG}/${path}${edit.row ? `/${edit.row.id}` : ""}`, { method: edit.row ? "PUT" : "POST", body });
       onDone();
@@ -134,6 +134,10 @@ function EditDialog({ edit, wcs, machines, onClose, onDone }: { edit: NonNullabl
             <Field label="Capacity">{(p) => <Input {...p} placeholder="250 T, 5-axis…" value={f.capacity} onChange={set("capacity")} />}</Field>
             <Field label="Make">{(p) => <Input {...p} value={f.make} onChange={set("make")} />}</Field>
             <Field label="Serial no.">{(p) => <Input {...p} value={f.serialNo} onChange={set("serialNo")} />}</Field>
+            <label className="flex items-center gap-2 text-sm sm:col-span-2">
+              <input type="checkbox" checked={f.requiresCleaning === "true"} onChange={(e) => setF({ ...f, requiresCleaning: String(e.target.checked) })} />
+              Process equipment: must be cleaned before each batch
+            </label>
           </div>
         )}
         {edit.kind === "tool" && (

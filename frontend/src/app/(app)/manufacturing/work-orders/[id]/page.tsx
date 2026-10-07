@@ -284,7 +284,7 @@ export default function WorkOrderPage() {
               <tr key={m.id}>
                 <td className="px-4 py-2">
                   <span className="font-mono text-xs text-muted">{m.code}</span> {m.name}
-                  {m.kind !== "component" && <Badge className="ml-1">{m.kind === "byproduct" ? "By-product" : "Scrap"}</Badge>}
+                  {m.kind !== "component" && <Badge className="ml-1">{m.kind === "byproduct" ? "By-product" : m.kind === "coproduct" ? "Co-product" : "Scrap"}</Badge>}
                 </td>
                 <td className="px-4 py-2 text-muted">{m.operationSeq ?? "—"}</td>
                 <td className="px-4 py-2 text-right tabular-nums">
@@ -645,7 +645,7 @@ function ReceiveDialog({ w, onClose, onDone }: { w: WorkOrder; onClose: () => vo
           {(p) => <Input {...p} value={f.batchNo} onChange={(e) => setF({ ...f, batchNo: e.target.value })} />}
         </Field>
         {byps.map((m) => (
-          <Field key={m.id} label={`${m.kind === "byproduct" ? "By-product" : "Scrap"}: ${m.code} (${m.uom})`} hint={`Expected ${formatQty(m.requiredQty)}`}>
+          <Field key={m.id} label={`${m.kind === "byproduct" ? "By-product" : m.kind === "coproduct" ? "Co-product" : "Scrap"}: ${m.code} (${m.uom})`} hint={`Expected ${formatQty(m.requiredQty)}`}>
             {(p) => <Input {...p} inputMode="decimal" value={byp[m.id] ?? ""} onChange={(e) => setByp({ ...byp, [m.id]: e.target.value })} />}
           </Field>
         ))}

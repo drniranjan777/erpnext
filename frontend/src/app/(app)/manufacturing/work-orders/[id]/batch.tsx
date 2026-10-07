@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Scale } from "lucide-react";
+import { Palette, Scale } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Info } from "@/components/documents/doc-page";
-import { Input } from "@/components/ui/field";
+import { Field, Input } from "@/components/ui/field";
+import { ItemPicker } from "@/components/item-picker";
 import { api, ApiError } from "@/lib/api";
 import { formatQty } from "@/lib/documents";
 import type { WorkOrder } from "@/lib/manufacturing";
@@ -19,13 +20,14 @@ import { BASIS_LABEL, PROC, type BatchView } from "@/lib/process";
 export function BatchPanel({ w, onChanged }: { w: WorkOrder; onChanged: (text: string) => void }) {
   const q = useQuery({ queryKey: [PROC, "batch", w.id, w.version], queryFn: () => api<BatchView>(`${PROC}/batches/${w.id}`) });
   const [dispensing, setDispensing] = useState(false);
+  const [correcting, setCorrecting] = useState(false);
   const b = q.data;
   if (!b) return null;
   const ingredients = b.materials.filter((m) => m.kind === "component");
   return (
     <>
       <Card>
-        <CardHeader title="Batch" action={w.canProduce && <Button size="sm" onClick={() => setDispensing(true)}><Scale className="size-4" aria-hidden /> Dispense</Button>} />
+        <CardHeader title="Batch" action={w.canProduce && <div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => setCorrecting(true)}><Palette className="size-4" aria-hidden /> Correction</Button><Button size="sm" onClick={() => setDispensing(true)}><Scale className="size-4" aria-hidden /> Dispense</Button></div>} />
         <dl className="grid gap-4 border-t border-border px-5 py-4 text-sm sm:grid-cols-4">
           <Info label="Formula" value={w.formulaId && b.formula ? <Link className="text-primary hover:underline" href={`${PROC}/formulas/${w.formulaId}`}>{b.formula.number} v{b.formula.version}</Link> : null} />
           <Info label="Batch number" value={b.batchNo} />
@@ -56,6 +58,16 @@ export function BatchPanel({ w, onChanged }: { w: WorkOrder; onChanged: (text: s
             </tbody>
           </table>
         </Card>
+      )}
+      {correcting && (
+        <CorrectionDialog
+          woId={w.id}
+          onClose={() => setCorrecting(false)}
+          onDone={(t) => {
+            setCorrecting(false);
+            onChanged(t);
+          }}
+        />
       )}
       {dispensing && (
         <DispenseDialog
@@ -123,6 +135,37 @@ function DispenseDialog({ woId, ingredients, onClose, onDone }: { woId: string; 
           ))}
         </tbody>
       </table>
+    </Dialog>
+  );
+}
+
+function CorrectionDialog({ woId, onClose, onDone }: { woId: string; onClose: () => void; onDone: (text: string) => void }) {
+  const [item, setItem] = useState<{ id: string; label: string } | null>(null);
+  const [f, setF] = useState({ qty: "", batchNo: "", reason: "", checkedBy: "" });
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function go() {
+    if (!item) return setError("Choose what is being added");
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api<{ entry: { number: string } }>(`${PROC}/batches/${woId}/correction`, { body: { itemId: item.id, qty: f.qty, batchNo: f.batchNo || null, reason: f.reason, checkedBy: f.checkedBy || null } });
+      onDone(`${r.entry.number}: correction of ${f.qty} ${item.label} added.`);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not reach the server.");
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog open onClose={onClose} title="Correction" description="An addition the formula does not have, such as a shade, viscosity or pH correction. It is issued to the batch and kept in the dispensing record." footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button onClick={go} loading={busy}>Add to batch</Button></>}>
+      {error && <Alert>{error}</Alert>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Item" className="sm:col-span-2">{() => (item ? <div className="flex items-center gap-2 text-sm">{item.label}<Button size="sm" variant="ghost" onClick={() => setItem(null)}>Change</Button></div> : <ItemPicker onPick={(it) => setItem({ id: it.id, label: `${it.code} ${it.name}` })} stockOnly />)}</Field>
+        <Field label="Quantity">{(p) => <Input {...p} inputMode="decimal" value={f.qty} onChange={(e) => setF({ ...f, qty: e.target.value })} />}</Field>
+        <Field label="Lot">{(p) => <Input {...p} value={f.batchNo} onChange={(e) => setF({ ...f, batchNo: e.target.value })} />}</Field>
+        <Field label="Why" className="sm:col-span-2">{(p) => <Input {...p} placeholder="Shade too light against standard" value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} />}</Field>
+        <Field label="Checked by">{(p) => <Input {...p} value={f.checkedBy} onChange={(e) => setF({ ...f, checkedBy: e.target.value })} />}</Field>
+      </div>
     </Dialog>
   );
 }

@@ -3,6 +3,7 @@ import {
   documents,
   items,
   jobCards,
+  machineCleanings,
   machines,
   productionEntries,
   productionEntryLines,
@@ -403,12 +404,31 @@ export class ProductionService implements OnModuleInit {
       const good = D(e.goodQty);
       const doneBefore = D(w.producedQty).add(D(w.rejectedQty));
       const finishes = D(w.producedQty).add(good).cmp(D(w.qty)) >= 0;
-      const value = outputValue({ stdUnitCost: w.kind === 'rework' ? '0' : w.stdUnitCost, pieces: pieces.toFixed(4), wip: wipBalance(running), woQty: w.qty, doneBefore: doneBefore.toFixed(4), finishes });
+      const std = w.kind === 'rework' ? '0' : w.stdUnitCost;
+      let value = outputValue({ stdUnitCost: std, pieces: pieces.toFixed(4), wip: wipBalance(running), woQty: w.qty, doneBefore: doneBefore.toFixed(4), finishes });
+      // Co-products carry their share of the batch cost; the main output keeps the rest.
+      const cos = lines.filter((l) => l.kind === 'coproduct');
+      if (cos.length) {
+        const coMats = await tx.select({ id: workOrderMaterials.id, share: workOrderMaterials.costSharePct }).from(workOrderMaterials).where(inArray(workOrderMaterials.id, cos.map((c) => c.materialId!)));
+        const shareOf = (materialId: string | null) => D(coMats.find((m) => m.id === materialId)?.share ?? '0');
+        const coShare = cos.reduce((s, l) => s.add(shareOf(l.materialId)), ZERO);
+        const HUNDRED = D('100');
+        // At standard the main output's value is known and the pool is grossed up; at actual the pool is the WIP taken.
+        const pool = D(std).cmp(ZERO) > 0 ? (coShare.cmp(HUNDRED) < 0 ? value.mul(HUNDRED).div(HUNDRED.sub(coShare)) : value) : value;
+        if (D(std).cmp(ZERO) <= 0) value = pool.mul(HUNDRED.sub(coShare)).div(HUNDRED).round(2);
+        const coValues = cos.map((l) => pool.mul(shareOf(l.materialId)).div(HUNDRED).round(2));
+        const posted = await this.stock.post(tx, auth, voucher, cos.map((l, i) => move(l, 1, coValues[i].div(D(l.qty)).toFixed(6))));
+        for (const [i, l] of cos.entries()) {
+          await record(l, D(posted[i].value));
+          totals.output = totals.output.add(D(posted[i].value));
+          await tx.update(workOrderMaterials).set({ receivedQty: sql`${workOrderMaterials.receivedQty} + ${l.qty}::numeric` }).where(eq(workOrderMaterials.id, l.materialId!));
+        }
+      }
       if (outs.length) {
         const rate = value.div(pieces).toFixed(6);
         const posted = await this.stock.post(tx, auth, voucher, outs.map((l) => move(l, 1, rate)));
         for (const [i, l] of outs.entries()) await record(l, D(posted[i].value));
-        totals.output = outs.reduce((s, _l, i) => s.add(D(posted[i].value)), ZERO);
+        totals.output = totals.output.add(outs.reduce((s, _l, i) => s.add(D(posted[i].value)), ZERO));
       }
       const produced = D(w.producedQty).add(good);
       Object.assign(patch, { producedQty: produced.toFixed(4), rejectedQty: D(w.rejectedQty).add(D(e.rejectQty)).toFixed(4), stage: produced.cmp(D(w.qty)) >= 0 ? 'completed' : 'in_progress' });
@@ -454,8 +474,17 @@ export class ProductionService implements OnModuleInit {
     const op = await this.operation(tx, input.operationId);
     const wo = await this.openOrder(tx, op.workOrderId);
     if (input.machineId) {
-      const [m] = await tx.select({ workCenterId: machines.workCenterId }).from(machines).where(eq(machines.id, input.machineId));
+      const [m] = await tx.select().from(machines).where(eq(machines.id, input.machineId)).for('update');
       if (!m) throw new BadRequestException('Machine not found');
+      if (m.requiresCleaning) {
+        // Process equipment: clean before use, and a full clean when the product changes.
+        if (m.cleanStatus !== 'clean') throw new ConflictException(`${m.code} is ${m.cleanStatus === 'in_use' ? 'in use' : 'not cleaned'}; record its cleaning first`);
+        if (m.lastItemId && m.lastItemId !== wo.wo.itemId) {
+          const [last] = await tx.select({ kind: machineCleanings.kind }).from(machineCleanings).where(eq(machineCleanings.machineId, m.id)).orderBy(desc(machineCleanings.cleanedAt)).limit(1);
+          if (!last || last.kind === 'minor') throw new ConflictException(`${m.code} last ran another product; it needs a product-change cleaning`);
+        }
+        await tx.update(machines).set({ cleanStatus: 'in_use', lastItemId: wo.wo.itemId }).where(eq(machines.id, m.id));
+      }
     }
     const toolId = input.toolId ?? op.toolId;
     let operatorName = input.operatorName;
@@ -521,6 +550,8 @@ export class ProductionService implements OnModuleInit {
       .update(workOrderOperations)
       .set({ goodQty: opGood.toFixed(4), rejectQty: opRej.toFixed(4), actualMinutes: D(op.actualMinutes).add(D(minutes)).toFixed(2), status: opGood.add(opRej).cmp(D(wo.wo.qty)) >= 0 ? 'done' : 'in_progress' })
       .where(eq(workOrderOperations.id, op.id));
+    // Process equipment is dirty once the sitting ends.
+    if (card.machineId) await tx.update(machines).set({ cleanStatus: 'dirty' }).where(and(eq(machines.id, card.machineId), eq(machines.requiresCleaning, true)));
     for (const l of this.cardListeners) await l(tx, auth, updated, op);
     return updated;
   }

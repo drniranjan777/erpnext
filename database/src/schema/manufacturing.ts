@@ -57,6 +57,12 @@ export const machines = pgTable(
     serialNo: text('serial_no'),
     /** Tonnage, spindle speed, bed size… */
     capacity: text('capacity'),
+    /** Process equipment: must be cleaned (and verified) before the next batch can start on it. */
+    requiresCleaning: boolean('requires_cleaning').notNull().default(false),
+    /** clean | in_use | dirty */
+    cleanStatus: text('clean_status').notNull().default('clean'),
+    /** The product last made on it (for product-change cleaning). */
+    lastItemId: uuid('last_item_id').references(() => items.id, { onDelete: 'set null' }),
     isActive: boolean('is_active').notNull().default(true),
     ...auditColumns(),
   },
@@ -290,6 +296,8 @@ export const workOrderMaterials = pgTable(
     basis: text('basis'),
     stdPotency: numeric('std_potency', { precision: 6, scale: 2 }),
     tolerancePct: numeric('tolerance_pct', { precision: 5, scale: 2 }),
+    /** Co-products: share of the batch cost they take at receipt. */
+    costSharePct: numeric('cost_share_pct', { precision: 5, scale: 2 }),
   },
   (t) => [index('wo_mat_wo_idx').on(t.workOrderId), index('wo_mat_item_idx').on(t.tenantId, t.itemId), uniqueIndex('wo_mat_no_uq').on(t.workOrderId, t.lineNo)],
 );

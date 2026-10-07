@@ -2,16 +2,16 @@
 
 | | |
 |---|---|
-| **Status** | Sprint 7.1 (7 Oct 2026) done: formulas and process batches |
-| **Code** | `backend/src/modules/process/`, `database/src/schema/process.ts` (migration 0027), `frontend/src/app/(app)/process/`, batch panel in `frontend/src/app/(app)/manufacturing/work-orders/[id]/batch.tsx` |
-| **Tests** | `backend/test/unit/formula-math.test.ts`, `backend/test/e2e/process.e2e.test.ts` |
+| **Status** | Sprints 7.1–7.2 (7 Oct 2026) done: formulas and process batches; co-products, packing, blending, corrections, equipment cleaning |
+| **Code** | `backend/src/modules/process/`, `database/src/schema/process.ts` (migrations 0027–0028), `frontend/src/app/(app)/process/`, batch panel in `frontend/src/app/(app)/manufacturing/work-orders/[id]/batch.tsx` |
+| **Tests** | `backend/test/unit/formula-math.test.ts`, `backend/test/e2e/process.e2e.test.ts`, `backend/test/e2e/process-ops.e2e.test.ts` |
 
 ## Sprint plan
 
 | Sprint | Scope |
 |---|---|
 | **7.1** ✅ | Master formula (percent / fixed / potency basis, tolerances, co-products and by-products, stages with in-process parameters, versions and approval, cost roll-up, scaling); process batches as work orders made from a formula; dispensing with tolerance and potency adjustment; stage readings; theoretical vs actual yield |
-| 7.2 | Co-product cost apportionment at receipt, packing bulk into pack sizes (packing formulas), blending of batches, shade correction, equipment status and cleaning logs |
+| **7.2** ✅ | Co-product cost apportionment at receipt, packing bulk into pack sizes (packing formulas), blending of batches, shade correction, equipment status and cleaning logs |
 | 7.3 | Demand planning (statistical forecast with seasonality), MRP: multi-level net requirements, lead-time offsetting, lot sizing (L4L, fixed, EOQ, min / max, period), safety stock, planned orders → requisitions / work orders / batches, pegging, exception messages |
 | 7.4 | Capacity: rough-cut and detailed load by work centre; finite scheduling board (Gantt, drag and drop, sequence-dependent setups); kanban; engineering change requests / notices with impact on open orders and stock; drawing register |
 
@@ -55,6 +55,26 @@
   - Input = ingredient quantity issued; theoretical output = input × formula yield %.
   - Actual yield % = output ÷ theoretical, and loss = theoretical − output.
   - The same view returns the dispensing record and the readings.
+
+## 3. Co-products, packing, blending, corrections, cleaning (7.2)
+
+- **Co-products at receipt**: co-product lines are received with the main output, and the batch's cost is shared out.
+  - At standard: the main output is valued at its standard cost, and the batch pool is grossed up by the co-products' share (`main ÷ (1 − share)`).
+  - At actual: the pool is the WIP taken, and the main output keeps `(1 − share)` of it.
+  - Each co-product gets `share × pool`. WIP is cleared accordingly, and a batch at standard closes with no variance when the actuals match.
+- **Packing**: a packing formula (kind *packing*) turns bulk plus packaging into a pack SKU, so a packing order is a batch of the pack item.
+  - `GET /process/packing/options?bulkItemId` lists the pack sizes and the bulk per pack.
+  - `POST /process/packing {bulkItemId, batchNo, lines: [{formulaId, packs}]}` checks the bulk is in stock, then creates draft packing orders that carry the bulk lot number.
+- **Blends** (doc type `blend`, `BLD/{FY}/{SEQ}`): lots of one batch-tracked item are combined into a new lot.
+  - The new lot is valued at the cost of the lots that went in, so the books do not move. It takes the earliest expiry of its lots unless one is given.
+  - Traceability treats a blend as a transformation: backward from the new lot to its lots, forward from a lot into the blend.
+- **Corrections** (`POST /process/batches/:id/correction`): an addition outside the formula (shade, viscosity, pH).
+  - The item is added to the batch's materials and issued, and the dispensing record shows the reason and the checker.
+  - Only while the batch is in process.
+- **Process equipment**: machines flagged *must be cleaned before each batch*.
+  - Starting a job card on one refuses if it is *in use* or *not cleaned*, and asks for a *product-change* clean when the last product differs.
+  - Starting marks it in use (with the product); stopping marks it dirty.
+  - Cleanings (`POST /process/equipment/:id/clean`) record the kind (minor, major, product change), who cleaned, who verified, and the swab or rinse result.
 
 ## Permissions
 

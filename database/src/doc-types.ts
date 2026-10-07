@@ -207,6 +207,15 @@ export const DOC_TYPES = {
     readPermission: 'manufacturing.engineering.read',
     gstDocument: false,
   },
+  blend: {
+    label: 'Blend',
+    code: 'BLD',
+    module: 'process',
+    path: '/process/blends',
+    defaultPattern: 'BLD/{FY}/{SEQ}',
+    readPermission: 'inventory.stock.read',
+    gstDocument: false,
+  },
   work_order: {
     label: 'Work Order',
     code: 'WO',

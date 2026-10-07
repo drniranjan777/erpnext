@@ -310,7 +310,7 @@ export class WorkOrdersService implements OnModuleInit {
     }
     if (errors.length) fail(errors);
 
-    const materials: { kind: string; itemId: string; requiredQty: Decimal; operationSeq: number | null; recoveryRate: string | null; basis?: string; stdPotency?: string | null; tolerancePct?: string | null }[] = [];
+    const materials: { kind: string; itemId: string; requiredQty: Decimal; operationSeq: number | null; recoveryRate: string | null; basis?: string; stdPotency?: string | null; tolerancePct?: string | null; costSharePct?: string | null }[] = [];
     const add = (m: (typeof materials)[number]) => {
       const same = materials.find((x) => x.kind === m.kind && x.itemId === m.itemId && x.operationSeq === m.operationSeq && x.basis === m.basis);
       if (same) same.requiredQty = same.requiredQty.add(m.requiredQty);
@@ -320,7 +320,7 @@ export class WorkOrdersService implements OnModuleInit {
     if (formula) {
       // Ingredients become components, co-products and by-products expected outputs.
       for (const l of scale(formula.data, input.qty)) {
-        add({ kind: l.kind === 'ingredient' ? 'component' : l.kind === 'coproduct' ? 'coproduct' : 'byproduct', itemId: l.itemId, requiredQty: D(l.required), operationSeq: l.stageSeq ?? null, recoveryRate: l.recoveryRate ?? null, basis: l.basis, stdPotency: l.stdPotency ?? null, tolerancePct: l.tolerancePct ?? null });
+        add({ kind: l.kind === 'ingredient' ? 'component' : l.kind === 'coproduct' ? 'coproduct' : 'byproduct', itemId: l.itemId, requiredQty: D(l.required), operationSeq: l.stageSeq ?? null, recoveryRate: l.recoveryRate ?? null, basis: l.basis, stdPotency: l.stdPotency ?? null, tolerancePct: l.tolerancePct ?? null, costSharePct: l.costSharePct ?? null });
       }
       const factor = D(input.qty).div(D(formula.data.batchSize));
       stages = formula.stages.map((s) => ({ ...s, minutes: D(s.minutes).mul(factor).toFixed(2) }));
@@ -372,7 +372,7 @@ export class WorkOrdersService implements OnModuleInit {
         backflush: input.backflush,
         notes: input.notes,
       },
-      materials: materials.map((m, i) => ({ lineNo: i + 1, kind: m.kind, itemId: m.itemId, uomId: its.find((x) => x.id === m.itemId)!.baseUomId, requiredQty: m.requiredQty.toFixed(4), operationSeq: m.operationSeq, recoveryRate: m.recoveryRate, basis: m.basis ?? null, stdPotency: m.stdPotency ?? null, tolerancePct: m.tolerancePct ?? null })),
+      materials: materials.map((m, i) => ({ lineNo: i + 1, kind: m.kind, itemId: m.itemId, uomId: its.find((x) => x.id === m.itemId)!.baseUomId, requiredQty: m.requiredQty.toFixed(4), operationSeq: m.operationSeq, recoveryRate: m.recoveryRate, basis: m.basis ?? null, stdPotency: m.stdPotency ?? null, tolerancePct: m.tolerancePct ?? null, costSharePct: m.costSharePct ?? null })),
       operations: [
         ...stages.map((s) => ({
           seq: s.seq,

@@ -2,8 +2,8 @@ import { boolean, date, index, jsonb, numeric, pgTable, smallint, text, timestam
 import { pk } from './_columns';
 import { documents } from './documents';
 import { users } from './iam';
-import { workCenters, workOrderMaterials, workOrders } from './manufacturing';
-import { items, uoms } from './masters';
+import { machines, workCenters, workOrderMaterials, workOrders } from './manufacturing';
+import { items, uoms, warehouses } from './masters';
 import { tenantId } from './tenancy';
 
 const rate = (name: string) => numeric(name, { precision: 18, scale: 4 }).notNull().default('0');
@@ -137,4 +137,62 @@ export const dispensings = pgTable(
     dispensedAt: timestamp('dispensed_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('dispensings_wo_idx').on(t.workOrderId)],
+);
+
+/** Cleaning of process equipment: who cleaned, who verified, after which product. */
+export const machineCleanings = pgTable(
+  'machine_cleanings',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    machineId: uuid('machine_id')
+      .notNull()
+      .references(() => machines.id, { onDelete: 'cascade' }),
+    /** minor (same product) | major | product_change */
+    kind: text('kind').notNull().default('minor'),
+    previousItemId: uuid('previous_item_id').references(() => items.id, { onDelete: 'set null' }),
+    cleanedBy: text('cleaned_by').notNull(),
+    verifiedBy: text('verified_by'),
+    /** Swab / rinse result for cleaning validation. */
+    result: text('result'),
+    notes: text('notes'),
+    recordedBy: uuid('recorded_by').references(() => users.id, { onDelete: 'set null' }),
+    cleanedAt: timestamp('cleaned_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('machine_cleanings_m_idx').on(t.machineId, t.cleanedAt)],
+);
+
+/** Blending lots of one item into a new lot (doc type "blend"). */
+export const blends = pgTable('blends', {
+  id: uuid('id')
+    .primaryKey()
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  tenantId: tenantId(),
+  itemId: uuid('item_id')
+    .notNull()
+    .references(() => items.id, { onDelete: 'restrict' }),
+  warehouseId: uuid('warehouse_id')
+    .notNull()
+    .references(() => warehouses.id, { onDelete: 'restrict' }),
+  newBatchNo: text('new_batch_no').notNull(),
+  expiryDate: date('expiry_date', { mode: 'string' }),
+  totalQty: numeric('total_qty', { precision: 18, scale: 4 }).notNull().default('0'),
+  value: numeric('value', { precision: 18, scale: 2 }).notNull().default('0'),
+  notes: text('notes'),
+});
+
+export const blendLines = pgTable(
+  'blend_lines',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    blendId: uuid('blend_id')
+      .notNull()
+      .references(() => blends.id, { onDelete: 'cascade' }),
+    lineNo: smallint('line_no').notNull(),
+    batchNo: text('batch_no').notNull(),
+    qty: numeric('qty', { precision: 18, scale: 4 }).notNull(),
+    value: numeric('value', { precision: 18, scale: 2 }).notNull().default('0'),
+  },
+  (t) => [index('blend_lines_b_idx').on(t.blendId), uniqueIndex('blend_lines_no_uq').on(t.blendId, t.lineNo)],
 );

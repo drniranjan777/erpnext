@@ -28,6 +28,8 @@ export const machineSchema = z.object({
   model: optionalText(80),
   serialNo: optionalText(80),
   capacity: optionalText(80),
+  /** Process equipment cleaned before each batch. */
+  requiresCleaning: z.boolean().default(false),
   isActive: z.boolean().default(true),
 });
 export const toolSchema = z.object({

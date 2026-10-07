@@ -167,6 +167,11 @@ export class TraceabilityService {
             else link.lots.push(await this.node(tx, c.lot, c.qty, []));
           }
         }
+      } else if (vr[0].voucherType === 'blend' && depth < MAX_DEPTH && !seen.has(voucherId)) {
+        // A blended lot comes from the lots that went into the blend.
+        const sources = (await tx.select().from(stockLedger).where(and(eq(stockLedger.voucherId, voucherId), sql`${stockLedger.qty} < 0`))).filter((r) => r.batchId);
+        link.lots = [];
+        for (const r of sources) link.lots.push(await this.backwardTx(tx, { itemId: r.itemId, batchId: r.batchId, serialNo: null }, depth + 1, new Set([...seen, voucherId])).then((n) => ({ ...n, qty: ZERO.sub(D(r.qty)).toFixed(4) })));
       }
       links.push(link);
     }
@@ -200,6 +205,10 @@ export class TraceabilityService {
             else link.lots.push(await this.node(tx, m.lot, m.qty, []));
           }
         }
+      } else if (vr[0].voucherType === 'blend' && depth < MAX_DEPTH && !seen.has(voucherId)) {
+        const made = (await tx.select().from(stockLedger).where(and(eq(stockLedger.voucherId, voucherId), sql`${stockLedger.qty} > 0`))).filter((r) => r.batchId);
+        link.lots = [];
+        for (const r of made) link.lots.push(await this.forwardTx(tx, { itemId: r.itemId, batchId: r.batchId, serialNo: null }, depth + 1, new Set([...seen, voucherId])).then((n) => ({ ...n, qty: D(r.qty).toFixed(4) })));
       }
       links.push(link);
     }

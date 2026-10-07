@@ -7,7 +7,8 @@ import { requestMeta } from '../../common/request-meta';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { cancelSchema, versionSchema, type CancelInput } from '../documents/documents.schemas';
 import { createFormulaSchema, FormulasService, updateFormulaSchema, type CreateFormulaInput } from './formulas.service';
-import { dispenseSchema, ProcessService, type DispenseInput } from './process.service';
+import { BlendsService, blendSchema, type BlendInput } from './blends.service';
+import { cleaningSchema, correctionSchema, dispenseSchema, packSchema, ProcessService, type CleaningInput, type CorrectionInput, type DispenseInput, type PackInput } from './process.service';
 
 const idPipe = new ZodValidationPipe(z.object({ id: z.uuid() }));
 const versionQuery = new ZodValidationPipe(z.object({ version: z.coerce.number().int() }));
@@ -20,6 +21,7 @@ export class ProcessController {
   constructor(
     private readonly formulas: FormulasService,
     private readonly process: ProcessService,
+    private readonly blends: BlendsService,
   ) {}
 
   @Get('formulas')
@@ -91,5 +93,58 @@ export class ProcessController {
   @ApiZodBody(dispenseSchema)
   dispense(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }, @Body(new ZodValidationPipe(dispenseSchema)) b: DispenseInput, @Req() req: AppRequest) {
     return this.process.dispense(auth, p.id, b, requestMeta(req));
+  }
+  @Post('batches/:id/correction')
+  @RequirePermissions('manufacturing.production.manage')
+  @ApiZodBody(correctionSchema)
+  correct(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }, @Body(new ZodValidationPipe(correctionSchema)) b: CorrectionInput, @Req() req: AppRequest) {
+    return this.process.correct(auth, p.id, b, requestMeta(req));
+  }
+
+  // ---- Packing ----
+
+  @Get('packing/options')
+  @RequirePermissions('manufacturing.production.read')
+  packingOptions(@Auth() auth: AuthContext, @Query(new ZodValidationPipe(z.object({ bulkItemId: z.uuid() }))) q: { bulkItemId: string }) {
+    return this.process.packingOptions(auth, q.bulkItemId);
+  }
+  @Post('packing')
+  @RequirePermissions('manufacturing.production.manage')
+  @ApiZodBody(packSchema)
+  pack(@Auth() auth: AuthContext, @Body(new ZodValidationPipe(packSchema)) b: PackInput, @Req() req: AppRequest) {
+    return this.process.pack(auth, b, requestMeta(req));
+  }
+
+  // ---- Blends ----
+
+  @Get('blends')
+  @RequirePermissions('inventory.stock.read')
+  listBlends(@Auth() auth: AuthContext, @Query(new ZodValidationPipe(z.object({ limit: z.coerce.number().int().min(1).max(100).default(50), cursor: z.uuid().optional() }))) q: { limit: number; cursor?: string }) {
+    return this.blends.list(auth, q);
+  }
+  @Get('blends/:id')
+  @RequirePermissions('inventory.stock.read')
+  getBlend(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }) {
+    return this.blends.get(auth, p.id);
+  }
+  @Post('blends')
+  @RequirePermissions('manufacturing.production.manage')
+  @ApiZodBody(blendSchema)
+  blend(@Auth() auth: AuthContext, @Body(new ZodValidationPipe(blendSchema)) b: BlendInput, @Req() req: AppRequest) {
+    return this.blends.create(auth, b, requestMeta(req));
+  }
+
+  // ---- Equipment ----
+
+  @Get('equipment')
+  @RequirePermissions('manufacturing.production.read')
+  equipment(@Auth() auth: AuthContext) {
+    return this.process.equipment(auth);
+  }
+  @Post('equipment/:id/clean')
+  @RequirePermissions('manufacturing.shopfloor.record')
+  @ApiZodBody(cleaningSchema)
+  clean(@Auth() auth: AuthContext, @Param(idPipe) p: { id: string }, @Body(new ZodValidationPipe(cleaningSchema)) b: CleaningInput) {
+    return this.process.clean(auth, p.id, b);
   }
 }
