@@ -127,3 +127,66 @@ export interface TraceNode {
   onHand?: { warehouse: string; qty: string }[];
   links: { docType: string; docId: string; number: string | null; date: string; qty: string; party: string | null; workOrder?: { id: string; number: string | null }; lots?: TraceNode[] }[];
 }
+
+export const FISHBONE = ["man", "machine", "method", "material", "measurement", "environment"] as const;
+export const FISHBONE_LABEL: Record<(typeof FISHBONE)[number], string> = { man: "People", machine: "Machine", method: "Method", material: "Material", measurement: "Measurement", environment: "Environment" };
+export const EIGHT_D = [
+  ["d1", "D1 Team"],
+  ["d2", "D2 Problem description"],
+  ["d3", "D3 Containment"],
+  ["d4", "D4 Root cause"],
+  ["d5", "D5 Corrective actions chosen"],
+  ["d6", "D6 Actions implemented and validated"],
+  ["d7", "D7 Prevent recurrence"],
+  ["d8", "D8 Recognise the team"],
+] as const;
+export const CAPA_STAGE = { open: { label: "Actions open", tone: "warning" }, verification: { label: "Awaiting verification", tone: "primary" }, closed: { label: "Closed", tone: "success" } } as const;
+
+export interface CapaAction { id: string; kind: "containment" | "corrective" | "preventive"; action: string; owner: string | null; dueDate: string | null; doneOn: string | null; notes: string | null }
+export interface Capa extends DocumentHeader {
+  kind: "corrective" | "preventive";
+  source: "ncr" | "complaint" | "audit" | "internal" | "supplier";
+  isScar: boolean;
+  party: { id: string; name: string } | null;
+  item: { id: string; code: string; name: string } | null;
+  ncr: { id: string; number: string | null } | null;
+  complaint: { id: string; number: string | null } | null;
+  responseDue: string | null;
+  problem: string;
+  method: "5why" | "fishbone" | "8d";
+  whys: string[];
+  fishbone: Partial<Record<(typeof FISHBONE)[number], string[]>>;
+  eightD: Partial<Record<string, string>>;
+  rootCause: string | null;
+  stage: keyof typeof CAPA_STAGE;
+  effectivenessDue: string | null;
+  effectivenessResult: "effective" | "not_effective" | null;
+  effectivenessNotes: string | null;
+  closedAt: string | null;
+  actions: CapaAction[];
+  canAct: boolean;
+  canVerify: boolean;
+}
+
+export const COMPLAINT_STAGE = { open: { label: "Open", tone: "warning" }, investigating: { label: "Investigating", tone: "primary" }, responded: { label: "Responded", tone: "neutral" }, closed: { label: "Closed", tone: "success" } } as const;
+export interface Complaint extends DocumentHeader {
+  customer: { id: string; name: string };
+  item: { id: string; code: string; name: string } | null;
+  batchNo: string | null;
+  qty: string | null;
+  receivedOn: string;
+  channel: string;
+  category: string;
+  severity: string;
+  description: string;
+  isFieldFailure: boolean;
+  warrantyCost: string;
+  responseDue: string | null;
+  stage: keyof typeof COMPLAINT_STAGE;
+  response: string | null;
+  respondedAt: string | null;
+  ncr: { id: string; number: string | null; status: string; copq: string } | null;
+  capa: { id: string; number: string | null; status: string } | null;
+  overdue: boolean;
+  canManage: boolean;
+}

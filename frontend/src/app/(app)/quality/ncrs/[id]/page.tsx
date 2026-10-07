@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCheck } from "lucide-react";
+import { CheckCheck, GitPullRequestArrow } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { DocumentActions } from "@/components/documents/document-actions";
 import { DocPageHeader, DocStatusAlerts, Info } from "@/components/documents/doc-page";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { ErrorBlock, LoadingBlock, formatDateTime } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, formatQty } from "@/lib/documents";
 import { DISPOSITION_FIELDS, NCR_SOURCE, QA, type Ncr } from "@/lib/quality";
 
@@ -21,6 +22,8 @@ const N = `${QA}/ncrs`;
 export default function NcrPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
+  const router = useRouter();
+  const { can } = useAuth();
   const key = [QA, "ncrs", id];
   const q = useQuery({ queryKey: key, queryFn: () => api<Ncr>(`${N}/${id}`) });
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +39,15 @@ export default function NcrPage() {
       setError(e instanceof ApiError ? e.message : "Could not reach the server.");
     }
   }
+  async function startCapa() {
+    setError(null);
+    try {
+      const c = await api<{ id: string }>(`${QA}/capas`, { body: { source: "ncr", ncrId: d.id, itemId: d.item.id, problem: `${d.defectCategory}: ${d.description}`.slice(0, 4000), isScar: d.source === "incoming" || d.source === "supplier" ? !!d.party : false, partyId: d.party?.id ?? null, method: "5why", actions: [] } });
+      router.push(`${QA}/capas/${c.id}`);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not reach the server.");
+    }
+  }
   const costs: [string, string][] = [["Scrap", d.scrapCost], ["Rework", d.reworkCost], ["Sorting", d.sortingCost], ["Other", d.otherCost]];
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -46,6 +58,7 @@ export default function NcrPage() {
         subtitle={`${d.item.code} ${d.item.name} · ${formatQty(d.qtyAffected)} ${d.item.uom} · ${d.defectCategory}`}
         actions={
           <>
+            {d.status === "approved" && can("quality.capa.manage") && <Button variant="secondary" onClick={startCapa}><GitPullRequestArrow className="size-4" aria-hidden /> {d.party && (d.source === "incoming" || d.source === "supplier") ? "Send SCAR" : "Start CAPA"}</Button>}
             {d.canClose && <Button variant="secondary" onClick={close}><CheckCheck className="size-4" aria-hidden /> Close NCR</Button>}
             <DocumentActions doc={d} apiBase={N} routeBase={N} queryKey={key} />
           </>

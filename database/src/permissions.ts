@@ -90,6 +90,9 @@ export const PERMISSIONS = {
   'quality.inspections.manage': 'Maintain inspection plans, record readings and accept or reject lots',
   'quality.release.sign': 'Release, hold or reject lots with an electronic signature (QA release)',
   'quality.ncr.manage': 'Raise non-conformance reports and record MRB dispositions',
+  'quality.capa.manage': 'Raise CAPAs and SCARs, record root cause and actions, verify effectiveness',
+  'quality.complaints.manage': 'Log customer complaints, respond and close them',
+  'quality.suppliers.manage': 'Record supplier audits and maintain the approved manufacturer list',
   'planning.mrp.read': 'View demand forecasts, MRP runs, planned orders and exceptions',
   'planning.mrp.manage': 'Edit forecasts and planning parameters, run MRP, firm and convert planned orders',
 } as const;

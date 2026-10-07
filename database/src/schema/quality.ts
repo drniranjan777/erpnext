@@ -268,3 +268,153 @@ export const ncrs = pgTable(
   },
   (t) => [index('ncrs_item_idx').on(t.tenantId, t.itemId), index('ncrs_party_idx').on(t.tenantId, t.partyId)],
 );
+
+// =============================================================================
+// Customer complaints (doc type "customer_complaint")
+// =============================================================================
+
+export const customerComplaints = pgTable(
+  'customer_complaints',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    tenantId: tenantId(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => parties.id, { onDelete: 'restrict' }),
+    itemId: uuid('item_id').references(() => items.id, { onDelete: 'restrict' }),
+    batchNo: text('batch_no'),
+    qty: numeric('qty', { precision: 18, scale: 4 }),
+    /** The invoice or delivery the goods went on. */
+    refDocId: uuid('ref_doc_id').references(() => documents.id, { onDelete: 'set null' }),
+    receivedOn: date('received_on', { mode: 'string' }).notNull(),
+    /** email | phone | visit | portal | other */
+    channel: text('channel').notNull().default('email'),
+    category: text('category').notNull(),
+    severity: text('severity').notNull().default('major'),
+    description: text('description').notNull(),
+    /** A failure in the field / under warranty, with what it cost us. */
+    isFieldFailure: boolean('is_field_failure').notNull().default(false),
+    warrantyCost: numeric('warranty_cost', { precision: 18, scale: 2 }).notNull().default('0'),
+    responseDue: date('response_due', { mode: 'string' }),
+    /** open | investigating | responded | closed */
+    stage: text('stage').notNull().default('open'),
+    response: text('response'),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
+    ncrId: uuid('ncr_id').references(() => ncrs.id, { onDelete: 'set null' }),
+    capaId: uuid('capa_id'),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+  },
+  (t) => [index('complaints_customer_idx').on(t.tenantId, t.customerId), index('complaints_item_idx').on(t.tenantId, t.itemId)],
+);
+
+// =============================================================================
+// CAPA (doc type "capa"), including supplier corrective action requests
+// =============================================================================
+
+export const capas = pgTable(
+  'capas',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    tenantId: tenantId(),
+    /** corrective | preventive */
+    kind: text('kind').notNull().default('corrective'),
+    /** ncr | complaint | audit | internal | supplier */
+    source: text('source').notNull(),
+    ncrId: uuid('ncr_id').references(() => ncrs.id, { onDelete: 'set null' }),
+    complaintId: uuid('complaint_id').references(() => customerComplaints.id, { onDelete: 'set null' }),
+    itemId: uuid('item_id').references(() => items.id, { onDelete: 'set null' }),
+    /** Supplier corrective action request: the vendor that must respond, and by when. */
+    isScar: boolean('is_scar').notNull().default(false),
+    partyId: uuid('party_id').references(() => parties.id, { onDelete: 'set null' }),
+    responseDue: date('response_due', { mode: 'string' }),
+    problem: text('problem').notNull(),
+    /** 5why | fishbone | 8d */
+    method: text('method').notNull().default('5why'),
+    whys: jsonb('whys').$type<string[]>().notNull().default([]),
+    /** Fishbone causes by category (man, machine, method, material, measurement, environment). */
+    fishbone: jsonb('fishbone').$type<Record<string, string[]>>().notNull().default({}),
+    /** 8D: D1 team … D8 recognition. */
+    eightD: jsonb('eight_d').$type<Record<string, string>>().notNull().default({}),
+    rootCause: text('root_cause'),
+    /** open (actions in progress) | verification | closed */
+    stage: text('stage').notNull().default('open'),
+    effectivenessDue: date('effectiveness_due', { mode: 'string' }),
+    /** effective | not_effective */
+    effectivenessResult: text('effectiveness_result'),
+    effectivenessNotes: text('effectiveness_notes'),
+    verifiedBy: uuid('verified_by').references(() => users.id, { onDelete: 'set null' }),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+  },
+  (t) => [index('capas_ncr_idx').on(t.ncrId), index('capas_party_idx').on(t.tenantId, t.partyId)],
+);
+
+export const capaActions = pgTable(
+  'capa_actions',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    capaId: uuid('capa_id')
+      .notNull()
+      .references(() => capas.id, { onDelete: 'cascade' }),
+    /** containment | corrective | preventive */
+    kind: text('kind').notNull().default('corrective'),
+    action: text('action').notNull(),
+    owner: text('owner'),
+    dueDate: date('due_date', { mode: 'string' }),
+    doneOn: date('done_on', { mode: 'string' }),
+    notes: text('notes'),
+  },
+  (t) => [index('capa_actions_capa_idx').on(t.capaId)],
+);
+
+// =============================================================================
+// Supplier quality: audits and the approved manufacturer list
+// =============================================================================
+
+export const supplierAudits = pgTable(
+  'supplier_audits',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    partyId: uuid('party_id')
+      .notNull()
+      .references(() => parties.id, { onDelete: 'cascade' }),
+    auditDate: date('audit_date', { mode: 'string' }).notNull(),
+    /** system | process | product */
+    kind: text('kind').notNull().default('system'),
+    auditor: text('auditor').notNull(),
+    /** 0–100 */
+    score: numeric('score', { precision: 5, scale: 1 }),
+    /** approved | conditional | disapproved */
+    result: text('result').notNull(),
+    findings: text('findings'),
+    nextDue: date('next_due', { mode: 'string' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('supplier_audits_party_idx').on(t.tenantId, t.partyId, t.auditDate)],
+);
+
+/** Approved manufacturer list: which manufacturers' parts (MPN) may be used for an item, and through which supplier. */
+export const approvedManufacturers = pgTable(
+  'approved_manufacturers',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => items.id, { onDelete: 'cascade' }),
+    manufacturer: text('manufacturer').notNull(),
+    mpn: text('mpn').notNull().default(''),
+    partyId: uuid('party_id').references(() => parties.id, { onDelete: 'set null' }),
+    /** approved | conditional | disqualified */
+    status: text('status').notNull().default('approved'),
+    approvedOn: date('approved_on', { mode: 'string' }),
+    notes: text('notes'),
+  },
+  (t) => [uniqueIndex('aml_uq').on(t.itemId, t.manufacturer, t.mpn)],
+);

@@ -225,6 +225,13 @@
       "when": 1791341303217,
       "tag": "0031_qc_lots_ncr",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791343201432,
+      "tag": "0032_capa_complaints_suppliers",
+      "breakpoints": true
     }
   ]
 }
