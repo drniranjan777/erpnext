@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 13.1–13.4 done |
-| **Code** | `edge/` (edge agent), `backend/src/modules/iot/`, `backend/src/modules/mes/`, `backend/src/modules/plant/`, `database/src/schema/iot.ts`, `mes.ts`, `plant.ts`, `frontend/src/app/(app)/iot/` |
+| **Status** | Done (13.1–13.5) |
+| **Code** | `edge/` (edge agent), `backend/src/modules/iot/`, `backend/src/modules/mes/`, `backend/src/modules/plant/`, `backend/src/modules/twin/`, `database/src/schema/iot.ts`, `mes.ts`, `plant.ts`, `twin.ts`, `frontend/src/app/(app)/iot/` |
 
 ## Sprint plan
 
@@ -112,3 +112,19 @@ Warnings do not stop the start: another operator logged in, tool life above 90 %
 **Batch record** (`GET /mes/executions/:id`, printable): work order, item, operation, machine, tool, operator, start and end, good and rejected quantities and shots; the instruction version and the steps confirmed; every start check with its result and the materials scanned; the first-off readings and who approved them; the in-line checks; the recipe's set-points with what the machine's signals measured during the job (minimum, average, maximum) and whether that stayed within the limits; and every other process signal of the machine over the job.
 
 SCADA / MES systems that already run the line (Ignition, AVEVA, WinCC) connect through the same paths: they publish values over MQTT or REST (read by the agent) or post to the ingest API, and can take recipe set-points over MQTT.
+
+## 13.5 Digital twin and edge AI (done)
+
+Migration 0058 adds `twin_layouts`, `twin_nodes`, `vision_models`, `vision_deployments` and `vision_inspections`. Code: `backend/src/modules/twin/` (`vision-monitor.ts` is pure and unit tested); the finite scheduler's input loading in `planning/scheduling.service.ts` is shared by the plan and the what-if. Permissions: `twin.layouts.manage`, `twin.schedule.simulate`, `vision.models.manage`, `vision.inspections.read`. Pages: `/twin`, `/twin/simulate`, `/vision`. The edge agent records deployed models (`models.json` beside its buffer) and confirms them.
+
+**Plant layouts.** A layout is a floor plan drawn to scale (one grid square is a metre): machines, areas and labels, dragged into place on a grid. One layout can be marked to show first. The live view colours each machine by its state (running, stopped, setup, planned stop, no signal), shows this shift's OEE, its main process values, and flags open alarms, condition anomalies, Andon calls and the vision defect rate of the last hour; selecting a machine shows its job and details with links to each.
+
+**What-if** (`POST /twin/simulate`). The open work orders are re-planned with the same finite scheduler as the production plan, with any of: a work centre's units (a machine down, or one added), hours per day (overtime, an extra shift), working days per week and efficiency; changed order priorities; and extra orders (item, quantity, due date, priority) made with the item's routing from its approved bill of materials. The answer compares today's plan with the scenario: late orders, when everything finishes, setup time, each work centre's busy hours and load against its capacity over the horizon, and each order's finish date with how much it moves. Nothing is saved.
+
+**Vision inspection.** Models are registered as versions (defect classes, the confidence below which a result is doubtful, the model file, validation precision and recall) and deployed to gateways through the command channel; deploying a version retires the earlier deployed version of the same model. The inspection program on the gateway posts results to `POST /iot/device/inspections` with the gateway token: a reference (so a replay is stored once), time, model and version, machine code, ok or defect with its class, confidence, image link and time taken. Results are tied to the job card running on the machine at that moment. When 5 or more of a machine's last 50 results, and at least 20 %, are defects, quality is called on the Andon board.
+
+People review results (doubtful ones and defects first): "right", or "wrong" with what it really was. Monitoring per model compares the last 24 hours with the 7 days before: inspections, defect rate, average confidence, share of doubtful results, reviewed accuracy, false rejects (good parts called defects) and escapes (defects called good), defects by class and by machine. It reports drift when the defect rate moves by more than three standard errors (at least 2 points), the average confidence falls by more than 0.1, or doubtful results double (with at least 30 results in each window).
+
+## Phase 13 summary
+
+All five sprints are done: edge gateways and the edge agent; machine states, counts, OEE and Andon; energy, condition monitoring and cold chain; MES execution with instructions, checks, first-off, recipes and batch records; and the digital twin with what-if scheduling and vision inspection. The exit criteria need pilot plants (two plants with 20 or more connected machines, OEE checked against a manual study, a predictive alert confirmed before a failure); the software records the evidence for each: gateways and signals per plant, OEE by shift with its losses, and condition anomalies with their maintenance requests and confirmed / false-alarm feedback.

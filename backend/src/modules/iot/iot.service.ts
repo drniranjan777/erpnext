@@ -273,7 +273,8 @@ export class IotService {
 
   // ---- devices ---------------------------------------------------------------------------------
 
-  private async device<T>(token: string | undefined, fn: (tx: Transaction, g: typeof iotGateways.$inferSelect) => Promise<T>): Promise<T> {
+  /** Runs `fn` for the gateway that owns the device token, in its workspace. */
+  async device<T>(token: string | undefined, fn: (tx: Transaction, g: typeof iotGateways.$inferSelect) => Promise<T>): Promise<T> {
     const tenantId = token?.split('.')[0] ?? '';
     if (!token || !UUID.test(tenantId)) throw new UnauthorizedException('Send the gateway token in the x-device-token header');
     return this.database.run({ tenantId, userId: null as unknown as string }, async (tx) => {
@@ -363,6 +364,12 @@ export class IotService {
   /** Queues values for a gateway to write to its machines (picked up on the agent's next call). */
   async createCommand(tx: Transaction, tenantId: string, gatewayId: string, writes: (SignalSource & { name: string; value: number })[], ref: string | null) {
     const [c] = await tx.insert(iotCommands).values({ tenantId, gatewayId, kind: 'write', payload: { writes }, ref }).returning();
+    return c;
+  }
+
+  /** Asks a gateway to load a model (vision inspection) from its artifact. */
+  async deployCommand(tx: Transaction, tenantId: string, gatewayId: string, model: Record<string, unknown>, ref: string | null) {
+    const [c] = await tx.insert(iotCommands).values({ tenantId, gatewayId, kind: 'deploy_model', payload: { model }, ref }).returning();
     return c;
   }
 

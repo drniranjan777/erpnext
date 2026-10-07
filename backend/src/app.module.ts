@@ -47,6 +47,7 @@ import { AiGovModule } from './modules/ai-gov/ai-gov.module';
 import { IotModule } from './modules/iot/iot.module';
 import { MesModule } from './modules/mes/mes.module';
 import { PlantModule } from './modules/plant/plant.module';
+import { TwinModule } from './modules/twin/twin.module';
 import { PredictModule } from './modules/predict/predict.module';
 import { VoiceModule } from './modules/voice/voice.module';
 import { TmsModule } from './modules/tms/tms.module';
@@ -116,6 +117,7 @@ import { ProcessModule } from './modules/process/process.module';
     IotModule,
     MesModule,
     PlantModule,
+    TwinModule,
     AdminModule,
     PrivacyModule,
   ],

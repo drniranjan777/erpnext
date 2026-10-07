@@ -13,5 +13,6 @@ import { SchedulingService } from './scheduling.service';
   imports: [ManufacturingModule, PurchaseModule, InventoryModule],
   controllers: [PlanningController],
   providers: [ForecastingService, MrpService, SchedulingService, KanbanService],
+  exports: [SchedulingService],
 })
 export class PlanningModule {}

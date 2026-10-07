@@ -49,6 +49,10 @@ export const PERMISSIONS = {
   'mes.setup.manage': 'Set shifts, downtime reasons and machine monitoring settings',
   'mes.instructions.manage': 'Write and release work instructions and recipes, and record operator skills',
   'mes.firstoff.approve': 'Approve or reject first-off pieces at the machine',
+  'twin.layouts.manage': 'Draw plant layouts for the digital twin',
+  'twin.schedule.simulate': 'Run what-if simulations of the production schedule',
+  'vision.models.manage': 'Register vision inspection models and deploy them to edge gateways',
+  'vision.inspections.read': 'See vision inspection results and review them',
   'ai.governance.manage': 'Set the AI policy (features, consent, PII masking, budget, models) and see AI usage and evaluations',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',
   // Purchase

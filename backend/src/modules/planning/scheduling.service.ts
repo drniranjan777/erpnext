@@ -33,6 +33,15 @@ export const transitionSchema = z.object({
     .refine((v) => /^\d{1,6}(\.\d{1,2})?$/.test(v), 'Minutes: up to 2 decimals'),
 });
 
+export const whatIfSchema = z.object({
+  workCenters: z
+    .array(z.object({ workCenterId: z.uuid(), units: z.number().int().min(1).max(50).optional(), hoursPerDay: z.number().min(1).max(24).optional(), daysPerWeek: z.number().int().min(1).max(7).optional(), efficiencyPct: z.number().min(10).max(200).optional() }))
+    .max(50)
+    .default([]),
+  priorities: z.array(z.object({ workOrderId: z.uuid(), priority: z.number().int().min(1).max(5) })).max(200).default([]),
+  newOrders: z.array(z.object({ itemId: z.uuid(), qty: z.number().positive().max(10_000_000), due: z.iso.date().optional(), release: z.iso.date().optional(), priority: z.number().int().min(1).max(5).default(3) })).max(20).default([]),
+});
+
 interface WcRow extends Record<string, unknown> {
   id: string;
   code: string;
@@ -65,8 +74,8 @@ export class SchedulingService {
     return this.database.run(auth, (tx) => this.runTx(tx));
   }
 
-  private async runTx(tx: Transaction) {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext('schedule:' || current_setting('app.tenant_id', true)))`);
+  /** Open operations, orders, work centres and setup transitions: the input of the finite schedule. */
+  private async loadInput(tx: Transaction) {
     const now = Date.now();
     const wcs = await this.workCenters(tx);
     const wcMap = new Map<string, SchedWorkCenter>(wcs.map((w) => [w.id, { id: w.id, cal: calOf(w), units: w.units, efficiency: num(w.efficiency_pct) / 100 || 1, infinite: w.kind === 'subcontract' }]));
@@ -88,8 +97,13 @@ export class SchedulingService {
       if (!orderRows.has(r.work_order_id)) orderRows.set(r.work_order_id, { id: r.work_order_id, priority: r.priority, due: r.planned_end ? dateStart(r.planned_end) + DAY : null, release: r.planned_start ? dateStart(r.planned_start) : now });
     const trans = await tx.select().from(setupTransitions);
     const transitions = new Map(trans.map((t) => [`${t.workCenterId}|${t.fromItemId}|${t.toItemId}`, num(t.minutes)]));
+    return { now, wcs, wcMap, orders: [...orderRows.values()], ops, transitions };
+  }
 
-    const out = schedule({ now, workCenters: wcMap, orders: [...orderRows.values()], ops, transitions });
+  private async runTx(tx: Transaction) {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext('schedule:' || current_setting('app.tenant_id', true)))`);
+    const { now, wcMap, orders, ops, transitions } = await this.loadInput(tx);
+    const out = schedule({ now, workCenters: wcMap, orders, ops, transitions });
     for (let i = 0; i < out.ops.length; i += 500) {
       const chunk = out.ops.slice(i, i + 500);
       const values = sql.join(
@@ -101,6 +115,91 @@ export class SchedulingService {
     const late = out.orders.filter((o) => o.late).length;
     const ends = out.orders.map((o) => o.end ?? 0);
     return { operations: out.ops.length, orders: out.orders.length, late, conflicts: out.ops.filter((o) => o.conflict).length, finishesAt: ends.length ? new Date(Math.max(...ends)).toISOString() : null, setupMinutes: Math.round(out.ops.reduce((s, o) => s + o.setup, 0)) };
+  }
+
+  /**
+   * What-if: the finite schedule with changed capacity (units, hours, working days, efficiency),
+   * changed priorities and extra orders, compared with today's plan. Nothing is saved.
+   */
+  simulate(auth: AuthContext, input: z.infer<typeof whatIfSchema>) {
+    return this.database.run(auth, async (tx) => {
+      const base = await this.loadInput(tx);
+      const baseline = schedule({ now: base.now, workCenters: base.wcMap, orders: base.orders, ops: base.ops, transitions: base.transitions });
+
+      const wcMap = new Map(base.wcMap);
+      for (const c of input.workCenters) {
+        const w = base.wcs.find((x) => x.id === c.workCenterId);
+        if (!w) throw new BadRequestException('Work centre not found');
+        const cur = wcMap.get(w.id)!;
+        wcMap.set(w.id, {
+          ...cur,
+          units: c.units ?? cur.units,
+          efficiency: c.efficiencyPct !== undefined ? c.efficiencyPct / 100 : cur.efficiency,
+          cal: { minutesPerDay: c.hoursPerDay !== undefined ? Math.round(c.hoursPerDay * 60) : cur.cal.minutesPerDay, daysPerWeek: c.daysPerWeek ?? cur.cal.daysPerWeek, shiftStart: cur.cal.shiftStart },
+        });
+      }
+      const orders = base.orders.map((o) => ({ ...o, priority: input.priorities.find((p) => p.workOrderId === o.id)?.priority ?? o.priority }));
+      const ops = [...base.ops];
+      const added: { id: string; itemId: string; code: string; name: string; qty: number }[] = [];
+      for (const [i, n] of input.newOrders.entries()) {
+        const [bom] = await many<{ id: string; code: string; name: string }>(
+          tx,
+          sql`select b.id, it.code, it.name from boms b join documents d on d.id = b.id join items it on it.id = b.item_id
+              where b.item_id = ${n.itemId} and d.status = 'approved' order by b.is_default desc, d.created_at desc limit 1`,
+        );
+        if (!bom) throw new BadRequestException('The item has no approved bill of materials with a routing');
+        const routing = await many<{ seq: number; work_center_id: string; setup_minutes: string; run_minutes: string }>(
+          tx,
+          sql`select seq, work_center_id, setup_minutes::text, run_minutes::text from bom_operations where bom_id = ${bom.id} order by seq`,
+        );
+        if (!routing.length) throw new BadRequestException(`${bom.code} has no routing`);
+        const id = `whatif-${i + 1}`;
+        orders.push({ id, priority: n.priority, due: n.due ? dateStart(n.due) + DAY : null, release: n.release ? Math.max(dateStart(n.release), base.now) : base.now });
+        for (const r of routing) ops.push({ id: `${id}-${r.seq}`, workOrderId: id, seq: r.seq, workCenterId: r.work_center_id, itemId: n.itemId, setupMinutes: num(r.setup_minutes), runMinutes: num(r.run_minutes) * n.qty, running: false, locked: null });
+        added.push({ id, itemId: n.itemId, code: bom.code, name: bom.name, qty: n.qty });
+      }
+      const scenario = schedule({ now: base.now, workCenters: wcMap, orders, ops, transitions: base.transitions });
+
+      const numbers = await many<{ id: string; number: string | null; code: string; name: string; due: string | null }>(
+        tx,
+        sql`select w.id, d.number, i.code, i.name, w.planned_end::text as due from work_orders w join documents d on d.id = w.id join items i on i.id = w.item_id
+            where w.id in ${base.orders.length ? base.orders.map((o) => o.id) : ['00000000-0000-0000-0000-000000000000']}`,
+      );
+      const horizonEnd = Math.max(base.now + 7 * DAY, ...scenario.ops.map((o) => o.end), ...baseline.ops.map((o) => o.end));
+      const wcOf = new Map(ops.map((o) => [o.id, o.workCenterId]));
+      const load = (out: typeof baseline, map: Map<string, SchedWorkCenter>) =>
+        base.wcs.map((w) => {
+          const wc = map.get(w.id)!;
+          // Working minutes each operation occupies its lane (an operation can span nights and holidays).
+          const busy = out.ops.filter((o) => wcOf.get(o.id) === w.id).reduce((n, o) => n + workingMinutes(wc.cal, o.start, o.end), 0);
+          const weeks = (horizonEnd - base.now) / (7 * DAY);
+          const available = wc.infinite ? null : wc.units * wc.cal.minutesPerDay * wc.cal.daysPerWeek * weeks;
+          return { workCenterId: w.id, code: w.code, name: w.name, units: wc.units, hoursPerDay: wc.cal.minutesPerDay / 60, busyHours: Math.round(busy / 6) / 10, loadPct: available ? Math.round((busy / available) * 1000) / 10 : null };
+        });
+      const summary = (out: typeof baseline) => {
+        const ends = out.orders.map((o) => o.end ?? 0);
+        return { late: out.orders.filter((o) => o.late).length, finishesAt: ends.length ? new Date(Math.max(...ends)) : null, setupMinutes: Math.round(out.ops.reduce((n, o) => n + o.setup, 0)) };
+      };
+      const orderRows = scenario.orders.map((o) => {
+        const b = baseline.orders.find((x) => x.id === o.id);
+        const meta = numbers.find((x) => x.id === o.id);
+        const extra = added.find((x) => x.id === o.id);
+        return {
+          id: o.id,
+          number: meta?.number ?? (extra ? 'What-if' : 'Draft'),
+          item: meta ? `${meta.code} · ${meta.name}` : extra ? `${extra.code} · ${extra.name} × ${extra.qty}` : '',
+          added: !!extra,
+          before: b ? { end: b.end ? new Date(b.end) : null, late: b.late } : null,
+          after: { end: o.end ? new Date(o.end) : null, late: o.late },
+          shiftHours: b?.end && o.end ? Math.round(((o.end - b.end) / 3_600_000) * 10) / 10 : null,
+        };
+      });
+      return {
+        baseline: { ...summary(baseline), load: load(baseline, base.wcMap) },
+        scenario: { ...summary(scenario), load: load(scenario, wcMap) },
+        orders: orderRows.sort((a, b) => Math.abs(b.shiftHours ?? 0) - Math.abs(a.shiftHours ?? 0) || Number(b.added) - Number(a.added)),
+      };
+    });
   }
 
   /** Operations on the board between two dates, with the work centres as rows. */

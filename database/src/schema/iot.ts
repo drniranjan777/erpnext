@@ -183,9 +183,9 @@ export const iotCommands = pgTable(
     gatewayId: uuid('gateway_id')
       .notNull()
       .references(() => iotGateways.id, { onDelete: 'cascade' }),
-    /** write */
+    /** write | deploy_model */
     kind: text('kind').notNull().default('write'),
-    payload: jsonb('payload').$type<{ writes: (SignalSource & { name: string; value: number })[] }>().notNull(),
+    payload: jsonb('payload').$type<{ writes?: (SignalSource & { name: string; value: number })[]; model?: Record<string, unknown> }>().notNull(),
     /** pending | sent | done | failed */
     status: text('status').notNull().default('pending'),
     result: text('result'),

@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { DiskBuffer } from './buffer.mjs';
 import { decodeWords, ModbusTcpClient, wordsFor } from './modbus.mjs';
 import { mqttPublish, MqttSubscriber, topicMatches } from './mqtt.mjs';
@@ -154,6 +156,10 @@ export class EdgeAgent {
     if (!res.ok) return 0;
     const commands = await res.json();
     for (const c of commands) {
+      if (c.kind === 'deploy_model') {
+        await this.loadModel(c);
+        continue;
+      }
       const done = [];
       let error = null;
       for (const w of c.payload.writes ?? []) {
@@ -173,6 +179,32 @@ export class EdgeAgent {
       this.log(error ? `Command ${c.id} failed: ${error}` : `Command ${c.id}: wrote ${done.join(', ')}`);
     }
     return commands.length;
+  }
+
+  /**
+   * Records a vision model to run (models.json next to the buffer). The inspection program on the
+   * gateway reads it, downloads the artifact and posts its results to /iot/device/inspections.
+   */
+  async loadModel(c) {
+    const file = join(dirname(this.buffer.file), 'models.json');
+    let models = {};
+    try {
+      models = JSON.parse(readFileSync(file, 'utf8'));
+    } catch {
+      models = {};
+    }
+    const m = c.payload.model ?? {};
+    models[String(m.name)] = m;
+    let ok = true;
+    let message = `Model ${m.name} ${m.version} ready`;
+    try {
+      writeFileSync(file, JSON.stringify(models, null, 2));
+    } catch (e) {
+      ok = false;
+      message = `Could not save the model list: ${e instanceof Error ? e.message : e}`;
+    }
+    await this.fetch(`${this.server}/iot/device/commands/${c.id}/result`, { method: 'POST', headers: this.headers(), body: JSON.stringify({ ok, message }) });
+    this.log(message);
   }
 
   /** Writes one set-point: a Modbus holding register or an MQTT message. */
