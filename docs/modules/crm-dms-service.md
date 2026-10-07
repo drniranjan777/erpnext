@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 10.1–10.3 done |
+| **Status** | In progress: 10.1–10.4 done |
 | **Code** | `backend/src/modules/crm/`, `backend/src/modules/dms/`, `backend/src/modules/service/`, `backend/src/modules/portal/`, `database/src/schema/crm.ts`, `dms.ts`, `service.ts`, `frontend/src/app/(app)/crm/`, `dms/`, `service/`, `frontend/src/app/portal/` |
 
 ## Sprint plan
@@ -144,3 +144,37 @@ Schema: `database/src/schema/dms.ts`, migration 0042. Code: `backend/src/modules
 **UI**: `/dms` (distributors, beats, retailers), `/dms/distributors/:id` (stock, adjustments, secondary sales), `/dms/sales` (secondary sales with scheme preview and import; schemes), `/dms/claims`, `/dms/field` (phone screen).
 
 **Not built**: van sales (selling from a vehicle's own stock), dealer tinting machines, and distributor-side billing software integration (file import covers it).
+
+## 10.4 After-sales service (done)
+
+Schema: `database/src/schema/service.ts`, migration 0043. Code: `backend/src/modules/service/`. SLA arithmetic and triage are in `sla.ts`, pure and unit tested. Pages under `/service`.
+
+**Tickets** (TKT000001…)
+- Raised by staff, or by the customer on the portal (10.5). The customer is matched by email or phone when no party is given.
+- Triage suggests a category and priority from the subject and description (keyword rules; the AI version comes in 10.5).
+- Each ticket gets a response and a resolution due time from the priority's targets (settings, `/service/sla`), counted round the clock or in business hours (IST). A customer contract can set a shorter resolution time.
+- Coverage is worked out on creation: the serial's warranty, or an active service contract for the customer and item.
+- SLA state per ticket: met, missed, due, at risk (less than 20 % of the time left) or breached.
+- Escalation runs as background jobs at each due time (queue `service.sla`) and can be triggered with `POST /service/sla/check`. A missed response escalates to level 1, a missed resolution to level 2; the assignee and the escalation contact are notified.
+- The first reply sets the response time and is emailed to the customer. Internal notes are not sent.
+- Matching knowledge-base articles are suggested on the ticket.
+
+**Installed base and warranties**
+- A warranty is registered per serial, by hand or from a posted sales invoice (`POST /service/warranties/from-invoice/:id`; the default length is in settings). An installation visit starts the warranty on the day of installation.
+- `/service/installed-base` looks up a serial: warranty, contract, tickets and visits.
+
+**Contracts** (labour-only AMC, comprehensive AMC, or warranty extension): a contract covers a customer's items for a period, optionally with a resolution time. Preventive visits are planned evenly over the period when the contract is created; cancelling it cancels the visits not yet done. Comprehensive contracts and warranty extensions make visits free; a labour-only contract does not.
+
+**Visits** (installation, preventive, breakdown)
+- Scheduled for a technician, started, then finished with the work done, a checklist, spares used, the customer's name and signature.
+- Spares are issued from a warehouse with a submitted material issue stock entry.
+- The visit is chargeable unless the unit is under warranty or a comprehensive contract; this can be overridden.
+- Finishing a breakdown visit resolves its ticket.
+
+**Returns (RMA)**
+- Authorised, then received, repaired or replaced, returned (with a dispatch reference), or rejected.
+- A replacement moves the remaining warranty to the new serial.
+
+**Knowledge base**: articles with tags and a category, searched by title, body and tags. Public articles will show on the customer portal (10.5).
+
+**Not covered by e2e tests**: creating warranties from a sales invoice (`fromInvoice`). Invoicing a chargeable visit is done by hand from Sales for now.

@@ -18,7 +18,7 @@ export interface Rendered {
 export interface EventDefinition<D = Record<string, string>> {
   label: string;
   description: string;
-  group: 'Approvals' | 'Documents' | 'Account & security' | 'Team' | 'Vendors' | 'Customers';
+  group: 'Approvals' | 'Documents' | 'Account & security' | 'Team' | 'Vendors' | 'Customers' | 'Service';
   defaults: Record<Channel, boolean>;
   /** Users can't turn these off (security). */
   mandatory?: boolean;
@@ -191,6 +191,44 @@ Kindly reply by ${d.dueDate}, quoting ${d.number}. ${d.contact}`,
           : `Material sent to ${d.jobWorker} on challan ${d.number} must come back by ${d.dueDate}, or it is treated as a supply. Pending: ${d.pending}.`,
       link: d.link,
       action: 'Open the challan',
+    }),
+  },
+  'service.ticket_assigned': {
+    label: 'Service ticket assigned',
+    description: 'A customer ticket was assigned to you',
+    group: 'Service',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    render: (d: { number: string; subject: string; customer: string; priority: string; due: string; link: string }) => ({
+      title: `Ticket ${d.number} (${d.priority}) assigned to you`,
+      body: `${d.customer}: ${d.subject}. Resolve by ${d.due}.`,
+      link: d.link,
+      action: 'Open the ticket',
+    }),
+  },
+  'service.sla_breached': {
+    label: 'Service SLA breached',
+    description: 'A ticket missed its response or resolution time and was escalated',
+    group: 'Service',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    render: (d: { number: string; subject: string; customer: string; what: string; due: string; level: string; link: string }) => ({
+      title: `Ticket ${d.number}: ${d.what} overdue (escalation level ${d.level})`,
+      body: `${d.customer}: ${d.subject}. The ${d.what} was due by ${d.due}.`,
+      link: d.link,
+      action: 'Open the ticket',
+    }),
+  },
+  /** Sent to a customer's email (not a user). */
+  'service.ticket_reply': {
+    label: 'Reply on a service ticket',
+    description: 'A reply to the customer on their ticket',
+    group: 'Customers',
+    defaults: { in_app: false, email: true, whatsapp: false },
+    mandatory: true,
+    render: (d: { companyName: string; number: string; subject: string; reply: string }) => ({
+      title: `[${d.number}] ${d.subject}`,
+      body: `${d.reply}
+
+${d.companyName} service desk. Please keep ${d.number} in the subject when you reply.`,
     }),
   },
   /** Sent to a customer's email (not a user). */

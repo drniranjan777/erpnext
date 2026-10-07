@@ -29,3 +29,4 @@ export * from './contract';
 export * from './crm';
 export * from './cpq';
 export * from './dms';
+export * from './service';

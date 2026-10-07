@@ -104,6 +104,10 @@ import {
   Plane,
   CalendarCog,
   Fingerprint,
+  Timer,
+  PackageX,
+  ScanBarcode,
+  Headset,
   Navigation,
   BadgePercent,
   Store,
@@ -257,6 +261,17 @@ export const NAVIGATION: NavSection[] = [
       { label: "Estimates", href: "/crm/estimates", icon: Calculator, permissions: ["cpq.estimates.read"] },
       { label: "Configurator", href: "/crm/configurator", icon: Puzzle, permissions: ["cpq.estimates.read"] },
       { label: "CRM setup", href: "/crm/setup", icon: SlidersHorizontal, permissions: ["crm.opportunities.read"] },
+    ],
+  },
+  {
+    title: "Service",
+    items: [
+      { label: "Service desk", href: "/service", icon: Headset, permissions: ["service.tickets.read"] },
+      { label: "Service visits", href: "/service/visits", icon: Wrench, permissions: ["service.tickets.read"] },
+      { label: "Installed base", href: "/service/installed-base", icon: ScanBarcode, permissions: ["service.tickets.read"] },
+      { label: "Returns (RMA)", href: "/service/rmas", icon: PackageX, permissions: ["service.tickets.read"] },
+      { label: "Knowledge base", href: "/service/kb", icon: BookOpen, permissions: ["service.tickets.read"] },
+      { label: "Service levels", href: "/service/sla", icon: Timer, permissions: ["service.tickets.read"] },
     ],
   },
   {
