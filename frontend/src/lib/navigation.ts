@@ -214,6 +214,9 @@ export const NAVIGATION: NavSection[] = [
     title: "Warehouse",
     items: [
       { label: "Warehouses", href: "/wms", icon: Warehouse, permissions: ["inventory.stock.read"] },
+      { label: "Dock schedule", href: "/wms/docks", icon: CalendarClock, permissions: ["inventory.stock.read"] },
+      { label: "Receiving", href: "/wms/receiving", icon: PackageOpen, permissions: ["wms.tasks.execute"] },
+      { label: "Picking & packing", href: "/wms/waves", icon: PackageCheck, permissions: ["inventory.stock.read"] },
       { label: "Floor tasks", href: "/wms/tasks", icon: ClipboardCheck, permissions: ["inventory.stock.read"] },
       { label: "Scan", href: "/wms/scan", icon: ScanLine, permissions: ["inventory.stock.read"] },
       { label: "Bins & zones", href: "/wms/bins", icon: Grid3x3, permissions: ["inventory.stock.read"] },

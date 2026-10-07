@@ -103,14 +103,16 @@ export class DeliveriesService implements OnModuleInit {
   }
 
   create(auth: AuthContext, input: CreateDeliveryInput, meta: RequestMeta) {
-    return this.database.run(auth, async (tx) => {
-      const prepared = await this.prepare(tx, input);
-      const doc = await this.documents.create(tx, auth, { docType: DOC_TYPE, companyId: prepared.orderDoc.companyId, branchId: prepared.orderDoc.branchId, docDate: input.docDate ?? todayIST(), title: prepared.title, amount: null });
-      await tx.insert(deliveryNotes).values({ id: doc.id, tenantId: auth.tenantId, ...prepared.header });
-      await this.writeLines(tx, auth, doc.id, prepared.lines);
-      await this.documents.log(tx, auth, doc, 'document.created', meta, { order: prepared.orderDoc.number, lines: prepared.lines.length });
-      return this.view(tx, auth, doc);
-    });
+    return this.database.run(auth, (tx) => this.createTx(tx, auth, input, meta));
+  }
+
+  async createTx(tx: Transaction, auth: AuthContext, input: CreateDeliveryInput, meta: RequestMeta) {
+    const prepared = await this.prepare(tx, input);
+    const doc = await this.documents.create(tx, auth, { docType: DOC_TYPE, companyId: prepared.orderDoc.companyId, branchId: prepared.orderDoc.branchId, docDate: input.docDate ?? todayIST(), title: prepared.title, amount: null });
+    await tx.insert(deliveryNotes).values({ id: doc.id, tenantId: auth.tenantId, ...prepared.header });
+    await this.writeLines(tx, auth, doc.id, prepared.lines);
+    await this.documents.log(tx, auth, doc, 'document.created', meta, { order: prepared.orderDoc.number, lines: prepared.lines.length });
+    return this.view(tx, auth, doc);
   }
 
   update(auth: AuthContext, id: string, input: CreateDeliveryInput & { version: number }, meta: RequestMeta) {

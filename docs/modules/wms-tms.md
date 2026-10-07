@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 11.1 done |
+| **Status** | In progress: 11.1–11.2 done |
 | **Code** | `backend/src/modules/wms/`, `backend/src/modules/tms/`, `backend/src/modules/inventory/bins.ts`, `database/src/schema/wms.ts`, `tms.ts`, `frontend/src/app/(app)/wms/`, `tms/` |
 
 ## Approach
@@ -82,4 +82,52 @@ Schema: `database/src/schema/wms.ts`, migration 0045. Code: `backend/src/modules
 - Heat map: per aisle, how full each bin is or how many moves it had in 30 days.
 - Bin labels: 75 × 50 mm with a QR code of the bin code.
 
-Not yet: naming a bin on GRN / stock entry lines from the screens (the API supports `binId` on postings; receiving by scan comes in 11.2).
+Not yet: naming a bin on GRN or stock entry lines from the screens. The API supports `binId` on postings; receipts land in RECV and are put away.
+
+## 11.2 Inbound and outbound (done)
+
+Schema: added to `database/src/schema/wms.ts`, migration 0046. Code: `backend/src/modules/wms/flow.service.ts`, `outbound.ts` (SSCC and pick allocation, pure and unit tested). Pages: `/wms/docks`, `/wms/receiving`, `/wms/waves`, `/wms/waves/[id]`, `/wms/loading`, `/print/sscc/[id]`; GS1 settings are on `/wms`.
+
+**Docks**
+- Doors are for unloading, loading or both.
+- Appointments (DA000001…) book a door for a time slot. A slot that overlaps a live booking on the same door is refused, and so is a door used in the wrong direction.
+- Status goes booked → arrived → in progress → done, or no-show / cancelled.
+
+**Scanning**: `GET /wms/warehouses/:id/resolve?code=` says what a scanned code is: a bin code, a carton SSCC (with or without the (00) prefix), an item barcode or an item code.
+
+**Receiving by scan**
+- Pick an approved purchase order with something pending, then scan each unit or type counts, with batch and dates for batch items.
+- "Make the GRN" creates a draft GRN through the normal purchase flow (permission `purchase.receipts.manage`); a linked dock appointment moves to in progress.
+- When the GRN is submitted, the goods land in RECV.
+
+**Cross-docking**: when put-away is planned, the quantity that open sales orders still need, beyond the stock already in storage and dispatch, goes straight to DISP. Lots on QC hold are never cross-docked.
+
+**Waves and picking**
+- `/wms/warehouses/:id/pickable` lists approved, open orders shipping from this warehouse (or with none set) that still have something to deliver and are not already in a live wave.
+- A wave (WV00001…) takes one or more orders. Each order line's open quantity counts what has been delivered and what is on draft delivery notes, and is converted to base units.
+- Allocation (`allocate`):
+  - first expiry first out, then walking order;
+  - only storage and staging bins;
+  - skips blocked bins, lots on QC hold, expired lots, and lots with less remaining shelf life than the item's minimum (storage profile);
+  - quantities already promised to other open picks are respected.
+  - Shortfalls are saved on the wave with the reason, e.g. "40 below the minimum shelf life".
+- Modes:
+  - order: order by order;
+  - batch: one walk for all orders, sorted by bin;
+  - zone: grouped by zone, and a zone's picks can be assigned to one picker.
+  - The task's path number follows that order.
+- A pick is confirmed by scanning the bin taken from (another bin with the stock also works) and the quantity taken; a smaller quantity records a short pick. The goods move to DISP. When no pick is open, the wave becomes "picked".
+- Picks cannot be confirmed through the put-away screen.
+
+**Packing**
+- Cartons and pallets (`wms_packages`) are opened per order. Each gets an 18-digit SSCC: extension digit + GS1 company prefix + serial + GS1 mod-10 check digit. A prefix must be set first.
+- Items are added up to what was picked for the order and not yet packed, filled batch by batch. A carton is then closed with its gross weight.
+- The logistic label (100 × 150 mm) shows from / to, order and customer PO, carton n of m, the contents with batches and expiry, and the SSCC as GS1-128.
+
+**Delivery notes from a wave**
+- When the wave is picked and every carton is closed, "Make delivery notes" creates one draft delivery note per order. Its lines carry exactly the batches and quantities picked, converted back to the order unit, with the carton count and weight.
+- Submitting the delivery note issues the stock from DISP, where the picks are.
+
+**Loading check**
+- Scan each carton of a delivery onto the vehicle. Cartons of another delivery, open cartons and cartons already loaded are refused.
+- The screen shows how many are still to load.

@@ -1,8 +1,9 @@
-import { boolean, index, integer, numeric, pgTable, primaryKey, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, numeric, pgTable, primaryKey, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { citext, pk } from './_columns';
 import { users } from './iam';
 import { batches } from './inventory';
-import { items, warehouses } from './masters';
+import { documents } from './documents';
+import { items, parties, warehouses } from './masters';
 import { tenantId } from './tenancy';
 
 /** A warehouse run with bins. Its receiving and dispatch bins are created when WMS is switched on. */
@@ -175,6 +176,10 @@ export const wmsTasks = pgTable(
     reason: text('reason'),
     sourceType: text('source_type'),
     sourceId: uuid('source_id'),
+    /** Picks: the wave and sales order they serve, and the walking order within the wave. */
+    waveId: uuid('wave_id'),
+    orderId: uuid('order_id').references(() => documents.id, { onDelete: 'set null' }),
+    pathSeq: integer('path_seq'),
     assigneeId: uuid('assignee_id').references(() => users.id, { onDelete: 'set null' }),
     doneQty: numeric('done_qty', { precision: 18, scale: 4 }),
     doneBinId: uuid('done_bin_id').references(() => wmsBins.id, { onDelete: 'restrict' }),
@@ -185,4 +190,121 @@ export const wmsTasks = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('wms_tasks_number_uq').on(t.tenantId, t.number), index('wms_tasks_open_idx').on(t.tenantId, t.warehouseId, t.kind, t.status)],
+);
+
+/** Workspace-level WMS settings: the GS1 company prefix used for SSCC carton numbers. */
+export const wmsSettings = pgTable(
+  'wms_settings',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    gs1Prefix: text('gs1_prefix'),
+    ssccExtension: smallint('sscc_extension').notNull().default(0),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('wms_settings_tenant_uq').on(t.tenantId)],
+);
+
+export const wmsDockDoors = pgTable(
+  'wms_dock_doors',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    warehouseId: uuid('warehouse_id')
+      .notNull()
+      .references(() => warehouses.id, { onDelete: 'cascade' }),
+    code: citext('code').notNull(),
+    name: text('name').notNull(),
+    /** inbound | outbound | both */
+    direction: text('direction').notNull().default('both'),
+    isActive: boolean('is_active').notNull().default(true),
+  },
+  (t) => [uniqueIndex('wms_dock_doors_code_uq').on(t.warehouseId, t.code)],
+);
+
+/** A booked slot at a dock door for a vehicle to unload or load. */
+export const wmsAppointments = pgTable(
+  'wms_appointments',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    number: text('number').notNull(),
+    warehouseId: uuid('warehouse_id')
+      .notNull()
+      .references(() => warehouses.id, { onDelete: 'cascade' }),
+    doorId: uuid('door_id')
+      .notNull()
+      .references(() => wmsDockDoors.id, { onDelete: 'restrict' }),
+    direction: text('direction').notNull(),
+    partyId: uuid('party_id').references(() => parties.id, { onDelete: 'set null' }),
+    /** Purchase order (inbound) or sales order / delivery (outbound). */
+    documentId: uuid('document_id').references(() => documents.id, { onDelete: 'set null' }),
+    reference: text('reference'),
+    vehicleNo: text('vehicle_no'),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+    endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+    /** booked | arrived | in_progress | done | no_show | cancelled */
+    status: text('status').notNull().default('booked'),
+    arrivedAt: timestamp('arrived_at', { withTimezone: true }),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    doneAt: timestamp('done_at', { withTimezone: true }),
+    notes: text('notes'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('wms_appointments_number_uq').on(t.tenantId, t.number), index('wms_appointments_door_idx').on(t.doorId, t.startsAt)],
+);
+
+/** A group of sales orders picked together (by order, as a batch, or by zone). */
+export const wmsWaves = pgTable(
+  'wms_waves',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    number: text('number').notNull(),
+    warehouseId: uuid('warehouse_id')
+      .notNull()
+      .references(() => warehouses.id, { onDelete: 'cascade' }),
+    /** order | batch | zone */
+    mode: text('mode').notNull().default('order'),
+    /** open | picked | cancelled */
+    status: text('status').notNull().default('open'),
+    orderIds: uuid('order_ids').array().notNull(),
+    /** Quantities that could not be allocated: [{orderId, soLineId, itemId, short, why}]. */
+    shortages: jsonb('shortages').$type<{ orderId: string; soLineId: string; itemId: string; short: string; why: string }[]>().notNull().default([]),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('wms_waves_number_uq').on(t.tenantId, t.number)],
+);
+
+/** A carton or pallet packed for one sales order, numbered with a GS1 SSCC. */
+export const wmsPackages = pgTable(
+  'wms_packages',
+  {
+    id: pk(),
+    tenantId: tenantId(),
+    sscc: text('sscc').notNull(),
+    warehouseId: uuid('warehouse_id')
+      .notNull()
+      .references(() => warehouses.id, { onDelete: 'cascade' }),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'restrict' }),
+    waveId: uuid('wave_id').references(() => wmsWaves.id, { onDelete: 'set null' }),
+    deliveryId: uuid('delivery_id').references(() => documents.id, { onDelete: 'set null' }),
+    /** carton | pallet */
+    kind: text('kind').notNull().default('carton'),
+    contents: jsonb('contents').$type<{ itemId: string; batchId: string | null; qty: string }[]>().notNull().default([]),
+    grossWeightKg: numeric('gross_weight_kg', { precision: 12, scale: 3 }),
+    /** open | closed | loaded */
+    status: text('status').notNull().default('open'),
+    vehicleNo: text('vehicle_no'),
+    loadedAt: timestamp('loaded_at', { withTimezone: true }),
+    loadedBy: uuid('loaded_by').references(() => users.id, { onDelete: 'set null' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('wms_packages_sscc_uq').on(t.tenantId, t.sscc), index('wms_packages_order_idx').on(t.tenantId, t.orderId)],
 );

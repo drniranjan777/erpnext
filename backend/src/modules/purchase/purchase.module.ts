@@ -22,6 +22,6 @@ import { VendorPerformanceService } from './vendor-performance.service';
   imports: [InventoryModule],
   controllers: [RequisitionsController, OrdersController, ReceiptsController, InvoicesController, RfqsController, ImportsTradeController],
   providers: [RequisitionsService, OrdersService, ReceiptsService, InvoicesService, DebitNotesService, LandedCostsService, RfqsService, VendorPerformanceService, BillsOfEntryService, BillCaptureService],
-  exports: [RequisitionsService],
+  exports: [RequisitionsService, ReceiptsService],
 })
 export class PurchaseModule {}

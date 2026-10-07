@@ -1,11 +1,12 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Alert, Card } from "@/components/ui/card";
+import { Alert, Card, CardHeader } from "@/components/ui/card";
+import { Field, Input } from "@/components/ui/field";
 import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -59,6 +60,38 @@ export default function WmsHome() {
           </ul>
         </Card>
       )}
+      <Gs1Settings manage={can("wms.setup.manage")} />
     </div>
+  );
+}
+
+function Gs1Settings({ manage }: { manage: boolean }) {
+  const q = useQuery({ queryKey: [WMS, "settings"], queryFn: () => api<{ gs1Prefix: string | null; ssccExtension: number }>(`${WMS}/settings`) });
+  if (!q.data) return null;
+  return <Gs1Form key={q.data.gs1Prefix ?? ""} initial={q.data} manage={manage} />;
+}
+
+function Gs1Form({ initial, manage }: { initial: { gs1Prefix: string | null; ssccExtension: number }; manage: boolean }) {
+  const [f, setF] = useState({ gs1Prefix: initial.gs1Prefix ?? "", ssccExtension: String(initial.ssccExtension) });
+  const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+  async function save() {
+    setMsg(null);
+    try {
+      await api(`${WMS}/settings`, { method: "PUT", body: { gs1Prefix: f.gs1Prefix || null, ssccExtension: Number(f.ssccExtension) || 0 } });
+      setMsg({ tone: "success", text: "Saved." });
+    } catch (err) {
+      setMsg({ tone: "danger", text: err instanceof ApiError ? err.message : "Could not reach the server." });
+    }
+  }
+  return (
+    <Card>
+      <CardHeader title="Carton numbering (GS1)" description="Your GS1 India company prefix numbers cartons and pallets with an SSCC, printed as a GS1-128 barcode on the logistic label." />
+      <div className="flex flex-wrap items-end gap-3 border-t border-border p-4">
+        {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+        <Field label="Company prefix">{(p) => <Input {...p} disabled={!manage} className="w-40 font-mono" inputMode="numeric" placeholder="890xxxx" value={f.gs1Prefix} onChange={(e) => setF({ ...f, gs1Prefix: e.target.value })} />}</Field>
+        <Field label="Extension digit">{(p) => <Input {...p} disabled={!manage} className="w-24" type="number" min={0} max={9} value={f.ssccExtension} onChange={(e) => setF({ ...f, ssccExtension: e.target.value })} />}</Field>
+        {manage && <Button onClick={save}>Save</Button>}
+      </div>
+    </Card>
   );
 }

@@ -404,10 +404,25 @@ export class WmsService {
             from wms_bin_stock s where s.bin_id = ${cfg.receivingBinId} and s.qty > 0`,
       );
       const created: (typeof wmsTasks.$inferSelect)[] = [];
+      // Cross-docking: what open sales orders still need beyond the stock already in storage and dispatch goes straight to dispatch.
+      const backorders = new Map(
+        (
+          await many<{ itemId: string; short: string }>(
+            tx,
+            sql`with demand as (
+                  select l.item_id, sum(greatest(0, l.qty - l.delivered_qty) * l.conversion_factor) as qty
+                  from sales_order_lines l join sales_orders so on so.id = l.order_id join documents d on d.id = so.id
+                  where d.status = 'approved' and so.closed_at is null and (so.warehouse_id = ${warehouseId} or so.warehouse_id is null) group by l.item_id),
+                have as (
+                  select item_id, sum(qty) as qty from wms_bin_stock where warehouse_id = ${warehouseId} and bin_id <> ${cfg.receivingBinId} group by item_id)
+                select d.item_id as "itemId", (d.qty - coalesce(h.qty, 0) - coalesce((select sum(t.qty) from wms_tasks t where t.warehouse_id = ${warehouseId} and t.status = 'open' and t.kind = 'putaway' and t.item_id = d.item_id and t.to_bin_id = ${cfg.dispatchBinId}), 0))::text as short
+                from demand d left join have h on h.item_id = d.item_id`,
+          )
+        ).map((r) => [r.itemId, Number(r.short)]),
+      );
       for (const w of waiting.filter((x) => Number(x.qty) > 0)) {
         const batchId = w.batchKey === NIL_BATCH ? null : w.batchKey;
-        const it = await this.itemFacts(tx, w.itemId, batchId, Number(w.qty));
-        const plan = suggestPutaway(it, await this.candidates(tx, warehouseId));
+        let qty = Number(w.qty);
         const add = async (qty: number, toBinId: string | null, reason: string) => {
           const number = await nextCode(tx, auth.tenantId, 'wms_task', 'WT', 6);
           const [t] = await tx
@@ -416,6 +431,15 @@ export class WmsService {
             .returning();
           created.push(t);
         };
+        const it0 = await this.itemFacts(tx, w.itemId, batchId, qty);
+        const cross = it0.held ? 0 : Math.min(qty, Math.max(0, backorders.get(w.itemId) ?? 0));
+        if (cross > 0) {
+          await add(cross, cfg.dispatchBinId, `cross-dock: ${cross} waiting on open sales orders`);
+          backorders.set(w.itemId, (backorders.get(w.itemId) ?? 0) - cross);
+          qty = Math.round((qty - cross) * 10_000) / 10_000;
+          if (qty <= 0) continue;
+        }
+        const plan = suggestPutaway({ ...it0, qty }, await this.candidates(tx, warehouseId));
         for (const p of plan.placements) await add(p.qty, p.binId, p.reason);
         if (plan.unplaced > 0) await add(plan.unplaced, null, 'no bin has room or suits this item; choose one when putting it away');
       }
@@ -444,6 +468,7 @@ export class WmsService {
     return this.database.run(auth, async (tx) => {
       const [t] = await tx.select().from(wmsTasks).where(eq(wmsTasks.id, id)).for('update');
       if (!t) throw new NotFoundException('Task not found');
+      if (t.kind === 'pick') throw new BadRequestException('Confirm picks from the wave');
       if (t.status !== 'open') throw new ConflictException(`Task ${t.number} is already ${t.status}`);
       if (input.qty > Number(t.qty)) throw new BadRequestException(`The task is for ${Number(t.qty)} only`);
       const cfg = await this.requireWms(tx, t.warehouseId);
