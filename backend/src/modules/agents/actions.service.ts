@@ -8,6 +8,7 @@ import { StockEntriesService } from '../inventory/stock-entries.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { createRequisitionSchema } from '../purchase/requisitions.schemas';
 import { RequisitionsService } from '../purchase/requisitions.service';
+import { TicketsService } from '../service/tickets.service';
 
 export interface ActionHandler {
   /** Permission the person approving (or the agent's actor) must hold. */
@@ -29,6 +30,7 @@ export class AgentActions {
     requisitions: RequisitionsService,
     stockEntries: StockEntriesService,
     private readonly notifications: NotificationsService,
+    tickets: TicketsService,
   ) {
     this.register('create_requisition', {
       permission: 'purchase.requisitions.manage',
@@ -43,6 +45,14 @@ export class AgentActions {
         const p = params as { fromWarehouseId: string; toWarehouseId: string; reason: string; lines: { itemId: string; qty: number }[] };
         const e = (await stockEntries.create(auth, { purpose: 'transfer', fromWarehouseId: p.fromWarehouseId, toWarehouseId: p.toWarehouseId, reason: p.reason, lines: p.lines.map((l) => ({ itemId: l.itemId, qty: String(l.qty), rate: null })) } as Parameters<StockEntriesService['create']>[1], meta)) as { id: string };
         return { documentType: 'stock_entry', id: e.id, status: 'draft', link: `/inventory/stock-entries/${e.id}` };
+      },
+    });
+    this.register('reply_ticket', {
+      permission: 'service.tickets.manage',
+      run: async (auth, params) => {
+        const p = params as { ticketId: string; body: string };
+        const r = (await tickets.reply(auth, p.ticketId, { body: p.body, toCustomer: true })) as { mailed: boolean };
+        return { ticketId: p.ticketId, mailed: r.mailed, link: `/service/tickets/${p.ticketId}` };
       },
     });
     this.register('email_party', {

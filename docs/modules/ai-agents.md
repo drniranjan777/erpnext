@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 12.1 done |
+| **Status** | In progress: 12.1–12.2 done |
 | **Code** | `backend/src/modules/agents/`, `database/src/schema/ai.ts`, `frontend/src/app/(app)/ai/` |
 
 ## Sprint plan
@@ -66,3 +66,47 @@ Schema: `database/src/schema/ai.ts`, migration 0050. Code: `backend/src/modules/
 - Reorder: stock + open PO quantity + open requisitions at or below the reorder level. Proposes a requisition for the reorder quantity (or up to twice the level), with the cheapest vendor of the last year as a suggestion and the estimated rate.
 - POs more than 2 days past their expected date: proposes an email to the vendor asking for a dispatch date.
 - PO prices in the last 30 days more than 10 % above the item's 6-month average.
+
+## 12.2 Business agents (done)
+
+Code: `backend/src/modules/agents/definitions/` (`sales.ts`, `finance.ts`, `operations.ts` (production, maintenance, quality), `people.ts` (HR, compliance), `support.ts`). `statutoryDue()` in `framework.ts` is pure and unit tested. A new action, `reply_ticket` (`service.tickets.manage`), sends a ticket reply. All agents use the 12.1 inbox, guardrails and evaluation; the e2e test runs every agent on a fresh workspace.
+
+**Sales agent**
+- Orders past their expected date.
+- Approved quotations lapsing within 5 days with no order. Proposes a follow-up email.
+- Customers with invoices overdue by more than 7 days: one reminder per customer, listing the invoices.
+- Cross-sell: items that at least 3 customers bought together in a year, suggested to customers who bought one but not the other.
+
+**Finance agent**
+- MSME (micro / small) vendor bills within 7 days of, or past, 45 days from the invoice date. Paying later attracts MSMED Act interest and an s.43B(h) tax disallowance.
+- Possible duplicate bills: the same vendor bill number, or the same amount within 10 days.
+- Bills more than 3× the vendor's yearly average.
+- A monthly outlook when payables due in 30 days exceed collections due, with the overdue receivables that would close the gap.
+
+**Production agent**
+- Work orders starting within 7 days whose open material needs exceed stock across nettable stores. Proposes a requisition for the shortfall.
+- Work orders past their planned end.
+
+**Maintenance agent**
+- PM schedules due within 3 days, or overdue.
+- Critical spares below their minimum. Proposes a requisition.
+
+**Quality agent**
+- The same defect category on an item 3 or more times in 60 days with no open CAPA.
+- Suppliers whose incoming lots were rejected (fully or partly) more than 5 % of the time in 90 days (at least 3 lots).
+
+**HR agent**
+- Employees absent 3 or more days running (weekly offs and holidays don't break a streak).
+- Late on 5 or more days in 30.
+- Probations ending within a week without confirmation.
+
+**Compliance agent**
+- Statutory dates within 5 days, or up to 3 days overdue, each shown to the people with the matching permission: TDS deposit (7th), GSTR-1 (11th), PF / ESI (15th), GSTR-3B (20th), and quarterly TDS returns (31 Jul / 31 Oct / 31 Jan / 31 May). Government extensions are not modelled.
+- Licences within their renewal lead time.
+- Sales invoices whose e-invoice (IRN) failed.
+
+**Customer support agent** (hourly)
+- Tickets with no first response after 30 minutes get a drafted reply (category, warranty / contract cover, the best matching knowledge-base article, the resolution target). Approving sends it to the customer, which records the first response.
+- Flags tickets whose wording suggests a higher priority than logged.
+
+WhatsApp is not used for sending: messages go by email until a WhatsApp Business provider is connected.

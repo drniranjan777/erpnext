@@ -9,8 +9,13 @@ import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
 import { JobsService } from '../jobs/jobs.service';
 import { AgentActions } from './actions.service';
+import { financeAgent } from './definitions/finance';
 import { inventoryAgent } from './definitions/inventory';
+import { maintenanceAgent, productionAgent, qualityAgent } from './definitions/operations';
+import { complianceAgent, hrAgent } from './definitions/people';
 import { purchaseAgent } from './definitions/purchase';
+import { salesAgent } from './definitions/sales';
+import { supportAgent } from './definitions/support';
 import { canAutoExecute, nextRun, type AgentDefinition, type Finding } from './framework';
 
 const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
@@ -49,7 +54,7 @@ export class AgentsService implements OnModuleInit {
     private readonly jobs: JobsService,
     private readonly actions: AgentActions,
   ) {
-    for (const d of [inventoryAgent, purchaseAgent]) this.defs.set(d.code, d);
+    for (const d of [inventoryAgent, purchaseAgent, salesAgent, financeAgent, productionAgent, maintenanceAgent, qualityAgent, hrAgent, complianceAgent, supportAgent]) this.defs.set(d.code, d);
   }
 
   /** Lets other modules add agents. */
