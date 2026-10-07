@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { SignaturePad } from "@/components/service/signature-pad";
+import { TripTemperatures } from "@/components/iot/trip-temperatures";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
@@ -99,6 +100,7 @@ export default function TripPage() {
         </ul>
       </Card>
       <Expenses trip={t} manage={manage && !t.freightBill} />
+      {can("iot.data.read") && t.status !== "planned" && t.status !== "cancelled" && <TripTemperatures tripId={id} />}
       {pod && <StopDialog tripId={id} stop={pod} onClose={() => { setPod(null); qc.invalidateQueries({ queryKey: [TMS] }); }} />}
     </div>
   );

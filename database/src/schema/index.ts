@@ -35,4 +35,5 @@ export * from './wms';
 export * from './tms';
 export * from './iot';
 export * from './mes';
+export * from './plant';
 export * from './ai';

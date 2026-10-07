@@ -393,6 +393,13 @@
       "when": 1791404212836,
       "tag": "0055_mes_oee",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1791405625219,
+      "tag": "0056_plant_monitoring",
+      "breakpoints": true
     }
   ]
 }

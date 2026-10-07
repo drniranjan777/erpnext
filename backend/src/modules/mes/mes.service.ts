@@ -1,12 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
-import { jobCards, machines, mesAndonCalls, mesCounters, mesCounts, mesDowntimeReasons, mesMachineSettings, mesMachineStates, mesShifts, type Transaction } from '@nextgen/database';
+import { jobCards, machines, mesAndonCalls, mesCounts, mesDowntimeReasons, mesMachineSettings, mesMachineStates, mesShifts, type Transaction } from '@nextgen/database';
 import { and, eq, isNull, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
+import { counterStep } from '../iot/counters';
 import { IotService, type IngestedSignal } from '../iot/iot.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { combineOee, computeOee, counterDelta, currentShift, istDate, shiftWindows, type Loss, type MachineState, type OeeResult, type ShiftDef, type Span } from './oee';
+import { combineOee, computeOee, currentShift, istDate, shiftWindows, type Loss, type MachineState, type OeeResult, type ShiftDef, type Span } from './oee';
 
 const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const code = z.string().trim().min(1).max(20);
@@ -166,7 +167,7 @@ export class MesService implements OnModuleInit {
           await this.setState(tx, tenantId, machineId, e.value > 0.5 ? 'running' : 'stopped', e.ts, { source: 'auto' });
           continue;
         }
-        const delta = await this.counterStep(tx, tenantId, e.s.id, e.value, e.ts);
+        const delta = await counterStep(tx, tenantId, e.s.id, e.value, e.ts);
         if (delta === null) continue;
         if (e.s.purpose === 'part_count') {
           if (delta > 0) {
@@ -184,18 +185,6 @@ export class MesService implements OnModuleInit {
         .set({ lastPartAt, lastSignalAt: last && (!settings.lastSignalAt || last > settings.lastSignalAt) ? last : settings.lastSignalAt })
         .where(eq(mesMachineSettings.id, settings.id));
     }
-  }
-
-  /** Delta of a counter since its last reading; null for a reading older than the last one. */
-  private async counterStep(tx: Transaction, tenantId: string, signalId: string, value: number, ts: Date): Promise<number | null> {
-    const [c] = await tx.select().from(mesCounters).where(eq(mesCounters.signalId, signalId));
-    if (!c) {
-      await tx.insert(mesCounters).values({ tenantId, signalId, lastValue: value, lastAt: ts });
-      return 0;
-    }
-    if (ts <= c.lastAt) return null;
-    await tx.update(mesCounters).set({ lastValue: value, lastAt: ts }).where(eq(mesCounters.id, c.id));
-    return counterDelta(c.lastValue, value);
   }
 
   /** Adds parts (or rejects) to the minute's counts and to the job card running on the machine. */

@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 13.1–13.2 done |
-| **Code** | `edge/` (edge agent), `backend/src/modules/iot/`, `backend/src/modules/mes/`, `database/src/schema/iot.ts`, `database/src/schema/mes.ts`, `frontend/src/app/(app)/iot/` |
+| **Status** | In progress: 13.1–13.3 done |
+| **Code** | `edge/` (edge agent), `backend/src/modules/iot/`, `backend/src/modules/mes/`, `backend/src/modules/plant/`, `database/src/schema/iot.ts`, `mes.ts`, `plant.ts`, `frontend/src/app/(app)/iot/` |
 
 ## Sprint plan
 
@@ -65,3 +65,24 @@ Migration 0055 adds `mes_shifts`, `mes_downtime_reasons`, `mes_machine_settings`
 - each machine is computed per shift occurrence and the results are added up for the grouping (ratios are recomputed from the totals, not averaged).
 
 **Andon board** (`GET /mes/board`, refreshed every 5 seconds, with a full-screen mode for a TV): each machine's state and for how long, the reason, the job card running (work order, item, operation, good of ordered, operator), this shift's OEE against the machine's target, and open calls. From the board, people can call maintenance, quality, material or a supervisor (one open call of each kind per machine; everyone with `mes.shopfloor.use` is notified), answer ("coming") and close calls, and set the machine state. Call response times are kept.
+
+## 13.3 Energy, condition monitoring and cold chain (done)
+
+Migration 0056 adds `energy_settings`, `energy_minutes`, `cm_models` and `cm_anomalies`. Code: `backend/src/modules/plant/` (`analytics.ts` is pure and unit tested). Counter handling is shared in `iot/counters.ts`. Reading needs `iot.data.read`; settings need `iot.devices.manage`. Notification events `plant.peak_demand` and `plant.anomaly`. Pages: `/plant/energy`, `/plant/condition`, `/plant/cold-chain`; trips show "Temperatures on the way".
+
+**Energy** (`GET /plant/energy`, `GET/PUT /plant/energy/settings`)
+- kWh meters are signals measuring "energy meter (kWh)"; their counter readings become kWh per minute per meter, with the machine they belong to.
+- Settings: contract demand (kW), the utility's demand interval (15 or 30 minutes), the warning level (% of contract demand), the tariff (₹/kWh), the grid emission factor (0.716 kg CO₂/kWh by default, India's grid average) and which meters are the incoming ones. Totals and demand use the incoming meters (or all meters when none is marked), so machine sub-meters are not counted twice.
+- Peak demand: after the first 3 minutes of an interval, the demand it will reach at the current rate is projected; at the warning level everyone with `iot.data.read` is told once per interval to hold back large loads.
+- The report gives consumption, cost, Scope 2 carbon (location-based), maximum demand of the period (by complete intervals) against the contract, kWh per day, per meter, per machine with kWh and CO₂ per good part (from the counted parts of 13.2), and per product (the machine's kWh in the minutes it was counting a job card's parts, per good unit).
+
+**Condition monitoring** (`/plant/condition/models`, `/plant/condition/anomalies`)
+- Any measured signal (vibration, temperature, current, pressure, speed, power) can be monitored. The model first learns the signal's normal mean and spread from a set number of readings (200 by default), then keeps that baseline fixed so slow wear is not absorbed into "normal"; it is relearnt on request after maintenance or a process change.
+- A spike is a reading more than 4 standard deviations from normal for 3 readings in a row (settable). Drift is the recent average (which ignores spikes) moving more than 2.5 standard deviations away. Either raises an anomaly with the value, the score and the baseline, and (by default) a condition-based maintenance request on the machine's asset; maintenance staff are notified. It clears when readings are back to normal.
+- Each anomaly can be marked "confirmed" (with what was found) or "false alarm"; the page shows the hit rate. This is how the phase's exit criterion (a predictive alert validated before an actual failure) is evidenced: a confirmed anomaly with its maintenance request.
+
+**Cold chain** (`/plant/cold-chain`, `/plant/cold-chain/report`, `/plant/cold-chain/trips/:id`)
+- Loggers are temperature or humidity signals linked to a store or a vehicle number. The acceptable range is the logger's first active "outside" alarm limit (so the same limit also raises alarms), or a range given in the report.
+- The overview shows each logger's current value, whether it is in range or has gone quiet (15 minutes), and the last 24 hours: minimum, maximum, mean kinetic temperature and excursions.
+- The report gives readings, minimum / average / maximum, mean kinetic temperature (ICH method, ΔH/R = 10,000 K), time outside the range and each excursion with its start, length and worst value. A reading holds until the next, so an excursion runs from the first reading outside to the first reading back inside.
+- A transport trip shows the loggers whose vehicle number matches the trip's (ignoring spaces and dashes) between dispatch and completion.
