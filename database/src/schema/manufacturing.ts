@@ -359,7 +359,7 @@ export const jobCards = pgTable(
     clientRef: text('client_ref'),
     ...auditColumns(),
   },
-  (t) => [index('job_cards_wo_idx').on(t.workOrderId), index('job_cards_status_idx').on(t.tenantId, t.status), uniqueIndex('job_cards_client_ref_uq').on(t.tenantId, t.clientRef)],
+  (t) => [index('job_cards_wo_idx').on(t.workOrderId), index('job_cards_status_idx').on(t.tenantId, t.status), index('job_cards_ended_idx').on(t.tenantId, t.endedAt), uniqueIndex('job_cards_client_ref_uq').on(t.tenantId, t.clientRef)],
 );
 
 /** Material issue / return, production receipt and close of a work order (doc type "production_entry"). */

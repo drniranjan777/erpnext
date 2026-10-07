@@ -24,7 +24,7 @@ export class DashboardsController {
     return this.dashboards.list(auth);
   }
   @Get('view')
-  view(@Auth() auth: AuthContext, @Query(new ZodValidationPipe(z.object({ id: z.uuid().optional(), preset: z.string().max(30).optional() }))) q: { id?: string; preset?: string }) {
+  view(@Auth() auth: AuthContext, @Query(new ZodValidationPipe(z.object({ id: z.uuid().optional(), preset: z.string().max(30).optional(), fresh: z.enum(['1', 'true']).optional().transform((v) => !!v) }))) q: { id?: string; preset?: string; fresh?: boolean }) {
     return this.dashboards.view(auth, q);
   }
   @Post()

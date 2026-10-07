@@ -1,4 +1,6 @@
 import {
+  LifeBuoy,
+  Rocket,
   Tablet,
   TrendingDown,
   GitBranch,
@@ -98,6 +100,8 @@ export const NAVIGATION: NavSection[] = [
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Approvals", href: "/approvals", icon: Inbox, badge: "approvals" },
+      { label: "Set up", href: "/setup", icon: Rocket },
+      { label: "Help", href: "/help", icon: LifeBuoy },
     ],
   },
   {

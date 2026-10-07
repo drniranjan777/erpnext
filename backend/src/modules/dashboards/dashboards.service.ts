@@ -6,7 +6,7 @@ import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
 import { loadPermissions } from '../../common/guards';
 import { DatabaseService } from '../../database/database.service';
-import { PRESETS, WIDGETS, type WidgetDef } from './widgets';
+import { PRESETS, WIDGETS, type WidgetData, type WidgetDef } from './widgets';
 
 export const dashboardSchema = z.object({
   name: z.string().trim().min(2).max(60),
@@ -21,6 +21,10 @@ export const dashboardSchema = z.object({
 });
 export type DashboardInput = z.infer<typeof dashboardSchema>;
 
+/** Widget results are aggregates; reusing them for a short while keeps dashboards fast under load. */
+const CACHE_MS = 30_000;
+const CACHE_MAX = 5_000;
+
 /** Preset tried first for a home dashboard, by what the user can see. */
 const HOME_ORDER = ['owner', 'plant', 'finance', 'sales', 'purchase', 'stores', 'production', 'qa'];
 
@@ -31,7 +35,14 @@ const HOME_ORDER = ['owner', 'plant', 'finance', 'sales', 'purchase', 'stores', 
  */
 @Injectable()
 export class DashboardsService {
+  private readonly cache = new Map<string, { at: number; data: WidgetData }>();
+
   constructor(private readonly database: DatabaseService) {}
+
+  /** Personal widgets are cached per user; the rest per workspace. */
+  private cacheKey(auth: AuthContext, w: WidgetDef) {
+    return w.permission === null ? `${auth.tenantId}:${auth.userId}:${w.key}` : `${auth.tenantId}:${w.key}`;
+  }
 
   private async perms(auth: AuthContext) {
     return auth.permissions ?? (await loadPermissions(this.database, auth.tenantId, auth.userId, auth.membershipId));
@@ -67,7 +78,7 @@ export class DashboardsService {
   }
 
   /** A dashboard with its widgets computed: a saved one, a preset, or the user's home. */
-  async view(auth: AuthContext, q: { id?: string; preset?: string }) {
+  async view(auth: AuthContext, q: { id?: string; preset?: string; fresh?: boolean }) {
     const perms = await this.perms(auth);
     const allowed = new Map(this.visible(perms).map((w) => [w.key, w]));
     let head: { id: string | null; name: string; preset: string | null; refreshSeconds: number; mine: boolean; shared: boolean; isDefault: boolean };
@@ -101,13 +112,24 @@ export class DashboardsService {
     }
     const today = todayIST();
     const ctx = { auth, today, monthStart: `${today.slice(0, 8)}01` };
+    const now = Date.now();
+    let oldest = now;
     const widgets = await this.database.run(auth, async (tx) => {
       const out = [];
       for (const item of layout!) {
         const w = allowed.get(item.key);
         if (!w) continue;
+        const key = this.cacheKey(auth, w);
+        const hit = this.cache.get(key);
+        if (!q.fresh && hit && now - hit.at < CACHE_MS) {
+          oldest = Math.min(oldest, hit.at);
+          out.push({ ...this.describe(w), size: item.size, data: hit.data });
+          continue;
+        }
         try {
           const data = await tx.transaction((sp) => w.compute(sp, ctx));
+          if (this.cache.size >= CACHE_MAX) this.cache.clear();
+          this.cache.set(key, { at: now, data });
           out.push({ ...this.describe(w), size: item.size, data });
         } catch {
           out.push({ ...this.describe(w), size: item.size, data: null, error: 'Could not load this widget' });
@@ -115,7 +137,7 @@ export class DashboardsService {
       }
       return out;
     });
-    return { ...head!, asOf: new Date().toISOString(), widgets };
+    return { ...head!, asOf: new Date(oldest).toISOString(), widgets };
   }
 
   async save(auth: AuthContext, id: string | null, input: DashboardInput) {

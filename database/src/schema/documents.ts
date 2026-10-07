@@ -124,6 +124,8 @@ export const documents = pgTable(
   (t) => [
     index('documents_type_status_idx').on(t.tenantId, t.docType, t.status),
     index('documents_date_idx').on(t.tenantId, t.docDate),
+    /** Registers and dashboards: one type over a period. */
+    index('documents_type_date_idx').on(t.tenantId, t.docType, t.docDate),
     uniqueIndex('documents_number_uq')
       .on(t.tenantId, t.companyId, t.docType, t.number)
       .where(sql`${t.number} is not null`),

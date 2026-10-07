@@ -91,7 +91,7 @@ export function Copilot() {
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="fixed right-5 bottom-5 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground shadow-lg hover:opacity-90" title="Ask the copilot (Ctrl+J)">
+      <button data-tour="copilot" onClick={() => setOpen(true)} className="fixed right-5 bottom-5 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground shadow-lg hover:opacity-90" title="Ask the copilot (Ctrl+J)">
         <Sparkles className="size-4" aria-hidden /> Ask
       </button>
     );

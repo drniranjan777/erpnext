@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Sprints 6.1–6.4 (7 Oct 2026) done: report catalogue; role dashboards; report builder and scheduled delivery; AI Copilot v1 |
-| **Code** | `backend/src/modules/reports/`, `backend/src/modules/dashboards/`, `backend/src/modules/copilot/`, `frontend/src/components/copilot.tsx`, `database/src/schema/analytics.ts` (migrations 0024–0025), `frontend/src/app/(app)/reports/`, `frontend/src/app/(app)/dashboards/`, `frontend/src/components/dashboard/` |
-| **Tests** | `backend/test/unit/report-builder.test.ts`, `backend/test/unit/copilot.test.ts`, `backend/test/e2e/copilot.e2e.test.ts`, `backend/test/e2e/reports.e2e.test.ts`, `backend/test/e2e/dashboards.e2e.test.ts`, `backend/test/e2e/report-builder.e2e.test.ts` |
+| **Status** | **Phase 6 code complete** (7 Oct 2026): report catalogue; role dashboards; report builder and schedules; AI Copilot v1; onboarding and launch hardening |
+| **Code** | `backend/src/modules/reports/`, `backend/src/modules/dashboards/`, `backend/src/modules/copilot/`, `backend/src/modules/onboarding/`, `backend/scripts/load-test.mjs`, `frontend/src/components/copilot.tsx`, `database/src/schema/analytics.ts` (migrations 0024–0025), `frontend/src/app/(app)/reports/`, `frontend/src/app/(app)/dashboards/`, `frontend/src/components/dashboard/` |
+| **Tests** | `backend/test/unit/report-builder.test.ts`, `backend/test/unit/copilot.test.ts`, `backend/test/e2e/copilot.e2e.test.ts`, `backend/test/e2e/onboarding.e2e.test.ts`, `backend/test/e2e/reports.e2e.test.ts`, `backend/test/e2e/dashboards.e2e.test.ts`, `backend/test/e2e/report-builder.e2e.test.ts` |
 
 ## Sprint plan
 
@@ -14,7 +14,7 @@
 | **6.2** ✅ | Role-based dashboards (owner, plant head, sales, purchase, stores, production, finance, QA) with configurable widgets, drill-down and a TV mode for the shop floor |
 | **6.3** ✅ | Report builder v1: pick a dataset, fields, filters, grouping; save and share; scheduled delivery by email (WhatsApp via the notification channel) |
 | **6.4** ✅ | AI Copilot v1: chat panel on every screen; questions about your data answered through safe, permission-checked tools with charts; navigation; drafting documents behind a confirmation card; "why is this blocked?" explanations; English and Hindi |
-| 6.5 | Onboarding (industry setup wizard, sample data mode, in-app tours, help centre) and launch hardening (performance budget, load-test script, accessibility pass, security headers) |
+| **6.5** ✅ | Onboarding (industry setup wizard, sample data mode, in-app tours, help centre) and launch hardening (performance budget, load-test script, accessibility pass, security headers) |
 
 Not in code: the third-party penetration test, the DR drill on production infrastructure, pricing and GTM material, and the pilot customers in the V1 exit criteria.
 
@@ -117,3 +117,37 @@ Not in code: the third-party penetration test, the DR drill on production infras
   - drafting from sentences such as "draft purchase order from Deccan Steels: 100 hex bolt, 50 hex nut by 2026-12-01".
 - **Limits**: 20 questions per user per minute. History is capped at 12 turns, and tool results are truncated before they reach the model.
 - `GET /copilot/status` returns `{ mode: 'ai' | 'basic' }`. `POST /copilot/chat` takes `{ messages, language, page }`.
+
+## 5. Onboarding and launch hardening (6.5)
+
+- **Setup checklist** (`GET /onboarding/progress`, `/setup`, and the dashboard while incomplete).
+  - Every tick comes from real data:
+    - company GSTIN;
+    - industry stores (at least 4);
+    - at least 5 items;
+    - customers and vendors;
+    - approved opening stock;
+    - books set up;
+    - an approved BOM (manufacturing industries);
+    - a second active member.
+  - Optional steps: approval rules, and a first order or invoice.
+- **Industry templates** (`onboarding/templates.ts`, `POST /onboarding/templates/apply`): 15 industries plus *Other*.
+  - Each adds item groups and stores (FG, shop floor, rejected, scrap, plus industry stores such as MSL dry store, reel store or cold store) and work centres with typical hourly rates.
+  - Idempotent by code. Applying a template sets the workspace's industry.
+  - Needs `masters.setup.manage` and `inventory.warehouses.manage`. Work centres also need `manufacturing.engineering.manage`.
+- **Tour**: four steps (menu, Ctrl+K search, dashboards, copilot) anchored on `data-tour` elements. Steps whose element is hidden are skipped; Esc ends the tour.
+- **Help centre** (`/help`, `frontend/src/lib/help.ts`): ten searchable articles covering:
+  - getting started, documents and approvals;
+  - GST and e-invoicing, buying, production, quality;
+  - reports, the copilot, dashboards, and year-end.
+- **Security headers** (Next): `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, and a `Permissions-Policy` that leaves the camera available for scanning.
+  - HSTS is sent in production. The API keeps helmet.
+  - A strict CSP needs nonces for Next's inline scripts, so it is left for the deployment proxy.
+- **Performance budget**:
+  - Every API response carries `x-response-time`. Requests slower than `SLOW_REQUEST_MS` (default 300) are logged with their request id.
+  - New indexes on `documents (tenant, doc_type, doc_date)` and `job_cards (tenant, ended_at)` (migration 0026).
+  - Dashboard widgets are cached for 30 seconds per workspace (per user for personal widgets). `?fresh=1` bypasses the cache.
+- **Load test** (`node backend/scripts/load-test.mjs --users 50 --seconds 30`): concurrent users on the ten busiest read endpoints, with p50 / p95 / p99 per endpoint. It exits non-zero over budget or on errors.
+  - Baseline on the dev laptop, 25 users × 15 s: 435 req/s, every endpoint p95 ≤ 105 ms. Before the widget cache, the dashboard was p95 356 ms.
+- **Accessibility**: a skip-to-content link, a focusable `main` landmark, `aria-current` on the menu, labelled controls and keyboard-operable dialogs and tour.
+- **Outside the code** (V1 exit criteria): third-party penetration test, DR drill on production infrastructure, pricing / GTM material, a status page, and pilot customers live for 4 weeks.

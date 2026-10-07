@@ -35,6 +35,7 @@ import { QualityModule } from './modules/quality/quality.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { CopilotModule } from './modules/copilot/copilot.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { CopilotModule } from './modules/copilot/copilot.module';
     ReportsModule,
     DashboardsModule,
     CopilotModule,
+    OnboardingModule,
     AdminModule,
     PrivacyModule,
   ],

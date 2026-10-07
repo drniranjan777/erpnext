@@ -33,6 +33,17 @@ async function bootstrap() {
     contentSecurityPolicy: config.get('NODE_ENV', { infer: true }) === 'production' ? undefined : false,
   });
   app.enableCors({ origin: config.get('CORS_ORIGINS', { infer: true }), credentials: true });
+  // Performance budget: every response says how long it took, and slow ones are logged.
+  const slowMs = config.get('SLOW_REQUEST_MS', { infer: true });
+  const perf = new Logger('Perf');
+  const fastify = app.getHttpAdapter().getInstance();
+  fastify.addHook('onSend', async (req, reply, payload) => {
+    reply.header('x-response-time', `${Math.round(reply.elapsedTime)}ms`);
+    return payload;
+  });
+  fastify.addHook('onResponse', async (req, reply) => {
+    if (reply.elapsedTime > slowMs) perf.warn(`${req.method} ${req.url.split('?')[0]} ${reply.statusCode} took ${Math.round(reply.elapsedTime)} ms (request ${req.id})`);
+  });
   app.setGlobalPrefix('api/v1');
   app.enableShutdownHooks();
 

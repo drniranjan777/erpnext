@@ -1,0 +1,2 @@
+CREATE INDEX "documents_type_date_idx" ON "documents" USING btree ("tenant_id","doc_type","doc_date");--> statement-breakpoint
+CREATE INDEX "job_cards_ended_idx" ON "job_cards" USING btree ("tenant_id","ended_at");

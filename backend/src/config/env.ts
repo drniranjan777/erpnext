@@ -54,6 +54,8 @@ const envSchema = z.object({
   /** Anthropic API key for AI document capture (purchase bills). Empty = text-only capture. */
   ANTHROPIC_API_KEY: z.string().optional().default(''),
   AI_MODEL: z.string().default('claude-sonnet-5-5'),
+  /** Requests slower than this are logged (performance budget, p95 < 300 ms). */
+  SLOW_REQUEST_MS: z.coerce.number().int().min(1).default(300),
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),

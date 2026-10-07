@@ -129,8 +129,11 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="flex min-h-screen">
+      <a href="#main" className="sr-only z-50 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+        Skip to content
+      </a>
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-surface lg:flex">
+      <aside data-tour="nav" className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-surface lg:flex">
         <Brand />
         {sidebar}
       </aside>
@@ -163,6 +166,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             onClick={() => setPaletteOpen(true)}
             className="hidden h-9 items-center gap-2 rounded-lg border border-border bg-surface-muted px-3 text-sm text-muted hover:text-foreground md:flex"
             aria-label="Search (Ctrl+K)"
+            data-tour="search"
           >
             <Search className="size-4" aria-hidden />
             <span>Search…</span>
@@ -221,7 +225,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             We couldn&apos;t collect your last subscription payment. Please update your payment method to avoid interruption.
           </div>
         )}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main id="main" tabIndex={-1} className="flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8">{children}</main>
         {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
         <Copilot />
       </div>

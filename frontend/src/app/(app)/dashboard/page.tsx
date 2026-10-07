@@ -1,10 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Circle, Monitor, SlidersHorizontal } from "lucide-react";
+import { Compass, LifeBuoy, Monitor, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { WidgetGrid, type DashboardView } from "@/components/dashboard/widgets";
+import { SetupSteps, type Progress } from "@/components/onboarding/setup-steps";
+import { Tour } from "@/components/onboarding/tour";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Select } from "@/components/ui/field";
 import { ErrorBlock, LoadingBlock } from "@/components/ui/page";
@@ -20,84 +22,49 @@ export default function DashboardPage() {
     queryFn: () => api<Company[]>("/org/companies"),
     enabled: can("org.companies.read"),
   });
-
-  const members = useQuery({
-    queryKey: ["iam", "users"],
-    queryFn: () => api<{ userId: string }[]>("/iam/users"),
-    enabled: can("iam.users.read"),
-  });
-  const requisitions = useQuery({
-    queryKey: ["/purchase/requisitions", "list", { limit: 1 }],
-    queryFn: () => api<{ items: unknown[] }>("/purchase/requisitions", { query: { limit: 1 } }),
-    enabled: can("purchase.requisitions.read"),
-  });
+  const progress = useQuery({ queryKey: ["onboarding", "progress"], queryFn: () => api<Progress>("/onboarding/progress") });
+  const [touring, setTouring] = useState(false);
 
   if (!me) return null;
   const firstName = me.user.fullName.split(" ")[0];
-  const company = companies.data?.[0];
-
-  // Honest setup checklist: only items we can verify are marked done.
-  const checklist = [
-    { label: "Create your workspace", done: true },
-    { label: "Add company GSTIN", done: !!company?.gstin, href: "/settings/companies" },
-    { label: "Invite your team", done: (members.data?.length ?? 0) > 1, href: "/settings/users" },
-    { label: "Set up approval workflows (optional)", done: false, href: "/settings/approval-workflows" },
-    { label: "Raise your first purchase requisition", done: (requisitions.data?.items.length ?? 0) > 0, href: "/purchase/requisitions/new" },
-    { label: "Import items, customers and vendors from Tally or Excel", done: false, phase: 2 },
-  ];
-
-  // Required steps still open (optional ones and future features don't keep the checklist up).
-  const setupLeft = checklist.filter((i) => !i.done && !i.phase && !i.label.includes("optional")).length;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Good {greeting()}, {firstName}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {me.tenant.name}
-          {me.tenant.industry && <> · {industryLabel(me.tenant.industry)}</>}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Good {greeting()}, {firstName}</h1>
+          <p className="mt-1 text-sm text-muted">
+            {me.tenant.name}
+            {me.tenant.industry && <> · {industryLabel(me.tenant.industry)}</>}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setTouring(true)} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm hover:bg-surface-muted"><Compass className="size-4" aria-hidden /> Take the tour</button>
+          <Link href="/help" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm hover:bg-surface-muted"><LifeBuoy className="size-4" aria-hidden /> Help</Link>
+        </div>
       </div>
 
-      {setupLeft > 0 && (
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader title="Get set up" description="Complete these steps to start running your operations here." />
-          <ul className="divide-y divide-border">
-            {checklist.map((item) => (
-              <li key={item.label} className="flex items-center gap-3 px-5 py-3.5">
-                {item.done ? (
-                  <CheckCircle2 className="size-5 shrink-0 text-success" aria-label="Done" />
-                ) : (
-                  <Circle className="size-5 shrink-0 text-border" aria-label="Not done" />
-                )}
-                <span className={item.done ? "flex-1 text-sm text-muted line-through" : "flex-1 text-sm"}>{item.label}</span>
-                {!item.done && item.href && (
-                  <Link href={item.href} className="text-sm font-medium text-primary hover:underline">
-                    Set up
-                  </Link>
-                )}
-                {!item.done && !item.href && item.phase && (
-                  <span className="text-xs text-muted">Available soon</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card>
-          <CardHeader title="Workspace" />
-          <dl className="space-y-3 px-5 py-4 text-sm">
-            <Row label="Workspace URL" value={`${me.tenant.slug}.nextgenerp.in`} />
-            <Row label="Plan" value={me.tenant.status === "trial" ? "Free trial" : me.tenant.status.replace(/^\w/, (c) => c.toUpperCase())} />
-            <Row label="Companies" value={companies.isLoading ? "…" : String(companies.data?.length ?? 0)} />
-            <Row label="Your access" value={`${me.permissions.length} permissions`} />
-          </dl>
-        </Card>
-      </div>
+      {progress.data && !progress.data.complete && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader title={`Get set up · ${progress.data.done} of ${progress.data.total}`} description="The next steps, based on what is in your workspace." action={<Link href="/setup" className="text-sm font-medium text-primary hover:underline">All steps</Link>} />
+            <div className="mx-5 mb-1 h-1.5 rounded-full bg-surface-muted"><div className="h-1.5 rounded-full bg-primary" style={{ width: `${(progress.data.done / progress.data.total) * 100}%` }} /></div>
+            <SetupSteps p={progress.data} compact />
+          </Card>
+          <Card>
+            <CardHeader title="Workspace" />
+            <dl className="space-y-3 px-5 py-4 text-sm">
+              <Row label="Workspace URL" value={`${me.tenant.slug}.nextgenerp.in`} />
+              <Row label="Plan" value={me.tenant.status === "trial" ? "Free trial" : me.tenant.status.replace(/^\w/, (c) => c.toUpperCase())} />
+              <Row label="Companies" value={companies.isLoading ? "…" : String(companies.data?.length ?? 0)} />
+              <Row label="Your access" value={`${me.permissions.length} permissions`} />
+            </dl>
+          </Card>
+        </div>
       )}
 
       <HomeDashboard />
+      {touring && <Tour onClose={() => setTouring(false)} />}
     </div>
   );
 }
@@ -124,7 +91,7 @@ function HomeDashboard() {
             {list.data?.saved.length ? <optgroup label="Saved">{list.data.saved.map((d) => <option key={d.id} value={d.id}>{d.name}{d.shared ? " (shared)" : ""}</option>)}</optgroup> : null}
             <optgroup label="By role">{list.data?.presets.map((p) => <option key={p.key} value={`preset:${p.key}`}>{p.name}</option>)}</optgroup>
           </Select>
-          <Link href="/dashboards" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm hover:bg-surface-muted"><SlidersHorizontal className="size-4" aria-hidden /> Customise</Link>
+          <Link data-tour="dashboard" href="/dashboards" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm hover:bg-surface-muted"><SlidersHorizontal className="size-4" aria-hidden /> Customise</Link>
           <Link href={`/dashboards/tv?${tv}`} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm hover:bg-surface-muted"><Monitor className="size-4" aria-hidden /> TV</Link>
         </div>
       </div>

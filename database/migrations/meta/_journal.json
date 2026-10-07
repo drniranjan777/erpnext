@@ -183,6 +183,13 @@
       "when": 1791331163840,
       "tag": "0025_report_builder",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791333335208,
+      "tag": "0026_report_indexes",
+      "breakpoints": true
     }
   ]
 }
