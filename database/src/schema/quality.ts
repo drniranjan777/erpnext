@@ -166,8 +166,14 @@ export const eSignatures = pgTable(
     payload: jsonb('payload').$type<Record<string, unknown>>().notNull().default({}),
     ip: text('ip'),
     signedAt: timestamp('signed_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Name of the signer as it was when signing (signature manifestation). */
+    signerName: text('signer_name'),
+    /** sha256 of the signed payload: the signature is linked to exactly this record content. */
+    recordHash: text('record_hash'),
+    /** sha256 over the previous signature's chain hash and this signature: any edit or removal breaks the chain. */
+    chainHash: text('chain_hash'),
   },
-  (t) => [index('e_signatures_entity_idx').on(t.tenantId, t.entityType, t.entityId)],
+  (t) => [index('e_signatures_entity_idx').on(t.tenantId, t.entityType, t.entityId), index('e_signatures_signed_idx').on(t.tenantId, t.signedAt)],
 );
 
 // =============================================================================

@@ -37,4 +37,5 @@ export * from './iot';
 export * from './mes';
 export * from './plant';
 export * from './twin';
+export * from './gmp';
 export * from './ai';

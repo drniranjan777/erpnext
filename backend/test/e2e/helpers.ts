@@ -84,9 +84,10 @@ export async function addMember(owner: Client, label: string, roleIds: string[])
   if (inv.status !== 201) throw new Error(`invite failed: ${inv.status} ${JSON.stringify(inv.body)}`);
   const token = inv.body.inviteUrl.split('/invite/')[1];
   const client = new Client();
-  const acc = await client.post(`/auth/invitations/${token}/accept`, { fullName: `User ${label}`, password: strongPassword() });
+  const password = strongPassword();
+  const acc = await client.post(`/auth/invitations/${token}/accept`, { fullName: `User ${label}`, password });
   if (acc.status !== 200) throw new Error(`accept failed: ${acc.status} ${JSON.stringify(acc.body)}`);
-  return { client, email, userId: acc.body.user.id as string };
+  return { client, email, password, userId: acc.body.user.id as string };
 }
 
 /** Removes e2e workspaces created by this run (owner DB role; the app role can't delete tenants). */

@@ -18,6 +18,7 @@ import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
 import { DatabaseService } from '../../database/database.service';
+import { GmpService } from '../gmp/gmp.service';
 import { IotService } from '../iot/iot.service';
 import { ProductionService } from '../manufacturing/production.service';
 import { MesService } from './mes.service';
@@ -72,6 +73,7 @@ export class MesExecutionService implements OnModuleInit {
     private readonly production: ProductionService,
     private readonly iot: IotService,
     private readonly mes: MesService,
+    private readonly gmp: GmpService,
   ) {}
 
   onModuleInit() {
@@ -334,6 +336,7 @@ export class MesExecutionService implements OnModuleInit {
       scanned.push({ code: s.code, batchNo: s.batchNo ?? null, itemId: it?.id ?? null, itemCode: it?.code ?? null, batch: b ?? null, batchMissing: !!(it && s.batchNo && !b) });
     }
     const instruction = await this.currentInstruction(tx, op.itemId, op.seq);
+    const lineClearance = await this.gmp.clearanceFor(tx, auth.tenantId, op.workOrderId, input.machineId);
     const checks = startChecks({
       today: todayIST(),
       operatorName,
@@ -347,6 +350,7 @@ export class MesExecutionService implements OnModuleInit {
       scanned,
       instruction: instruction ? { confirmSteps: instruction.steps.map((s, i) => (s.confirm ? i : -1)).filter((i) => i >= 0), scanMaterials: instruction.scanMaterials } : null,
       stepsAcked: input.stepsAcked,
+      lineClearance,
     });
     return { op, operatorName, tool: tool ?? null, instruction, checks };
   }

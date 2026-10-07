@@ -414,6 +414,13 @@
       "when": 1791408595076,
       "tag": "0058_twin_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1791409986096,
+      "tag": "0059_gmp_controls",
+      "breakpoints": true
     }
   ]
 }

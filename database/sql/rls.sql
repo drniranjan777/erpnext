@@ -303,6 +303,8 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO nextgen_app;
 REVOKE INSERT, UPDATE, DELETE ON permissions FROM nextgen_app;
 -- Audit trail is append-only
 REVOKE UPDATE, DELETE ON audit_logs FROM nextgen_app;
+-- Electronic signatures are never changed or removed (21 CFR Part 11 / Annex 11).
+REVOKE UPDATE, DELETE ON e_signatures FROM nextgen_app;
 -- Tenants cannot be deleted by the app (archive instead)
 REVOKE DELETE ON tenants FROM nextgen_app;
 

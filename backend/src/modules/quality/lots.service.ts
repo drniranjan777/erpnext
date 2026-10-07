@@ -1,6 +1,5 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { batches, eSignatures, items, retainSamples, users, type Transaction } from '@nextgen/database';
-import { verify } from '@node-rs/argon2';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { batches, items, retainSamples, type Transaction } from '@nextgen/database';
 import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
@@ -8,6 +7,7 @@ import { todayIST } from '../../common/fiscal-year';
 import type { RequestMeta } from '../../common/request-meta';
 import { optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
+import { ESignService } from '../gmp/esign.service';
 
 const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 
@@ -44,7 +44,10 @@ export const retainSchema = z.object({
  */
 @Injectable()
 export class LotsService {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly esign: ESignService,
+  ) {}
 
   list(auth: AuthContext, q: { status?: string; itemId?: string; q?: string; limit: number; offset: number }) {
     return this.database.run(auth, async (tx) => {
@@ -74,14 +77,9 @@ export class LotsService {
       const [b] = await tx.select().from(batches).where(and(eq(batches.itemId, input.itemId), sql`${batches.batchNo} = ${input.batchNo}`));
       if (!b) throw new NotFoundException('Lot not found');
       if (b.qcStatus === input.status) throw new ConflictException(`The lot is already ${input.status.replace('_', ' ')}`);
-      const [u] = await tx.select({ hash: users.passwordHash, name: users.fullName }).from(users).where(eq(users.id, auth.userId));
-      if (!u || !(await verify(u.hash, input.password).catch(() => false))) throw new ForbiddenException('Signature failed: the password is not correct');
+      const sig = await this.esign.sign(tx, auth, { entityType: 'batch', entityId: b.id, meaning: MEANING[input.status], reason: input.reason, payload: { itemId: input.itemId, batchNo: b.batchNo, from: b.qcStatus, to: input.status }, password: input.password, ip: meta.ip });
       await tx.update(batches).set({ qcStatus: input.status, qcNote: input.reason, qcUpdatedAt: new Date() }).where(eq(batches.id, b.id));
-      const [sig] = await tx
-        .insert(eSignatures)
-        .values({ tenantId: auth.tenantId, userId: auth.userId, entityType: 'batch', entityId: b.id, meaning: MEANING[input.status], reason: input.reason, payload: { itemId: input.itemId, batchNo: b.batchNo, from: b.qcStatus, to: input.status }, ip: meta.ip })
-        .returning();
-      return { id: b.id, batchNo: b.batchNo, status: input.status, signature: { id: sig.id, meaning: sig.meaning, signedBy: u.name, signedAt: sig.signedAt } };
+      return { id: b.id, batchNo: b.batchNo, status: input.status, signature: { id: sig.id, meaning: sig.meaning, signedBy: sig.signedBy, signedAt: sig.signedAt } };
     });
   }
 

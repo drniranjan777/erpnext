@@ -13,5 +13,6 @@ import { SopsService } from './sops.service';
   imports: [QualityModule],
   controllers: [QmsSystemController],
   providers: [DeviationsService, CalibrationService, AuditsService, SopsService, HseService, AlertsService],
+  exports: [DeviationsService],
 })
 export class QmsModule {}

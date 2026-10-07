@@ -21,6 +21,8 @@ export interface StartContext {
   scanned: { code: string; batchNo: string | null; itemId: string | null; itemCode: string | null; batch: { qcStatus: string; expiryDate: string | null } | null; batchMissing: boolean }[];
   instruction: { confirmSteps: number[]; scanMaterials: boolean } | null;
   stepsAcked: number[];
+  /** GMP line clearance, when the workspace requires it. */
+  lineClearance?: { required: boolean; ok: boolean; detail: string | null };
 }
 
 const same = (a: string | null | undefined, b: string | null | undefined) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -44,6 +46,8 @@ export function startChecks(c: StartContext): StartCheck[] {
     if (c.machine.requiresCleaning) add('machine_clean', 'Machine cleaned', c.machine.cleanStatus === 'clean', true, c.machine.cleanStatus === 'clean' ? undefined : `${c.machine.code} is ${c.machine.cleanStatus.replace('_', ' ')}`);
     if (c.otherOperator && !same(c.otherOperator, c.operatorName)) add('session', 'Operator logged in at the machine', false, false, `${c.otherOperator} is logged in at ${c.machine.code}`);
   }
+
+  if (c.lineClearance?.required) add('line_clearance', 'Line clearance verified', c.lineClearance.ok, true, c.lineClearance.detail ?? undefined);
 
   if (c.operation.toolCode) {
     if (!c.scannedTool) add('tool', `Tool ${c.operation.toolCode} scanned`, false, true, 'Scan the mould / die / fixture');

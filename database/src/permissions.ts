@@ -53,6 +53,10 @@ export const PERMISSIONS = {
   'twin.schedule.simulate': 'Run what-if simulations of the production schedule',
   'vision.models.manage': 'Register vision inspection models and deploy them to edge gateways',
   'vision.inspections.read': 'See vision inspection results and review them',
+  'gmp.lineclearance.sign': 'Sign line clearances (production check or QA verification)',
+  'gmp.batchrecords.review': 'Review electronic batch records by exception and sign the release decision',
+  'gmp.environment.manage': 'Set up environmental monitoring locations and record samples',
+  'gmp.settings.manage': 'Set GMP controls (line clearance) and check the signature chain',
   'ai.governance.manage': 'Set the AI policy (features, consent, PII masking, budget, models) and see AI usage and evaluations',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',
   // Purchase

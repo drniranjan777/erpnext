@@ -117,6 +117,7 @@ import {
   Map as MapIcon,
   GitCompare,
   ScanEye,
+  Wind,
   ScanText,
   Mic,
   Bot,
@@ -294,6 +295,15 @@ export const NAVIGATION: NavSection[] = [
       { label: "Work instructions", href: "/mes/instructions", icon: ListChecks, permissions: ["mes.oee.read"] },
       { label: "Recipes", href: "/mes/recipes", icon: FlaskConical, permissions: ["mes.oee.read"] },
       { label: "Shifts, reasons & skills", href: "/mes/setup", icon: SlidersHorizontal, permissions: ["mes.oee.read"] },
+    ],
+  },
+  {
+    title: "GMP & compliance",
+    items: [
+      { label: "GMP controls", href: "/gmp", icon: ShieldCheck, permissions: ["quality.inspections.read"] },
+      { label: "Line clearance", href: "/gmp/line-clearance", icon: ClipboardCheck, permissions: ["quality.inspections.read"] },
+      { label: "Batch record review", href: "/gmp/batch-reviews", icon: FileCheck2, permissions: ["gmp.batchrecords.review"] },
+      { label: "Environmental monitoring", href: "/gmp/environment", icon: Wind, permissions: ["quality.inspections.read"] },
     ],
   },
   {
