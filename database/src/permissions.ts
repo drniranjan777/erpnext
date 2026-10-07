@@ -88,6 +88,8 @@ export const PERMISSIONS = {
   'manufacturing.shopfloor.record': 'Start and stop job cards and record good and rejected quantities',
   'quality.inspections.read': 'View inspection plans, inspections and lot / serial traceability',
   'quality.inspections.manage': 'Maintain inspection plans, record readings and accept or reject lots',
+  'planning.mrp.read': 'View demand forecasts, MRP runs, planned orders and exceptions',
+  'planning.mrp.manage': 'Edit forecasts and planning parameters, run MRP, firm and convert planned orders',
 } as const;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

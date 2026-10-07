@@ -1,5 +1,7 @@
 import {
+  CalendarRange,
   Combine,
+  LineChart,
   FlaskConical,
   LifeBuoy,
   Rocket,
@@ -129,6 +131,8 @@ export const NAVIGATION: NavSection[] = [
       { label: "Shop floor", href: "/manufacturing/shop-floor", icon: MonitorPlay, permissions: ["manufacturing.production.read"] },
       { label: "Shop-floor kiosk", href: "/manufacturing/kiosk", icon: Tablet, permissions: ["manufacturing.shopfloor.record"] },
       { label: "Scrap and rejects", href: "/manufacturing/scrap", icon: TrendingDown, permissions: ["manufacturing.production.read"] },
+      { label: "MRP planning", href: "/planning", icon: CalendarRange, permissions: ["planning.mrp.read"] },
+      { label: "Demand forecast", href: "/planning/forecast", icon: LineChart, permissions: ["planning.mrp.read"] },
       { label: "Formulas", href: "/process/formulas", icon: FlaskConical, permissions: ["manufacturing.engineering.read"] },
       { label: "Packing", href: "/process/packing", icon: PackageOpen, permissions: ["manufacturing.production.read"] },
       { label: "Blends", href: "/process/blends", icon: Combine, permissions: ["inventory.stock.read"] },

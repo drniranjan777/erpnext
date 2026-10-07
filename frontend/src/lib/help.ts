@@ -88,6 +88,30 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "planning",
+    title: "Forecasting and MRP",
+    area: "Planning",
+    summary: "Forecast demand, run MRP, act on exception messages and turn planned orders into requisitions and work orders.",
+    sections: [
+      { heading: "Forecast", text: "“Forecast from history” looks at monthly sales orders and, for each item, picks the method that would have predicted its recent months best: moving average, smoothing, trend, or trend with seasonality once there are two years of history. Overtype any month to override it; re-forecasting keeps your figure." },
+      { heading: "Item settings", text: "On each item's planning page set make or buy, lead time, safety stock, minimum order and the lot rule: lot for lot, fixed lot, economic order quantity, min / max or a number of days per order." },
+      {
+        heading: "Running MRP",
+        steps: [
+          "Demand is open sales orders, the forecast less orders already booked for the month, and materials still to issue on open work orders.",
+          "Supply is stock in nettable stores, open purchase orders, requisitions, work orders and firmed planned orders.",
+          "Items are planned level by level: a planned order for a product creates demand for its components on its release date (due date less lead time).",
+          "Later receipts are brought forward before anything new is planned; the result is a list of planned orders and exception messages.",
+        ],
+      },
+      { heading: "Acting on the plan", text: "Firm a planned order (or change its quantity or date) to keep it in the next run. Convert selected orders: buys become one draft requisition, makes become draft work orders and formula items draft process batches. Each planned order shows what it is for: a sales order, the forecast, or a parent's planned order." },
+    ],
+    links: [
+      { label: "MRP planning", href: "/planning" },
+      { label: "Demand forecast", href: "/planning/forecast" },
+    ],
+  },
+  {
     slug: "quality",
     title: "Quality inspections and traceability",
     area: "Quality",

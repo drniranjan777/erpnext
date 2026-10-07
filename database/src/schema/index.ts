@@ -17,3 +17,4 @@ export * from './manufacturing';
 export * from './quality';
 export * from './analytics';
 export * from './process';
+export * from './planning';
