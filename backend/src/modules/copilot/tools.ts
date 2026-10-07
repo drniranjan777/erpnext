@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DOC_TYPES, isDocType, type DocType, type Transaction } from '@nextgen/database';
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
 import { loadPermissions } from '../../common/guards';
@@ -92,10 +92,16 @@ export const TOOL_DEFS = [
       required: ['type', 'lines'],
     },
   },
+  {
+    name: 'hr_info',
+    description:
+      "People answers: the user's own leave balance, attendance this month and latest payslip; for HR, headcount and who is absent or on leave today; for managers, what is waiting for their approval.",
+    input_schema: { type: 'object', properties: { topic: { type: 'string', enum: ['my_leave', 'my_attendance', 'my_payslip', 'headcount', 'absent_today', 'pending_approvals'] }, lang: { type: 'string', enum: ['en', 'hi'] } }, required: ['topic'] },
+  },
 ] as const;
 
 /** App areas the copilot may link to. */
-const ROUTE = /^\/(dashboard|dashboards|approvals|sales|purchase|inventory|manufacturing|quality|accounting|gst|reports|masters|assets|job-work|settings)(\/[a-z0-9\-/]*)?(\?[a-zA-Z0-9=&\-_.%]*)?$/;
+const ROUTE = /^\/(dashboard|dashboards|approvals|sales|purchase|inventory|manufacturing|quality|accounting|gst|reports|masters|assets|job-work|settings|hr|payroll)(\/[a-z0-9\-/]*)?(\?[a-zA-Z0-9=&\-_.%]*)?$/;
 
 const DRAFTS = {
   sales_order: { endpoint: '/sales/orders', path: '/sales/orders', permission: 'sales.orders.manage', party: 'customer' },
@@ -143,6 +149,8 @@ export class CopilotTools {
           return this.navigate(String(input.path ?? ''), String(input.label ?? 'Open'));
         case 'draft_document':
           return await this.draft(auth, input);
+        case 'hr_info':
+          return await this.hrInfo(auth, String(input.topic ?? ''), input.lang === 'hi' ? 'hi' : 'en');
         default:
           return { content: `Unknown tool ${name}`, isError: true };
       }
@@ -150,6 +158,97 @@ export class CopilotTools {
       const msg = e instanceof Error ? e.message : 'Failed';
       return { content: `Error: ${msg}`, isError: true };
     }
+  }
+
+  /** HR answers, each limited to what the user may see: their own record, or HR / manager views. */
+  async hrInfo(auth: AuthContext, topic: string, lang: 'en' | 'hi'): Promise<ToolResult> {
+    const hi = lang === 'hi';
+    const perms = await this.perms(auth);
+    return this.database.run(auth, async (tx) => {
+      const rows = async <T extends Record<string, unknown>>(q: SQL) => (await tx.execute<T>(q)).rows;
+      const [me] = await rows<{ id: string; fullName: string; gender: string | null }>(sql`select id, full_name as "fullName", gender from employees where user_id = ${auth.userId} and status <> 'exited' limit 1`);
+      const needSelf = (): ToolResult => ({ content: hi ? 'आपका लॉगिन किसी कर्मचारी रिकॉर्ड से जुड़ा नहीं है।' : 'Your login is not linked to an employee record, so I cannot look up your own details.', isError: true });
+      const today = todayIST();
+      switch (topic) {
+        case 'my_leave': {
+          if (!me) return needSelf();
+          const bal = await rows<{ name: string; balance: number }>(
+            sql`select t.name, coalesce(sum(l.days), 0)::float8 as balance from leave_types t left join leave_ledger l on l.leave_type_id = t.id and l.employee_id = ${me.id}
+                where t.is_active and (t.gender is null or t.gender = ${me.gender}) group by t.name order by t.name`,
+          );
+          const line = bal.map((b) => `${b.name} ${b.balance}`).join(', ');
+          return {
+            content: bal.length ? (hi ? `आपकी छुट्टियाँ: ${line}।` : `Your leave balance: ${line}.`) : hi ? 'अभी कोई छुट्टी का प्रकार नहीं है।' : 'No leave types are set up yet.',
+            blocks: [{ kind: 'facts', title: hi ? 'छुट्टी शेष' : 'Leave balance', items: bal.map((b) => ({ label: b.name, value: String(b.balance) })), href: '/hr/leave' }],
+            actions: [{ kind: 'navigate', label: hi ? 'छुट्टी के लिए आवेदन' : 'Apply for leave', href: '/hr/leave' }],
+          };
+        }
+        case 'my_attendance': {
+          if (!me) return needSelf();
+          const [a] = await rows<{ present: number; absent: number; late: number; leave: number }>(
+            sql`select coalesce(sum(case status when 'present' then 1 when 'half_day' then 0.5 else 0 end), 0)::float8 as present,
+                       count(*) filter (where status in ('absent', 'missed_punch'))::int as absent, count(*) filter (where late_minutes > 0)::int as late,
+                       coalesce(sum(leave_days), 0)::float8 as leave
+                from attendance_days where employee_id = ${me.id} and date >= date_trunc('month', ${today}::date) and date <= ${today}`,
+          );
+          return {
+            content: hi ? `इस महीने: ${a.present} दिन उपस्थित, ${a.absent} अनुपस्थित, ${a.leave} छुट्टी, ${a.late} बार देर से।` : `This month: ${a.present} days present, ${a.absent} absent, ${a.leave} on leave, late ${a.late} time(s).`,
+            actions: [{ kind: 'navigate', label: hi ? 'हाज़िरी लगाएँ' : 'Punch', href: '/hr/punch' }],
+          };
+        }
+        case 'my_payslip': {
+          if (!me) return needSelf();
+          const [p] = await rows<{ id: string; month: string; gross: string; net: string }>(sql`select p.id, p.month, p.gross, p.net from payslips p join payroll_runs r on r.id = p.run_id where p.employee_id = ${me.id} and r.status <> 'draft' order by p.month desc limit 1`);
+          if (!p) return { content: hi ? 'अभी कोई वेतन पर्ची नहीं है।' : 'No payslip yet.' };
+          return { content: hi ? `${p.month} का वेतन: कुल ${money(p.gross)}, हाथ में ${money(p.net)}।` : `Pay for ${p.month}: gross ${money(p.gross)}, net ${money(p.net)}.`, actions: [{ kind: 'navigate', label: hi ? 'वेतन पर्ची' : 'Open payslips', href: '/payroll/my' }] };
+        }
+        case 'headcount': {
+          if (!perms.has('hr.employees.read')) return { content: hi ? 'आपके पास कर्मचारियों को देखने की अनुमति नहीं है।' : 'You do not have access to employee records.', isError: true };
+          const by = await rows<{ key: string; n: number }>(sql`select coalesce(d.name, '—') as key, count(*)::int as n from employees e left join hr_departments d on d.id = e.department_id where e.status <> 'exited' group by 1 order by 2 desc`);
+          const total = by.reduce((s, r) => s + r.n, 0);
+          return {
+            content: hi ? `कुल ${total} कर्मचारी।` : `${total} people on the rolls.`,
+            blocks: [{ kind: 'facts', title: hi ? 'विभाग अनुसार' : 'By department', items: by.map((r) => ({ label: r.key, value: String(r.n) })), href: '/hr' }],
+          };
+        }
+        case 'absent_today': {
+          if (!perms.has('hr.attendance.read')) return { content: hi ? 'आपके पास हाज़िरी देखने की अनुमति नहीं है।' : 'You do not have access to attendance.', isError: true };
+          const list = await rows<{ fullName: string; status: string }>(
+            sql`select e.full_name as "fullName",
+                       case when exists (select 1 from leave_applications l where l.employee_id = e.id and l.status = 'approved' and ${today} between l.from_date and l.to_date) then 'on leave' else 'not punched in' end as status
+                from employees e
+                where e.status <> 'exited' and e.date_of_joining <= ${today}
+                  and not exists (select 1 from attendance_punches p where p.employee_id = e.id and p.punched_at >= (${today}::date)::timestamp at time zone 'Asia/Kolkata')
+                order by 2, 1 limit 200`,
+          );
+          return {
+            content: list.length ? (hi ? `आज ${list.length} लोग नहीं आए या छुट्टी पर हैं।` : `${list.length} people have not punched in today or are on leave.`) : hi ? 'आज सब हाज़िर हैं।' : 'Everyone has punched in today.',
+            blocks: list.length ? [{ kind: 'table', title: hi ? 'आज अनुपस्थित' : 'Not in today', columns: [{ key: 'fullName', label: 'Employee', type: 'text' }, { key: 'status', label: 'Status', type: 'text' }], rows: list, href: '/hr/attendance' }] : [],
+          };
+        }
+        case 'pending_approvals': {
+          if (!me) return needSelf();
+          const [n] = await rows<{ leave: number; regularisations: number; claims: number }>(
+            sql`select (select count(*)::int from leave_applications a join employees e on e.id = a.employee_id where e.reports_to_id = ${me.id} and a.status = 'pending') as leave,
+                       (select count(*)::int from attendance_regularisations r join employees e on e.id = r.employee_id where e.reports_to_id = ${me.id} and r.status = 'pending') as regularisations,
+                       (select count(*)::int from hr_claims c join employees e on e.id = c.employee_id where e.reports_to_id = ${me.id} and c.status = 'pending') as claims`,
+          );
+          const total = n.leave + n.regularisations + n.claims;
+          return {
+            content: total
+              ? hi
+                ? `आपकी टीम के ${total} अनुरोध बाकी हैं: ${n.leave} छुट्टी, ${n.regularisations} हाज़िरी सुधार, ${n.claims} खर्च।`
+                : `${total} requests from your team are waiting: ${n.leave} leave, ${n.regularisations} attendance corrections, ${n.claims} expense claims.`
+              : hi
+                ? 'आपके पास कोई अनुरोध बाकी नहीं है।'
+                : 'Nothing from your team is waiting for you.',
+            actions: total ? [{ kind: 'navigate', label: hi ? 'अनुरोध देखें' : 'Review requests', href: '/hr/me' }] : [],
+          };
+        }
+        default:
+          return { content: `Unknown HR topic ${topic}`, isError: true };
+      }
+    });
   }
 
   async listReports(auth: AuthContext): Promise<ToolResult> {

@@ -104,6 +104,8 @@ import {
   Plane,
   CalendarCog,
   Fingerprint,
+  ReceiptIndianRupee,
+  House,
   GraduationCap,
   DoorOpen,
   UserPlus,
@@ -206,6 +208,7 @@ export const NAVIGATION: NavSection[] = [
   {
     title: "People",
     items: [
+      { label: "My HR", href: "/hr/me", icon: House, permissions: ["hr.self.use"] },
       { label: "HR overview", href: "/hr", icon: UsersRound, permissions: ["hr.employees.read"] },
       { label: "Employees", href: "/hr/employees", icon: IdCard, permissions: ["hr.employees.read"] },
       { label: "Organisation", href: "/hr/org", icon: Network, permissions: ["hr.employees.read"] },
@@ -222,6 +225,9 @@ export const NAVIGATION: NavSection[] = [
       { label: "Separations", href: "/hr/separations", icon: DoorOpen, permissions: ["hr.self.use"] },
       { label: "Performance", href: "/hr/performance", icon: Target, permissions: ["hr.self.use"] },
       { label: "Skills & training", href: "/hr/skills", icon: GraduationCap, permissions: ["hr.training.read"] },
+      { label: "Expense claims", href: "/hr/claims", icon: ReceiptIndianRupee, permissions: ["hr.self.use"] },
+      { label: "Contract labour", href: "/hr/contract", icon: HardHat, permissions: ["hr.contract.read"] },
+      { label: "Statutory registers", href: "/hr/registers", icon: BookOpenCheck, permissions: ["hr.registers.read"] },
     ],
   },
   {

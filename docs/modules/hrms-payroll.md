@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 9.1–9.4 done |
+| **Status** | Complete (9.1–9.5) |
 | **Code** | `backend/src/modules/hr/`, `backend/src/modules/payroll/`, `database/src/schema/hr.ts`, `database/src/schema/payroll.ts`, `frontend/src/app/(app)/hr/` |
 
 ## Sprint plan
@@ -207,3 +207,44 @@ Schema: `database/src/schema/talent.ts`, migration 0038. Code: `backend/src/modu
 **Permissions**: `hr.recruitment.read`, `hr.recruitment.manage`, `hr.recruitment.approve`, `hr.performance.read`, `hr.performance.manage`, `hr.training.read`, `hr.training.manage`, `hr.exit.read`, `hr.exit.manage`, `hr.exit.settle`.
 
 **UI**: `/hr/recruitment` and `/hr/recruitment/:id` (pipeline, interviews, offers, hire), `/hr/lifecycle` (onboarding and exit tasks, checklists), `/hr/separations` (resign, accept, F&F), `/hr/performance` (my goals, my team, calibration), `/hr/skills` (matrix and training calendar).
+
+## 9.5 Contract labour, self-service and registers (done)
+
+Schema: `database/src/schema/contract.ts`, migration 0039. Code: `backend/src/modules/hr/contract/`. The wage check is in `compliance.ts`, pure and unit tested.
+
+**Contract labour (CLRA Act)**
+- Contractors carry their licence number, its validity and the number of workers it allows. Engaging more workers than that is refused.
+- Contract workers have a skill category (for minimum wages), an agreed daily wage, UAN and ESIC.
+- The principal employer marks gate attendance daily: P, HD or A, with overtime hours.
+- The contractor's wage payments are recorded per worker per month: days, gross, PF and ESI.
+- The compliance check (`GET /hr/contract-compliance?month`) compares each worker's payment with what is due. The rate due is the higher of the agreed rate and the notified minimum wage for the work location's state and skill. Due wages = days × rate + overtime at double the hourly rate.
+- It flags:
+  - no payment recorded
+  - fewer days paid than attended
+  - a rate below the minimum
+  - a shortfall
+  - PF or ESI not deducted
+- Per contractor it reports the total shortfall (CLRA s.21 makes the principal employer liable) and licence alerts: missing, expired, expiring within 30 days, or too many workers.
+- **Minimum wage tables are entered by the tenant**; none are shipped.
+
+**Self-service (ESS / MSS)**
+- `/hr/me` shows the employee's day, leave balances, latest pay and pending requests, with quick links. For a manager it adds the team's approval queue (leave, corrections, claims, goals to rate, interviews awaiting feedback) and who is on leave today.
+- Expense claims are decided by the reporting manager or `hr.claims.manage`, never the claimant. They may approve less than claimed. An approved amount becomes a `REIMB` payroll input in the first month whose payroll is still open.
+
+**Statutory registers** (`/hr/registers`, printed landscape at `/print/registers/:key`):
+- adult workers: Factories Act Form 12, and the Shops Act employment register
+- muster roll: Form 25
+- leave with wages: Form 14, for earned or encashable leave
+- register of wages: from approved payslips
+- CLRA Forms XIII (workmen), XVI (muster) and XVII (wages)
+
+**Copilot**: a new `hr_info` tool, with English and Hindi rule-based intents:
+- my leave balance, my attendance this month, my latest payslip (from the user's own record)
+- headcount (needs `hr.employees.read`)
+- who is absent or on leave today (needs `hr.attendance.read`)
+- requests from the team waiting for the user
+- The copilot may now link to `/hr` and `/payroll` screens.
+
+**Permissions**: `hr.contract.read`, `hr.contract.manage`, `hr.claims.manage`, `hr.registers.read`.
+
+**Phase 9 exit target** (500+ employees across 2 states reconciling with the current payroll vendor for 2 cycles) needs a pilot with real data; the code is complete.

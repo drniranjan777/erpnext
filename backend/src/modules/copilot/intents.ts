@@ -91,6 +91,15 @@ export function parseIntent(raw: string): Intent | null {
   }
   if (/\b(purchases?|bought|buying)\b|khareed|खरीद/.test(t)) return { tool: 'run_report', input: { key: 'purchases-by-vendor', params: { from: p.from, to: p.to } }, topic: 'purchases' };
   if (/\b(sales|sold|revenue|turnover|selling)\b|bikri|बिक्री|बेचा/.test(t)) return { tool: 'run_report', input: { key: 'sales-by-customer', params: { from: p.from, to: p.to } }, topic: 'sales' };
+  // People questions come before the stock check, which also matches "how many".
+  const lang = isHindi(raw) ? 'hi' : 'en';
+  const hr = (topic: string): Intent => ({ tool: 'hr_info', input: { topic, lang }, topic: 'hr' });
+  if (/\b(leave balance|my leaves?|leaves? left|how many leaves?)\b|chhutti|chutti|छुट्टी|छुट्टियाँ/.test(t)) return hr('my_leave');
+  if (/\b(payslip|pay slip|salary slip|my salary|my pay)\b|vetan|tankhwah|वेतन|तनख्वाह|सैलरी/.test(t)) return hr('my_payslip');
+  if (/\b(who is|who's|who are)\b.*\b(absent|on leave|not in)\b|\babsent today\b|kaun nahi aaya|कौन नहीं आया|अनुपस्थित|गैरहाजिर/.test(t)) return hr('absent_today');
+  if (/\b(my attendance|attendance this month|how many days)\b|hajri|हाज़िरी|हाजिरी/.test(t)) return hr('my_attendance');
+  if (/\b(headcount|how many (employees|people|staff))\b|kitne log|कितने कर्मचारी|कर्मचारी संख्या/.test(t)) return hr('headcount');
+  if (/\b(pending approvals?|to approve|waiting for (me|my approval))\b|मंज़ूरी|अनुमोदन/.test(t)) return hr('pending_approvals');
   const stock = /\b(stock|inventory|on hand|how many|kitna)\b|स्टॉक|माल|कितना/.test(t);
   if (stock) {
     const term = text

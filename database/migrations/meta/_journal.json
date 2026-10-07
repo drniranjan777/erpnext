@@ -274,6 +274,13 @@
       "when": 1791354768272,
       "tag": "0038_talent",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791356650824,
+      "tag": "0039_contract_ess",
+      "breakpoints": true
     }
   ]
 }

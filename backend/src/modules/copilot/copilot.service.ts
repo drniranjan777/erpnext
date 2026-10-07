@@ -161,6 +161,8 @@ export class CopilotService {
     const t = table && table.kind === 'table' ? (table.totals ?? {}) : {};
     const period = periodOf(text).label[lang];
     switch (topic) {
+      case 'hr':
+        return r.content;
       case 'draft': {
         const d = r.actions?.find((a) => a.kind === 'draft');
         if (!d || d.kind !== 'draft') return r.content;
