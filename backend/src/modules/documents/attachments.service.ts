@@ -109,7 +109,9 @@ export class AttachmentsService {
         .from(attachments)
         .where(and(eq(attachments.id, attachmentId), isNull(attachments.deletedAt)));
       if (!a) throw new NotFoundException('Attachment not found');
-      if (a.entityType === ENTITY) await this.documents.getForReader(tx, auth, a.entityId);
+      // Files of other entities (employees…) are served by their own, permission-checked endpoints.
+      if (a.entityType !== ENTITY) throw new NotFoundException('Attachment not found');
+      await this.documents.getForReader(tx, auth, a.entityId);
       return a;
     });
     return { stream: await this.storage.open(row.storageKey), fileName: row.fileName, contentType: row.contentType, sizeBytes: row.sizeBytes };

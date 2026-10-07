@@ -97,6 +97,9 @@ import {
   Wrench,
   ScanLine,
   type LucideIcon,
+  IdCard,
+  FileSignature,
+  UsersRound,
 } from "lucide-react";
 
 export interface NavItem {
@@ -188,6 +191,16 @@ export const NAVIGATION: NavSection[] = [
       { label: "Reliability & OEE", href: "/maintenance/reliability", icon: Gauge, permissions: ["maintenance.orders.read"] },
       { label: "AMC contracts", href: "/maintenance/amc", icon: Handshake, permissions: ["maintenance.orders.read"] },
       { label: "TPM", href: "/maintenance/tpm", icon: Sparkles, permissions: ["maintenance.orders.read"] },
+    ],
+  },
+  {
+    title: "People",
+    items: [
+      { label: "HR overview", href: "/hr", icon: UsersRound, permissions: ["hr.employees.read"] },
+      { label: "Employees", href: "/hr/employees", icon: IdCard, permissions: ["hr.employees.read"] },
+      { label: "Organisation", href: "/hr/org", icon: Network, permissions: ["hr.employees.read"] },
+      { label: "Org chart", href: "/hr/org-chart", icon: Users, permissions: ["hr.employees.read"] },
+      { label: "Letter templates", href: "/hr/letters", icon: FileSignature, permissions: ["hr.letters.manage"] },
     ],
   },
   {

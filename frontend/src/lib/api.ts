@@ -75,9 +75,10 @@ interface RequestOptions {
   noRetry?: boolean;
 }
 
-/** Multipart upload of a single file (field "file"), with the same refresh-and-retry as api(). */
-export async function apiUpload<T>(path: string, file: File, retried = false): Promise<T> {
+/** Multipart upload of a single file (field "file"), with the same refresh-and-retry as api(). Extra fields go before the file so the server sees them with it. */
+export async function apiUpload<T>(path: string, file: File, fields: Record<string, string> = {}, retried = false): Promise<T> {
   const form = new FormData();
+  for (const [k, v] of Object.entries(fields)) form.append(k, v);
   form.append("file", file, file.name);
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
@@ -86,7 +87,7 @@ export async function apiUpload<T>(path: string, file: File, retried = false): P
     credentials: "same-origin",
   });
   if (res.status === 401 && !retried) {
-    if (await refreshSession()) return apiUpload<T>(path, file, true);
+    if (await refreshSession()) return apiUpload<T>(path, file, fields, true);
     onSessionLost?.();
   }
   const payload = await res.json().catch(() => null);
