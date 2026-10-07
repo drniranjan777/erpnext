@@ -379,6 +379,13 @@
       "when": 1791401027084,
       "tag": "0053_ai_governance",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1791402648303,
+      "tag": "0054_iot_platform",
+      "breakpoints": true
     }
   ]
 }

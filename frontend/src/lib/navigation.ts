@@ -104,6 +104,10 @@ import {
   Plane,
   CalendarCog,
   Fingerprint,
+  Activity,
+  BellRing,
+  Cable,
+  Router,
   ScanText,
   Mic,
   Bot,
@@ -259,6 +263,15 @@ export const NAVIGATION: NavSection[] = [
       { label: "Reliability & OEE", href: "/maintenance/reliability", icon: Gauge, permissions: ["maintenance.orders.read"] },
       { label: "AMC contracts", href: "/maintenance/amc", icon: Handshake, permissions: ["maintenance.orders.read"] },
       { label: "TPM", href: "/maintenance/tpm", icon: Sparkles, permissions: ["maintenance.orders.read"] },
+    ],
+  },
+  {
+    title: "Smart factory",
+    items: [
+      { label: "Live machines", href: "/iot", icon: Activity, permissions: ["iot.data.read"] },
+      { label: "Alarms", href: "/iot/alarms", icon: BellRing, permissions: ["iot.data.read"] },
+      { label: "Signals", href: "/iot/signals", icon: Cable, permissions: ["iot.data.read"] },
+      { label: "Edge gateways", href: "/iot/gateways", icon: Router, permissions: ["iot.data.read"] },
     ],
   },
   {

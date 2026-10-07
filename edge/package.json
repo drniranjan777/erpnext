@@ -1,0 +1,10 @@
+{
+  "name": "@nextgen/edge-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NextGen ERP edge agent: reads machines (Modbus TCP, MQTT, HTTP JSON) and sends readings with store-and-forward",
+  "type": "module",
+  "bin": { "nextgen-edge": "agent.mjs" },
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node agent.mjs" }
+}

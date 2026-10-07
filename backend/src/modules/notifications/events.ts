@@ -18,7 +18,7 @@ export interface Rendered {
 export interface EventDefinition<D = Record<string, string>> {
   label: string;
   description: string;
-  group: 'Approvals' | 'Documents' | 'Account & security' | 'Team' | 'Vendors' | 'Customers' | 'Service';
+  group: 'Approvals' | 'Documents' | 'Account & security' | 'Team' | 'Vendors' | 'Customers' | 'Service' | 'Shop floor';
   defaults: Record<Channel, boolean>;
   /** Users can't turn these off (security). */
   mandatory?: boolean;
@@ -244,6 +244,13 @@ Kindly reply by ${d.dueDate}, quoting ${d.number}. ${d.contact}`,
   },
   /** Sent to a customer or dealer contact's email (not a user). */
   /** Sent to a party's email when a person approves an agent's message (or within its guardrails). */
+  'iot.alarm': {
+    label: 'Machine alarm',
+    description: 'A machine or sensor signal crossed its alarm limit',
+    group: 'Shop floor',
+    defaults: { in_app: true, email: false, whatsapp: false },
+    render: (d: { title: string; body: string; link: string }) => ({ title: d.title, body: d.body, link: d.link, action: 'Open alarms' }),
+  },
   'agent.message': {
     label: 'Message from an AI agent',
     description: 'A follow-up an agent drafted and someone approved, such as asking a vendor for a delivery date',

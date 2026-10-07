@@ -1,0 +1,8 @@
+{
+  "server": "http://localhost:4000/api/v1",
+  "token": "<gateway token from IoT > Gateways>",
+  "bufferFile": "buffer.jsonl",
+  "pollMs": 1000,
+  "flushMs": 2000,
+  "heartbeatMs": 60000
+}

@@ -12,5 +12,6 @@ import { TpmService } from './tpm.service';
   imports: [InventoryModule],
   controllers: [MaintenanceController],
   providers: [AssetsService, MaintenanceOrdersService, PmService, TpmService, ReliabilityService],
+  exports: [MaintenanceOrdersService],
 })
 export class MaintenanceModule {}
