@@ -8,6 +8,8 @@ import {
   HardHat,
   ShieldAlert,
   BadgeCheck,
+  ChartGantt,
+  FolderKanban,
   Split,
   Layers,
   FileChartColumn,
@@ -246,6 +248,13 @@ export const NAVIGATION: NavSection[] = [
       { label: "HSE", href: "/hse", icon: HardHat, permissions: ["hse.register.read"] },
       { label: "Retain samples", href: "/quality/retain-samples", icon: FlaskRound, permissions: ["quality.inspections.read"] },
       { label: "Traceability", href: "/quality/traceability", icon: GitBranch, permissions: ["quality.inspections.read"] },
+    ],
+  },
+  {
+    title: "Projects",
+    items: [
+      { label: "Projects", href: "/projects", icon: FolderKanban, permissions: ["projects.reports.read"] },
+      { label: "Resource load", href: "/projects/resources", icon: ChartGantt, permissions: ["projects.reports.read"] },
     ],
   },
   {

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 15.1 done |
+| **Status** | In progress: 15.1–15.2 done |
 | **Plan** | `docs/PHASE_PLAN.md`, Phase 15 |
 
 Phase 15 brings larger customers, partners and an ecosystem. Most of it is software built and tested here. Some parts are not code and stay with the business: the SOC 2 Type II report, ISO 27001 certification, partner certification, the first enterprise tenant, and store listings of native apps. The sprints below also say where an outside service needs credentials that do not exist in development; the integration is then built against a local sandbox adapter, the same way the GST network was in Phase 3.
@@ -32,3 +32,17 @@ Migration 0065 adds `intercompany_links`, `intercompany_transactions`, `consolid
 **Treasury.** Term loans (EMI or bullet) with their repayment schedule, outstanding principal and next instalment; fixed deposits compounded quarterly or monthly, or at simple interest, with today's value and maturity value; non-fund facilities with the LCs and BGs drawn on them (an LC or BG is refused if the facility does not have room), margin money and expiry within 30 days. Posting the month's interest makes one journal per instrument (loans: interest on term loans against interest accrued; deposits: interest accrued against interest income), once per instrument and month.
 
 **Cost allocation.** A rule moves the expenses booked to a service cost centre in a month to the cost centres it serves, account by account, by weights (percentage, floor area, head count, machine hours); the split adds up to the paisa. Each rule runs once per month.
+
+## 15.2 Project systems (done)
+
+Migration 0066 adds `projects`, `project_wbs`, `project_milestones`, `project_cost_links`, `project_resources` and `project_time` (schema `projects.ts`). Code: `backend/src/modules/projects/` (`project-rules.ts` is pure and unit tested). Permissions: `projects.plan.manage`, `projects.time.book`, `projects.time.approve`, `projects.reports.read`. Pages: `/projects`, `/projects/:id`, `/projects/resources`.
+
+**Projects and WBS.** A project has a customer, contract value, the service item milestone invoices are raised on, dates and a status (planning, active, closed). The work breakdown structure is a tree of elements numbered 1, 1.2, 1.2.3 (a child's code must extend its parent's), each with planned dates and a budget by cost type (material, labour, subcontract, other). Budgets, actual and committed cost roll up to the parents; an element whose actual plus committed cost is above budget is flagged.
+
+**Costs.** Purchase orders, purchase invoices, stock issues and journals are charged to a WBS element with a cost type (a document can be charged once). Actual cost: the taxable value of purchase invoices, the value of stock issued, and the expense lines of journals. Committed cost: purchase orders less what has been invoiced against them. Labour: approved hours times the person's cost rate on the project. Drafts and cancelled documents are not counted.
+
+**Time and resources.** People are planned on a project (and WBS element) for a date range with hours a week and a cost rate. The resource load shows each person's planned hours per week across all open projects against 48 hours a week (Factories Act), with overloaded weeks in red. Hours are booked per person, WBS element and day (at most 24 a day) and approved or rejected.
+
+**Billing.** Milestones are shares of the contract value (together at most 100 %), with a due date. An achieved milestone is billed as a draft sales invoice on the project's billing item, which then follows the normal invoice flow. The project shows what was billed, revenue earned (contract value × earned value / budget), unbilled revenue and the margin on billing.
+
+**Earned value.** For each leaf element: planned value (budget × share of the planned period elapsed), earned value (budget × progress entered), actual cost; for the project: CPI, SPI, cost and schedule variance, estimate at completion (budget / CPI), estimate to complete and variance at completion.
