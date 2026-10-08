@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatQty } from "@/lib/documents";
 import { LOT_STATUS, QA, type LotStatus } from "@/lib/quality";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Lot { id: string; item: { id: string; code: string; name: string; uom: string }; batchNo: string; status: LotStatus; note: string | null; updatedAt: string | null; expiryDate: string | null; stock: string }
 interface Signature { id: string; meaning: string; reason: string | null; signedAt: string; signedBy: string; email: string; payload: { from?: string; to?: string } }
@@ -38,24 +39,21 @@ export default function LotsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Lot</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2 text-right font-medium">In stock</th><th className="px-4 py-2 font-medium">Expiry</th><th className="px-4 py-2" /></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.items.map((l) => (
-                <tr key={l.id}>
-                  <td className="px-4 py-2"><span className="font-mono font-medium">{l.batchNo}</span><span className="block text-xs text-muted">{l.item.code} {l.item.name}</span></td>
-                  <td className="px-4 py-2"><Badge tone={LOT_STATUS[l.status].tone}>{LOT_STATUS[l.status].label}</Badge>{l.note && <span className="block text-xs text-muted">{l.note}{l.updatedAt && ` · ${formatDateTime(l.updatedAt)}`}</span>}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatQty(l.stock)} {l.item.uom}</td>
-                  <td className="px-4 py-2">{l.expiryDate ? formatDate(l.expiryDate) : "–"}</td>
-                  <td className="px-4 py-2 text-right whitespace-nowrap">
-                    <Button size="sm" variant="ghost" onClick={() => setHistory(l)}>Signatures</Button>
-                    {can("quality.release.sign") && <Button size="sm" variant="secondary" onClick={() => setSign(l)}><PenLine className="size-4" aria-hidden /> Change status</Button>}
-                  </td>
-                </tr>
-              ))}
-              {!q.data.items.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No lots in this status.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data.items}
+            rowKey={(l) => String(l.id)}
+            exportName="quality-lots"
+            storageKey="quality-lots-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No lots in this status.</p>}
+            columns={[
+              { key: "lot", label: "Lot", locked: true, className: "whitespace-normal", render: (l) => <><span className="font-mono font-medium">{l.batchNo}</span><span className="block text-xs text-muted">{l.item.code} {l.item.name}</span></> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (l) => <><Badge tone={LOT_STATUS[l.status].tone}>{LOT_STATUS[l.status].label}</Badge>{l.note && <span className="block text-xs text-muted">{l.note}{l.updatedAt && ` · ${formatDateTime(l.updatedAt)}`}</span>}</> },
+              { key: "in-stock", label: "In stock", align: "right", render: (l) => <>{formatQty(l.stock)} {l.item.uom}</> },
+              { key: "expiry", label: "Expiry", className: "whitespace-normal", render: (l) => <>{l.expiryDate ? formatDate(l.expiryDate) : "–"}</> },
+              { key: "col4", label: "", align: "right", noSort: true, render: (l) => <><Button size="sm" variant="ghost" onClick={() => setHistory(l)}>Signatures</Button>
+                                {can("quality.release.sign") && <Button size="sm" variant="secondary" onClick={() => setSign(l)}><PenLine className="size-4" aria-hidden /> Change status</Button>}</> },
+            ]}
+          />
         </Card>
       )}
       {sign && <SignDialog lot={sign} onClose={() => setSign(null)} />}

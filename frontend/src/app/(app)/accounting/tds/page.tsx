@@ -13,6 +13,7 @@ import { api, apiDownload, ApiError } from "@/lib/api";
 import { ACC, type MoneyAccount } from "@/lib/accounting";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, todayIST } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Quarter {
   quarter: string;
@@ -55,41 +56,39 @@ export default function TdsPage() {
         <>
           <Card>
             <CardHeader title={`Sections · ${d.quarter}`} />
-            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Section</th><th className="px-4 py-2 text-right font-medium">Deductees</th><th className="px-4 py-2 text-right font-medium">Deducted</th><th className="px-4 py-2 text-right font-medium">Deposited</th><th className="px-4 py-2 text-right font-medium">To deposit</th><th /></tr></thead>
-              <tbody className="divide-y divide-border">
-                {d.sections.map((s) => (
-                  <tr key={s.section}>
-                    <td className="px-4 py-2">{s.label}</td>
-                    <td className="px-4 py-2 text-right">{s.deductees}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatMoney(s.deducted)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatMoney(s.deposited)}</td>
-                    <td className={`px-4 py-2 text-right tabular-nums ${Number(s.balance) > 0 ? "text-danger" : ""}`}>{formatMoney(s.balance)}</td>
-                    <td className="px-2 py-1 text-right">{Number(s.balance) > 0 && can("accounting.tax.manage") && <Button size="sm" variant="secondary" onClick={() => setPaying(s.section)}>Record challan</Button>}</td>
-                  </tr>
-                ))}
-                {!d.sections.length && <tr><td colSpan={6} className="px-4 py-3 text-muted">No TDS this quarter.</td></tr>}
-              </tbody>
-            </table></div>
+            <DataTable
+              rows={d.sections}
+              rowKey={(s) => String(s.section)}
+              exportName="accounting-tds"
+              storageKey="accounting-tds-0"
+              empty={<p className="px-4 py-6 text-center text-sm text-muted">No TDS this quarter.</p>}
+              columns={[
+                { key: "section", label: "Section", locked: true, className: "whitespace-normal", render: (s) => <>{s.label}</> },
+                { key: "deductees", label: "Deductees", align: "right", render: (s) => <>{s.deductees}</> },
+                { key: "deducted", label: "Deducted", align: "right", render: (s) => <>{formatMoney(s.deducted)}</> },
+                { key: "deposited", label: "Deposited", align: "right", render: (s) => <>{formatMoney(s.deposited)}</> },
+                { key: "to-deposit", label: "To deposit", align: "right", render: (s) => <><span className={`${Number(s.balance) > 0 ? "text-danger" : ""}`}>{formatMoney(s.balance)}</span></> },
+                { key: "col5", label: "", align: "right", noSort: true, render: (s) => <>{Number(s.balance) > 0 && can("accounting.tax.manage") && <Button size="sm" variant="secondary" onClick={() => setPaying(s.section)}>Record challan</Button>}</> },
+              ]}
+            />
           </Card>
           <Card>
             <CardHeader title="Deductions" />
-            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Deductee</th><th className="px-4 py-2 font-medium">Bill</th><th className="px-4 py-2 font-medium">Section</th><th className="px-4 py-2 text-right font-medium">Amount</th><th className="px-4 py-2 text-right font-medium">Rate</th><th className="px-4 py-2 text-right font-medium">TDS</th><th /></tr></thead>
-              <tbody className="divide-y divide-border">
-                {d.deductions.map((x) => (
-                  <tr key={x.billId}>
-                    <td className="px-4 py-2">{x.vendor}<span className={`block font-mono text-xs ${x.pan ? "text-muted" : "text-danger"}`}>{x.pan ?? "PAN missing"}</span></td>
-                    <td className="px-4 py-2"><Link href={`/purchase/invoices/${x.billId}`} className="font-mono text-primary hover:underline">{x.number}</Link><span className="block text-xs text-muted">{formatDate(x.date)}</span></td>
-                    <td className="px-4 py-2">{x.section}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatMoney(x.base)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{Number(x.rate)}%</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatMoney(x.tds)}</td>
-                    <td className="px-2 py-1 text-right"><Link className="text-xs text-primary hover:underline" href={`/accounting/tds/16a/${x.vendorId}?fy=${sel.fy}&quarter=${sel.quarter}`}>16A</Link></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
+            <DataTable
+              rows={d.deductions}
+              rowKey={(x) => String(x.billId)}
+              exportName="accounting-tds"
+              storageKey="accounting-tds-1"
+              columns={[
+                { key: "deductee", label: "Deductee", locked: true, className: "whitespace-normal", render: (x) => <>{x.vendor}<span className={`block font-mono text-xs ${x.pan ? "text-muted" : "text-danger"}`}>{x.pan ?? "PAN missing"}</span></> },
+                { key: "bill", label: "Bill", className: "whitespace-normal", render: (x) => <><Link href={`/purchase/invoices/${x.billId}`} className="font-mono text-primary hover:underline">{x.number}</Link><span className="block text-xs text-muted">{formatDate(x.date)}</span></> },
+                { key: "section", label: "Section", className: "whitespace-normal", render: (x) => <>{x.section}</> },
+                { key: "amount", label: "Amount", align: "right", render: (x) => <>{formatMoney(x.base)}</> },
+                { key: "rate", label: "Rate", align: "right", render: (x) => <>{Number(x.rate)}%</> },
+                { key: "tds", label: "TDS", align: "right", render: (x) => <>{formatMoney(x.tds)}</> },
+                { key: "col6", label: "", align: "right", noSort: true, render: (x) => <><Link className="text-xs text-primary hover:underline" href={`/accounting/tds/16a/${x.vendorId}?fy=${sel.fy}&quarter=${sel.quarter}`}>16A</Link></> },
+              ]}
+            />
           </Card>
           {d.challans.length > 0 && (
             <Card>

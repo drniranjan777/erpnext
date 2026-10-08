@@ -14,6 +14,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, todayIST, type DocumentStatus } from "@/lib/documents";
 import { QMS, RISK_TONE, type RiskLevel } from "@/lib/qms";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; number: string | null; status: DocumentStatus; docDate: string; title: string | null; kind: string; category: string; rpn: number; riskLevel: RiskLevel; validUntil: string | null; closedAt: string | null; productImpact: boolean }
 
@@ -40,20 +41,19 @@ export default function DeviationsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Deviation</th><th className="px-4 py-2 font-medium">What</th><th className="px-4 py-2 font-medium">Risk</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.items.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-2"><Link href={`/quality/deviations/${r.id}`} className="font-medium hover:underline">{r.number ?? "Draft"}</Link><span className="block text-xs text-muted">{formatDate(r.docDate)} · {r.kind}{r.validUntil && ` until ${formatDate(r.validUntil)}`}</span></td>
-                  <td className="px-4 py-2">{r.title}{r.productImpact && <Badge tone="warning" className="ml-2">Product impact</Badge>}</td>
-                  <td className="px-4 py-2"><Badge tone={RISK_TONE[r.riskLevel]}>{r.riskLevel} · {r.rpn}</Badge></td>
-                  <td className="px-4 py-2">{r.closedAt ? <Badge tone="success">Closed</Badge> : r.validUntil && r.validUntil < today && r.status === "approved" ? <Badge tone="danger">Expired</Badge> : <StatusBadge status={r.status} />}</td>
-                </tr>
-              ))}
-              {!q.data.items.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No deviations.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data.items}
+            rowKey={(r) => String(r.id)}
+            exportName="quality-deviations"
+            storageKey="quality-deviations-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No deviations.</p>}
+            columns={[
+              { key: "deviation", label: "Deviation", locked: true, className: "whitespace-normal", render: (r) => <><Link href={`/quality/deviations/${r.id}`} className="font-medium hover:underline">{r.number ?? "Draft"}</Link><span className="block text-xs text-muted">{formatDate(r.docDate)} · {r.kind}{r.validUntil && ` until ${formatDate(r.validUntil)}`}</span></> },
+              { key: "what", label: "What", className: "whitespace-normal", render: (r) => <>{r.title}{r.productImpact && <Badge tone="warning" className="ml-2">Product impact</Badge>}</> },
+              { key: "risk", label: "Risk", className: "whitespace-normal", render: (r) => <><Badge tone={RISK_TONE[r.riskLevel]}>{r.riskLevel} · {r.rpn}</Badge></> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <>{r.closedAt ? <Badge tone="success">Closed</Badge> : r.validUntil && r.validUntil < today && r.status === "approved" ? <Badge tone="danger">Expired</Badge> : <StatusBadge status={r.status} />}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

@@ -13,6 +13,7 @@ import { PageHeader, timeAgo } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { RecipeParameter } from "@/lib/mes";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; itemId: string; itemCode: string; itemName: string; machineId: string | null; machineCode: string | null; version: number; status: string; parameters: RecipeParameter[]; notes: string | null; releasedAt: string | null; releasedBy: string | null }
 interface Machine { id: string; code: string; name: string }
@@ -62,26 +63,24 @@ export default function RecipesPage() {
       <PageHeader title="Recipes" description="Set-points with their limits. Parameters with a PLC address are written by the edge gateway when the job starts; the batch record compares each with the signal that measures it." actions={manage && <Button onClick={() => setEdit({ id: null, itemId: "", itemLabel: "", machineId: "", notes: "", parameters: [emptyParam()] })}><Plus className="size-4" aria-hidden /> New recipe</Button>} />
       {error && !edit && <Alert>{error}</Alert>}
       <Card>
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 font-medium">Machine</th><th className="px-4 py-2 font-medium">Version</th><th className="px-4 py-2 font-medium">Set-points</th><th className="px-4 py-2" /></tr></thead>
-          <tbody className="divide-y divide-border">
-            {list.data?.map((r) => (
-              <tr key={r.id} className={r.status === "retired" ? "opacity-60" : ""}>
-                <td className="px-4 py-2">{r.itemCode} · {r.itemName}</td>
-                <td className="px-4 py-2">{r.machineCode ?? "Any"}</td>
-                <td className="px-4 py-2"><Badge tone={STATUS_TONE[r.status]}>v{r.version} {r.status}</Badge>{r.releasedAt && <span className="block text-xs text-muted">{r.releasedBy} · {timeAgo(r.releasedAt)}</span>}</td>
-                <td className="px-4 py-2 text-xs">{r.parameters.map((p) => `${p.name} ${p.value}${p.unit ? ` ${p.unit}` : ""}`).join(" · ")}</td>
-                <td className="px-4 py-2 text-right">
-                  <span className="flex justify-end gap-1">
-                    {manage && r.status !== "retired" && <Button size="sm" variant="ghost" onClick={() => setEdit({ id: r.id, itemId: r.itemId, itemLabel: `${r.itemCode} · ${r.itemName}`, machineId: r.machineId ?? "", notes: r.notes ?? "", parameters: r.parameters.map(toParam) })}>Edit</Button>}
-                    {manage && r.status === "draft" && <Button size="sm" onClick={() => run(() => api(`/mes/recipes/${r.id}/release`, { body: {} }))}>Release</Button>}
-                  </span>
-                </td>
-              </tr>
-            ))}
-            {list.data && !list.data.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">No recipes yet.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={list.data ?? []}
+          rowKey={(r) => String(r.id)}
+          rowClassName={(r) => r.status === "retired" ? "opacity-60" : ""}
+          exportName="mes-recipes"
+          storageKey="mes-recipes-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No recipes yet.</p>}
+          columns={[
+            { key: "item", label: "Item", locked: true, className: "whitespace-normal", render: (r) => <>{r.itemCode} · {r.itemName}</> },
+            { key: "machine", label: "Machine", className: "whitespace-normal", render: (r) => <>{r.machineCode ?? "Any"}</> },
+            { key: "version", label: "Version", className: "whitespace-normal", render: (r) => <><Badge tone={STATUS_TONE[r.status]}>v{r.version} {r.status}</Badge>{r.releasedAt && <span className="block text-xs text-muted">{r.releasedBy} · {timeAgo(r.releasedAt)}</span>}</> },
+            { key: "set-points", label: "Set-points", className: "text-xs whitespace-normal", render: (r) => <>{r.parameters.map((p) => `${p.name} ${p.value}${p.unit ? ` ${p.unit}` : ""}`).join(" · ")}</> },
+            { key: "col4", label: "", align: "right", noSort: true, render: (r) => <><span className="flex justify-end gap-1">
+                              {manage && r.status !== "retired" && <Button size="sm" variant="ghost" onClick={() => setEdit({ id: r.id, itemId: r.itemId, itemLabel: `${r.itemCode} · ${r.itemName}`, machineId: r.machineId ?? "", notes: r.notes ?? "", parameters: r.parameters.map(toParam) })}>Edit</Button>}
+                              {manage && r.status === "draft" && <Button size="sm" onClick={() => run(() => api(`/mes/recipes/${r.id}/release`, { body: {} }))}>Release</Button>}
+                            </span></> },
+          ]}
+        />
       </Card>
       <Dialog open={!!edit} onClose={() => setEdit(null)} size="xl" title={edit?.id ? "Edit recipe" : "New recipe"} footer={<Button disabled={!edit?.itemId || !edit?.parameters.every((p) => p.name && p.value !== "")} onClick={save}>Save draft</Button>}>
         {edit && (

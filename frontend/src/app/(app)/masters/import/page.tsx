@@ -29,6 +29,7 @@ import {
 } from "@/lib/imports";
 import { ITEM_TYPES } from "@/lib/masters";
 import { cn } from "@/lib/cn";
+import { DataTable } from "@/components/ui/data-table";
 
 type Result =
   { kind: "sheet"; data: SheetResult } | { kind: "tally"; data: TallyResult };
@@ -472,54 +473,42 @@ function RowsTable({
       <div
         className={cn("overflow-auto", compact ? "max-h-80" : "max-h-[32rem]")}
       >
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-            <tr>
-              <th className="w-16 px-4 py-2 font-medium">Row</th>
-              <th className="px-4 py-2 font-medium">Record</th>
-              <th className="w-28 px-4 py-2 font-medium">Result</th>
-              <th className="px-4 py-2 font-medium">Details</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border align-top">
-            {shown.map((r) => (
-              <tr key={r.rowNo}>
-                <td className="px-4 py-2 tabular-nums text-muted">{r.rowNo}</td>
-                <td className="px-4 py-2">{r.label}</td>
-                <td className="px-4 py-2">
-                  <Badge
-                    tone={
-                      r.status === "created"
-                        ? "success"
-                        : r.status === "error"
-                          ? "danger"
-                          : "neutral"
-                    }
-                  >
-                    {r.status === "created"
-                      ? "OK"
-                      : r.status === "error"
-                        ? "Error"
-                        : "Exists"}
-                  </Badge>
-                </td>
-                <td className="px-4 py-2 text-xs">
-                  {r.errors.map((e, i) => (
-                    <p key={i} className="text-danger">
-                      {e.column && (
-                        <span className="font-mono text-muted">
-                          {e.column}:{" "}
-                        </span>
-                      )}
-                      {e.message}
-                    </p>
-                  ))}
-                  {r.message && <p className="text-muted">{r.message}</p>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          rows={shown}
+          rowKey={(r) => String(r.rowNo)}
+          exportName="masters-import"
+          storageKey="masters-import-0"
+          columns={[
+            { key: "row", label: "Row", locked: true, className: "text-muted whitespace-normal", render: (r) => <>{r.rowNo}</> },
+            { key: "record", label: "Record", className: "whitespace-normal", render: (r) => <>{r.label}</> },
+            { key: "result", label: "Result", className: "whitespace-normal", render: (r) => <><Badge
+                              tone={
+                                r.status === "created"
+                                  ? "success"
+                                  : r.status === "error"
+                                    ? "danger"
+                                    : "neutral"
+                              }
+                            >
+                              {r.status === "created"
+                                ? "OK"
+                                : r.status === "error"
+                                  ? "Error"
+                                  : "Exists"}
+                            </Badge></> },
+            { key: "details", label: "Details", className: "text-xs whitespace-normal", render: (r) => <>{r.errors.map((e, i) => (
+                              <p key={i} className="text-danger">
+                                {e.column && (
+                                  <span className="font-mono text-muted">
+                                    {e.column}:{" "}
+                                  </span>
+                                )}
+                                {e.message}
+                              </p>
+                            ))}
+                            {r.message && <p className="text-muted">{r.message}</p>}</> },
+          ]}
+        />
       </div>
     </div>
   );

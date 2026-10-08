@@ -16,6 +16,7 @@ import { formatDate, todayIST } from "@/lib/documents";
 import { DMS, type Distributor, type SchemeRow } from "@/lib/dms";
 import { inr } from "@/lib/payroll";
 import { askConfirm, askText } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Claim { id: string; number: string; kind: string; fromDate: string; toDate: string; claimedAmount: string; computedAmount: string | null; approvedAmount: string | null; status: "submitted" | "approved" | "rejected" | "settled"; notes: string | null; decisionNote: string | null; journalId: string | null; distributor: string; schemeCode: string | null; schemeName: string | null }
 const TONE = { submitted: "warning", approved: "primary", rejected: "danger", settled: "success" } as const;
@@ -46,33 +47,30 @@ export default function ClaimsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Claim</th><th className="px-4 py-2 font-medium">Period</th><th className="px-3 py-2 text-right font-medium">Claimed</th><th className="px-3 py-2 text-right font-medium">Per the system</th><th className="px-3 py-2 text-right font-medium">Approved</th><th className="px-4 py-2 font-medium">Status</th><th /></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((c) => (
-                <tr key={c.id}>
-                  <td className="px-4 py-2"><span className="font-medium">{c.distributor}</span><span className="block text-xs text-muted">{c.number} · {c.schemeCode ? `${c.schemeCode} ${c.schemeName}` : c.kind.replace("_", " ")}</span></td>
-                  <td className="px-4 py-2 text-xs">{formatDate(c.fromDate)} – {formatDate(c.toDate)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{inr(c.claimedAmount)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{c.computedAmount === null ? "–" : <span className={Number(c.computedAmount) < Number(c.claimedAmount) ? "text-warning" : ""}>{inr(c.computedAmount)}</span>}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{inr(c.approvedAmount)}</td>
-                  <td className="px-4 py-2"><Badge tone={TONE[c.status]}>{c.status}</Badge>{c.journalId && <Link className="ml-2 text-xs text-primary hover:underline" href={`/accounting/journals/${c.journalId}`}>journal</Link>}</td>
-                  <td className="px-4 py-2 text-right">
-                    <span className="inline-flex gap-1">
-                      {c.status === "submitted" && can("dms.claims.manage") && (
-                        <>
-                          <Button size="sm" variant="secondary" onClick={async () => { const v = await askText("Amount to approve", c.computedAmount ?? c.claimedAmount); if (v) act(`${DMS}/claims/${c.id}/decide`, { approve: true, approvedAmount: Number(v) }); }}><Check className="size-3.5" aria-hidden /> Approve</Button>
-                          <Button size="sm" variant="ghost" aria-label="Reject" onClick={async () => { const note = await askText("Why rejected?"); if (note) act(`${DMS}/claims/${c.id}/decide`, { approve: false, note }); }}><X className="size-3.5" aria-hidden /></Button>
-                        </>
-                      )}
-                      {c.status === "approved" && can("dms.claims.settle") && <Button size="sm" onClick={() => act(`${DMS}/claims/${c.id}/settle`, {}, `Credit ${c.distributor} with ${inr(c.approvedAmount)}?`)}><Landmark className="size-3.5" aria-hidden /> Settle</Button>}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No claims.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(c) => String(c.id)}
+            exportName="dms-claims"
+            storageKey="dms-claims-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No claims.</p>}
+            columns={[
+              { key: "claim", label: "Claim", locked: true, className: "whitespace-normal", render: (c) => <><span className="font-medium">{c.distributor}</span><span className="block text-xs text-muted">{c.number} · {c.schemeCode ? `${c.schemeCode} ${c.schemeName}` : c.kind.replace("_", " ")}</span></> },
+              { key: "period", label: "Period", className: "text-xs whitespace-normal", render: (c) => <>{formatDate(c.fromDate)} – {formatDate(c.toDate)}</> },
+              { key: "claimed", label: "Claimed", align: "right", render: (c) => <>{inr(c.claimedAmount)}</> },
+              { key: "per-the-system", label: "Per the system", align: "right", render: (c) => <>{c.computedAmount === null ? "–" : <span className={Number(c.computedAmount) < Number(c.claimedAmount) ? "text-warning" : ""}>{inr(c.computedAmount)}</span>}</> },
+              { key: "approved", label: "Approved", align: "right", render: (c) => <>{inr(c.approvedAmount)}</> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (c) => <><Badge tone={TONE[c.status]}>{c.status}</Badge>{c.journalId && <Link className="ml-2 text-xs text-primary hover:underline" href={`/accounting/journals/${c.journalId}`}>journal</Link>}</> },
+              { key: "col6", label: "", align: "right", noSort: true, render: (c) => <><span className="inline-flex gap-1">
+                                  {c.status === "submitted" && can("dms.claims.manage") && (
+                                    <>
+                                      <Button size="sm" variant="secondary" onClick={async () => { const v = await askText("Amount to approve", c.computedAmount ?? c.claimedAmount); if (v) act(`${DMS}/claims/${c.id}/decide`, { approve: true, approvedAmount: Number(v) }); }}><Check className="size-3.5" aria-hidden /> Approve</Button>
+                                      <Button size="sm" variant="ghost" aria-label="Reject" onClick={async () => { const note = await askText("Why rejected?"); if (note) act(`${DMS}/claims/${c.id}/decide`, { approve: false, note }); }}><X className="size-3.5" aria-hidden /></Button>
+                                    </>
+                                  )}
+                                  {c.status === "approved" && can("dms.claims.settle") && <Button size="sm" onClick={() => act(`${DMS}/claims/${c.id}/settle`, {}, `Credit ${c.distributor} with ${inr(c.approvedAmount)}?`)}><Landmark className="size-3.5" aria-hidden /> Settle</Button>}
+                                </span></> },
+            ]}
+          />
         </Card>
       )}
       {raising && <RaiseDialog onClose={() => setRaising(false)} />}

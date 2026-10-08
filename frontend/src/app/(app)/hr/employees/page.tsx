@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
 import { HR, STATUS_TONE, type OrgRow } from "@/lib/hr";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; code: string; fullName: string; status: keyof typeof STATUS_TONE; category: string; employmentType: string; dateOfJoining: string; mobile: string | null; department: string | null; designation: string | null; location: string | null; manager: string | null }
 const PAGE = 50;
@@ -38,21 +39,20 @@ export default function EmployeesPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Employee</th><th className="px-4 py-2 font-medium">Designation · department</th><th className="px-4 py-2 font-medium">Location</th><th className="px-4 py-2 font-medium">Joined</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.items.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-2"><Link href={`${HR}/employees/${r.id}`} className="font-medium hover:underline">{r.fullName}</Link><span className="block font-mono text-xs text-muted">{r.code}{r.manager && ` · reports to ${r.manager}`}</span></td>
-                  <td className="px-4 py-2">{r.designation ?? "–"}<span className="block text-xs text-muted">{r.department ?? ""}</span></td>
-                  <td className="px-4 py-2">{r.location ?? "–"}</td>
-                  <td className="px-4 py-2">{formatDate(r.dateOfJoining)}<span className="block text-xs text-muted">{r.category} · {r.employmentType}</span></td>
-                  <td className="px-4 py-2"><Badge tone={STATUS_TONE[r.status]}>{r.status === "notice" ? "On notice" : r.status}</Badge></td>
-                </tr>
-              ))}
-              {!q.data.items.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No employees.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data.items}
+            rowKey={(r) => String(r.id)}
+            exportName="hr-employees"
+            storageKey="hr-employees-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No employees.</p>}
+            columns={[
+              { key: "employee", label: "Employee", locked: true, className: "whitespace-normal", render: (r) => <><Link href={`${HR}/employees/${r.id}`} className="font-medium hover:underline">{r.fullName}</Link><span className="block font-mono text-xs text-muted">{r.code}{r.manager && ` · reports to ${r.manager}`}</span></> },
+              { key: "designation-department", label: "Designation · department", className: "whitespace-normal", render: (r) => <>{r.designation ?? "–"}<span className="block text-xs text-muted">{r.department ?? ""}</span></> },
+              { key: "location", label: "Location", className: "whitespace-normal", render: (r) => <>{r.location ?? "–"}</> },
+              { key: "joined", label: "Joined", className: "whitespace-normal", render: (r) => <>{formatDate(r.dateOfJoining)}<span className="block text-xs text-muted">{r.category} · {r.employmentType}</span></> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <><Badge tone={STATUS_TONE[r.status]}>{r.status === "notice" ? "On notice" : r.status}</Badge></> },
+            ]}
+          />
           {q.data.total > PAGE && (
             <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted">
               <span>{offset + 1}–{Math.min(offset + PAGE, q.data.total)} of {q.data.total}</span>

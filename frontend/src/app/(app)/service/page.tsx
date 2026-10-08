@@ -13,6 +13,7 @@ import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { PRIORITY_TONE, SLA_LABEL, SLA_TONE, STATUS_TONE, SVC, type TicketRow, when } from "@/lib/service";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function ServiceDeskPage() {
   const { can } = useAuth();
@@ -32,23 +33,22 @@ export default function ServiceDeskPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Ticket</th><th className="px-4 py-2 font-medium">Customer</th><th className="px-4 py-2 font-medium">Priority</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2 font-medium">Response</th><th className="px-4 py-2 font-medium">Resolution</th><th className="px-4 py-2 font-medium">Assignee</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((t) => (
-                <tr key={t.id}>
-                  <td className="px-4 py-2"><Link className="font-medium hover:underline" href={`${SVC}/tickets/${t.id}`}>{t.subject}</Link><span className="block text-xs text-muted">{t.number} · {t.category} · {t.channel}{t.serialNo && ` · ${t.serialNo}`}{t.underWarranty && " · warranty"}{t.underContract && " · AMC"}</span></td>
-                  <td className="px-4 py-2">{t.customer ?? "–"}</td>
-                  <td className="px-4 py-2"><Badge tone={PRIORITY_TONE[t.priority]}>{t.priority}</Badge>{t.escalationLevel > 0 && <Badge tone="danger" className="ml-1">L{t.escalationLevel}</Badge>}</td>
-                  <td className="px-4 py-2"><Badge tone={STATUS_TONE[t.status]}>{t.status.replace("_", " ")}</Badge></td>
-                  <td className="px-4 py-2">{t.response && <Badge tone={SLA_TONE[t.response]}>{SLA_LABEL[t.response]}</Badge>}</td>
-                  <td className="px-4 py-2">{t.resolutionSla && <Badge tone={SLA_TONE[t.resolutionSla]}>{SLA_LABEL[t.resolutionSla]}</Badge>}<span className="block text-xs text-muted">{when(t.resolutionDueAt)}</span></td>
-                  <td className="px-4 py-2">{t.assignee ?? <span className="text-warning">unassigned</span>}</td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No tickets.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(t) => String(t.id)}
+            exportName="service"
+            storageKey="service-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No tickets.</p>}
+            columns={[
+              { key: "ticket", label: "Ticket", locked: true, className: "whitespace-normal", render: (t) => <><Link className="font-medium hover:underline" href={`${SVC}/tickets/${t.id}`}>{t.subject}</Link><span className="block text-xs text-muted">{t.number} · {t.category} · {t.channel}{t.serialNo && ` · ${t.serialNo}`}{t.underWarranty && " · warranty"}{t.underContract && " · AMC"}</span></> },
+              { key: "customer", label: "Customer", className: "whitespace-normal", render: (t) => <>{t.customer ?? "–"}</> },
+              { key: "priority", label: "Priority", className: "whitespace-normal", render: (t) => <><Badge tone={PRIORITY_TONE[t.priority]}>{t.priority}</Badge>{t.escalationLevel > 0 && <Badge tone="danger" className="ml-1">L{t.escalationLevel}</Badge>}</> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (t) => <><Badge tone={STATUS_TONE[t.status]}>{t.status.replace("_", " ")}</Badge></> },
+              { key: "response", label: "Response", className: "whitespace-normal", render: (t) => <>{t.response && <Badge tone={SLA_TONE[t.response]}>{SLA_LABEL[t.response]}</Badge>}</> },
+              { key: "resolution", label: "Resolution", className: "whitespace-normal", render: (t) => <>{t.resolutionSla && <Badge tone={SLA_TONE[t.resolutionSla]}>{SLA_LABEL[t.resolutionSla]}</Badge>}<span className="block text-xs text-muted">{when(t.resolutionDueAt)}</span></> },
+              { key: "assignee", label: "Assignee", className: "whitespace-normal", render: (t) => <>{t.assignee ?? <span className="text-warning">unassigned</span>}</> },
+            ]}
+          />
         </Card>
       )}
       {adding && <NewTicket onClose={() => setAdding(false)} />}

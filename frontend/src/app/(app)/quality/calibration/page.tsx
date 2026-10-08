@@ -14,6 +14,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
 import { QMS, type Gauge } from "@/lib/qms";
+import { DataTable } from "@/components/ui/data-table";
 
 const DUE = { overdue: { label: "Overdue", tone: "danger" }, due_soon: { label: "Due soon", tone: "warning" }, ok: { label: "In date", tone: "success" } } as const;
 
@@ -31,21 +32,20 @@ export default function CalibrationPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Gauge</th><th className="px-4 py-2 font-medium">Range · LC</th><th className="px-4 py-2 font-medium">Where</th><th className="px-4 py-2 font-medium">Last calibrated</th><th className="px-4 py-2 font-medium">Next due</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((g) => (
-                <tr key={g.id}>
-                  <td className="px-4 py-2"><Link href={`/quality/calibration/${g.id}`} className="font-mono font-medium hover:underline">{g.code}</Link><span className="block text-xs text-muted">{g.name}</span></td>
-                  <td className="px-4 py-2">{g.range ?? "–"}{g.leastCount && <span className="text-muted"> · {g.leastCount}</span>}</td>
-                  <td className="px-4 py-2">{g.location ?? "–"}</td>
-                  <td className="px-4 py-2">{g.lastCalibrated ? formatDate(g.lastCalibrated) : "–"}</td>
-                  <td className="px-4 py-2">{g.status !== "in_use" ? <Badge tone="danger">Out of service</Badge> : <>{g.nextDue ? formatDate(g.nextDue) : "Not calibrated"} {g.dueState && <Badge tone={DUE[g.dueState].tone}>{DUE[g.dueState].label}</Badge>}</>}</td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No gauges.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(g) => String(g.id)}
+            exportName="quality-calibration"
+            storageKey="quality-calibration-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No gauges.</p>}
+            columns={[
+              { key: "gauge", label: "Gauge", locked: true, className: "whitespace-normal", render: (g) => <><Link href={`/quality/calibration/${g.id}`} className="font-mono font-medium hover:underline">{g.code}</Link><span className="block text-xs text-muted">{g.name}</span></> },
+              { key: "range-lc", label: "Range · LC", className: "whitespace-normal", render: (g) => <>{g.range ?? "–"}{g.leastCount && <span className="text-muted"> · {g.leastCount}</span>}</> },
+              { key: "where", label: "Where", className: "whitespace-normal", render: (g) => <>{g.location ?? "–"}</> },
+              { key: "last-calibrated", label: "Last calibrated", className: "whitespace-normal", render: (g) => <>{g.lastCalibrated ? formatDate(g.lastCalibrated) : "–"}</> },
+              { key: "next-due", label: "Next due", className: "whitespace-normal", render: (g) => <>{g.status !== "in_use" ? <Badge tone="danger">Out of service</Badge> : <>{g.nextDue ? formatDate(g.nextDue) : "Not calibrated"} {g.dueState && <Badge tone={DUE[g.dueState].tone}>{DUE[g.dueState].label}</Badge>}</>}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

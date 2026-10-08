@@ -12,6 +12,7 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { EmptyState, ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import type { Branch, Company } from "@/lib/types";
+import { DataTable } from "@/components/ui/data-table";
 
 interface DocTypeInfo {
   value: string;
@@ -65,43 +66,27 @@ export default function NumberSeriesPage() {
         )}
         {!!series.data?.length && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Document</th>
-                  <th className="px-4 py-2.5 font-medium">Series</th>
-                  <th className="px-4 py-2.5 font-medium">Pattern</th>
-                  <th className="px-4 py-2.5 font-medium">Next number</th>
-                  <th className="px-4 py-2.5 font-medium">Restarts</th>
-                  <th className="px-4 py-2.5" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {series.data?.map((s) => (
-                  <tr key={s.id}>
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{s.docTypeLabel}</p>
-                      <p className="text-xs text-muted">
-                        {s.companyName}
-                        {s.branch ? ` · ${s.branch.code}` : " · all branches"}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="mr-1.5">{s.name}</span>
-                      {s.isDefault && <Badge tone="primary">Default</Badge>} {!s.isActive && <Badge>Inactive</Badge>}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{s.pattern}</td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono">{s.nextNumber}</td>
-                    <td className="px-4 py-3 text-muted">{RESET_LABEL[s.reset]}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(s)} aria-label={`Edit ${s.name}`}>
-                        <Pencil className="size-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              rows={series.data ?? []}
+              rowKey={(s) => String(s.id)}
+              exportName="settings-number-series"
+              storageKey="settings-number-series-0"
+              columns={[
+                { key: "document", label: "Document", locked: true, className: "whitespace-normal", render: (s) => <><p className="font-medium">{s.docTypeLabel}</p>
+                                    <p className="text-xs text-muted">
+                                      {s.companyName}
+                                      {s.branch ? ` · ${s.branch.code}` : " · all branches"}
+                                    </p></> },
+                { key: "series", label: "Series", className: "whitespace-normal", render: (s) => <><span className="mr-1.5">{s.name}</span>
+                                    {s.isDefault && <Badge tone="primary">Default</Badge>} {!s.isActive && <Badge>Inactive</Badge>}</> },
+                { key: "pattern", label: "Pattern", className: "font-mono text-xs", render: (s) => <>{s.pattern}</> },
+                { key: "next-number", label: "Next number", className: "font-mono", render: (s) => <>{s.nextNumber}</> },
+                { key: "restarts", label: "Restarts", className: "text-muted whitespace-normal", render: (s) => <>{RESET_LABEL[s.reset]}</> },
+                { key: "col5", label: "", align: "right", noSort: true, render: (s) => <><Button variant="ghost" size="sm" onClick={() => setEditing(s)} aria-label={`Edit ${s.name}`}>
+                                      <Pencil className="size-4" />
+                                    </Button></> },
+              ]}
+            />
           </div>
         )}
       </Card>

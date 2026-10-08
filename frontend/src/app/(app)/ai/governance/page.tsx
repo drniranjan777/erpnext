@@ -11,6 +11,7 @@ import { Input, Select } from "@/components/ui/field";
 import { ErrorBlock, LoadingBlock, PageHeader, formatDateTime, timeAgo } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Feature { code: string; name: string; description: string; model: boolean; enabled: boolean; modelId: string | null }
 interface Gov { configured: boolean; killed: boolean; consent: { at: string; by: string | null } | null; maskPii: boolean; monthlyBudgetInr: number | null; planBudgetInr: number; planName: string; budgetInr: number; spentInr: number; features: Feature[]; defaultModel: string; usdInr: number }
@@ -119,25 +120,22 @@ export default function GovernancePage() {
 
       <Card>
         <CardHeader title="Usage, last 30 days" description={usage.data ? `${formatMoney(usage.data.monthCostInr)} this month.` : undefined} />
-        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-            <tr><th className="px-4 py-2 font-medium">Feature</th><th className="px-4 py-2 text-right font-medium">Calls</th><th className="px-4 py-2 text-right font-medium">Not sent</th><th className="px-4 py-2 text-right font-medium">Tokens in / out</th><th className="px-4 py-2 text-right font-medium">Avg time</th><th className="px-4 py-2 text-right font-medium">Masked</th><th className="px-4 py-2 text-right font-medium">Cost</th></tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {usage.data?.byFeature.map((u) => (
-              <tr key={u.feature}>
-                <td className="px-4 py-2">{g.features.find((f) => f.code === u.feature)?.name ?? u.feature}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{u.calls}{u.errors ? <span className="text-danger"> · {u.errors} failed</span> : null}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{u.blocked}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{u.inputTokens.toLocaleString("en-IN")} / {u.outputTokens.toLocaleString("en-IN")}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{u.avgLatencyMs ? `${(u.avgLatencyMs / 1000).toFixed(1)} s` : "–"}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{u.piiMasked}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{formatMoney(u.costInr)}</td>
-              </tr>
-            ))}
-            {usage.data && !usage.data.byFeature.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No model calls yet.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={usage.data?.byFeature ?? []}
+          rowKey={(u) => String(u.feature)}
+          exportName="ai-governance"
+          storageKey="ai-governance-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No model calls yet.</p>}
+          columns={[
+            { key: "feature", label: "Feature", locked: true, className: "whitespace-normal", render: (u) => <>{g.features.find((f) => f.code === u.feature)?.name ?? u.feature}</> },
+            { key: "calls", label: "Calls", align: "right", render: (u) => <>{u.calls}{u.errors ? <span className="text-danger"> · {u.errors} failed</span> : null}</> },
+            { key: "not-sent", label: "Not sent", align: "right", render: (u) => <>{u.blocked}</> },
+            { key: "tokens-in-out", label: "Tokens in / out", align: "right", render: (u) => <>{u.inputTokens.toLocaleString("en-IN")} / {u.outputTokens.toLocaleString("en-IN")}</> },
+            { key: "avg-time", label: "Avg time", align: "right", render: (u) => <>{u.avgLatencyMs ? `${(u.avgLatencyMs / 1000).toFixed(1)} s` : "–"}</> },
+            { key: "masked", label: "Masked", align: "right", render: (u) => <>{u.piiMasked}</> },
+            { key: "cost", label: "Cost", align: "right", render: (u) => <>{formatMoney(u.costInr)}</> },
+          ]}
+        />
         {usage.data && (usage.data.notSent.length > 0 || usage.data.byUser.length > 0) && (
           <div className="grid gap-4 border-t border-border p-4 text-xs md:grid-cols-2">
             {usage.data.notSent.length > 0 && <p><span className="text-muted">Not sent: </span>{usage.data.notSent.map((r) => `${REASON[r.reason] ?? r.reason.replace("http_", "HTTP ")} (${r.n})`).join(" · ")}</p>}

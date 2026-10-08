@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, type DocumentStatus } from "@/lib/documents";
 import { PURPOSE_META, SE_API, SE_ROUTE, seKeys, type Purpose, type StockEntryListItem } from "@/lib/inventory";
+import { DataTable } from "@/components/ui/data-table";
 
 type Tab = "all" | DocumentStatus;
 
@@ -109,59 +110,34 @@ export default function StockEntriesPage() {
         )}
         {items.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Number</th>
-                  <th className="px-4 py-2.5 font-medium">Date</th>
-                  <th className="px-4 py-2.5 font-medium">Purpose</th>
-                  <th className="px-4 py-2.5 font-medium">Items</th>
-                  <th className="px-4 py-2.5 font-medium">Warehouse</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Value</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {items.map((r) => (
-                  <tr key={r.id} className="hover:bg-surface-muted/60">
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Link href={`${SE_ROUTE}/${r.id}`} className="font-medium text-primary hover:underline">
-                        {r.number ?? "Draft"}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">{formatDate(r.docDate)}</td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Badge>{r.purposeLabel}</Badge>
-                    </td>
-                    <td className="max-w-xs px-4 py-3">
-                      <p className="truncate">{r.title}</p>
-                      <p className="truncate text-xs text-muted">
-                        {r.createdBy}
-                        {r.reference && ` · Ref ${r.reference}`}
-                      </p>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">
-                      <span className="inline-flex items-center gap-1">
-                        {r.fromWarehouse?.code}
-                        {r.fromWarehouse && r.toWarehouse && <ArrowRight className="size-3.5" aria-label="to" />}
-                        {r.toWarehouse?.code}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{formatMoney(r.amount)}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={r.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {list.hasNextPage && (
-          <div className="border-t border-border p-3 text-center">
-            <Button variant="secondary" size="sm" loading={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
-              Load more
-            </Button>
+            <DataTable
+              rows={items}
+              hasMore={list.hasNextPage}
+              loadingMore={list.isFetchingNextPage}
+              onLoadMore={() => void list.fetchNextPage()}
+              rowKey={(r) => String(r.id)}
+              exportName="inventory-stock-entries"
+              storageKey="inventory-stock-entries-0"
+              columns={[
+                { key: "number", label: "Number", locked: true, render: (r) => <><Link href={`${SE_ROUTE}/${r.id}`} className="font-medium text-primary hover:underline">
+                                      {r.number ?? "Draft"}
+                                    </Link></> },
+                { key: "date", label: "Date", className: "text-muted", render: (r) => <>{formatDate(r.docDate)}</> },
+                { key: "purpose", label: "Purpose", render: (r) => <><Badge>{r.purposeLabel}</Badge></> },
+                { key: "items", label: "Items", className: "max-w-xs whitespace-normal", render: (r) => <><p className="truncate">{r.title}</p>
+                                    <p className="truncate text-xs text-muted">
+                                      {r.createdBy}
+                                      {r.reference && ` · Ref ${r.reference}`}
+                                    </p></> },
+                { key: "warehouse", label: "Warehouse", className: "text-muted", render: (r) => <><span className="inline-flex items-center gap-1">
+                                      {r.fromWarehouse?.code}
+                                      {r.fromWarehouse && r.toWarehouse && <ArrowRight className="size-3.5" aria-label="to" />}
+                                      {r.toWarehouse?.code}
+                                    </span></> },
+                { key: "value", label: "Value", align: "right", render: (r) => <>{formatMoney(r.amount)}</> },
+                { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <><StatusBadge status={r.status} /></> },
+              ]}
+            />
           </div>
         )}
       </Card>

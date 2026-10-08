@@ -17,6 +17,7 @@ import { formatQty } from "@/lib/documents";
 import { sendOrQueue } from "@/lib/offline-queue";
 import { useWarehouseParam, WMS, type Task } from "@/lib/wms";
 import { askConfirm } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function TasksPage() {
   return (
@@ -62,31 +63,28 @@ function Tasks() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Task</th><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 text-right font-medium">Qty</th><th className="px-4 py-2 font-medium">From</th><th className="px-4 py-2 font-medium">To</th><th className="px-4 py-2 font-medium">Why</th><th className="px-4 py-2 font-medium" /></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((t) => (
-                <tr key={t.id}>
-                  <td className="px-4 py-2"><span className="font-mono text-xs">{t.number}</span> <Badge>{t.kind}</Badge></td>
-                  <td className="px-4 py-2">{t.itemCode} · {t.itemName}{t.batchNo && <span className="block text-xs text-muted">batch {t.batchNo}</span>}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatQty(t.doneQty ?? t.qty)}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{t.fromBin ?? "–"}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{t.status === "done" ? t.doneBin : t.toBin ?? <span className="font-sans text-warning">choose</span>}{t.status === "done" && t.toBin && t.doneBin !== t.toBin && <span className="block font-sans text-muted">suggested {t.toBin}</span>}</td>
-                  <td className="px-4 py-2 text-xs text-muted">{t.reason}{t.overrideReason && ` · override: ${t.overrideReason}`}</td>
-                  <td className="px-4 py-2 text-right">
-                    {t.status === "open" && exec && (
-                      <span className="flex justify-end gap-1">
-                        <Button size="sm" onClick={() => setDoing(t)}><ScanLine className="size-4" aria-hidden /> Confirm</Button>
-                        <Button size="sm" variant="ghost" onClick={() => cancel(t)}>Cancel</Button>
-                      </span>
-                    )}
-                    {t.status !== "open" && <Badge tone={t.status === "done" ? "success" : "neutral"}>{t.status}</Badge>}
-                  </td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No tasks.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(t) => String(t.id)}
+            exportName="wms-tasks"
+            storageKey="wms-tasks-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No tasks.</p>}
+            columns={[
+              { key: "task", label: "Task", locked: true, className: "whitespace-normal", render: (t) => <><span className="font-mono text-xs">{t.number}</span> <Badge>{t.kind}</Badge></> },
+              { key: "item", label: "Item", className: "whitespace-normal", render: (t) => <>{t.itemCode} · {t.itemName}{t.batchNo && <span className="block text-xs text-muted">batch {t.batchNo}</span>}</> },
+              { key: "qty", label: "Qty", align: "right", render: (t) => <>{formatQty(t.doneQty ?? t.qty)}</> },
+              { key: "from", label: "From", className: "font-mono text-xs whitespace-normal", render: (t) => <>{t.fromBin ?? "–"}</> },
+              { key: "to", label: "To", className: "font-mono text-xs whitespace-normal", render: (t) => <>{t.status === "done" ? t.doneBin : t.toBin ?? <span className="font-sans text-warning">choose</span>}{t.status === "done" && t.toBin && t.doneBin !== t.toBin && <span className="block font-sans text-muted">suggested {t.toBin}</span>}</> },
+              { key: "why", label: "Why", className: "text-xs text-muted whitespace-normal", render: (t) => <>{t.reason}{t.overrideReason && ` · override: ${t.overrideReason}`}</> },
+              { key: "col6", label: "", align: "right", noSort: true, render: (t) => <>{t.status === "open" && exec && (
+                                  <span className="flex justify-end gap-1">
+                                    <Button size="sm" onClick={() => setDoing(t)}><ScanLine className="size-4" aria-hidden /> Confirm</Button>
+                                    <Button size="sm" variant="ghost" onClick={() => cancel(t)}>Cancel</Button>
+                                  </span>
+                                )}
+                                {t.status !== "open" && <Badge tone={t.status === "done" ? "success" : "neutral"}>{t.status}</Badge>}</> },
+            ]}
+          />
         </Card>
       )}
       {doing && <ConfirmDialog t={doing} onClose={() => { setDoing(null); qc.invalidateQueries({ queryKey: [WMS] }); }} />}

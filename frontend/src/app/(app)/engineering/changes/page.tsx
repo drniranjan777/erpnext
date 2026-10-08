@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, type DocumentStatus } from "@/lib/documents";
 import { CHANGE_KIND, ENG, STAGE, type ChangeKind } from "@/lib/engineering";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; number: string | null; status: DocumentStatus; docDate: string; title: string | null; kind: ChangeKind; priority: string; stage: keyof typeof STAGE; effectiveDate: string | null; items: number }
 
@@ -39,21 +40,20 @@ export default function ChangesPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Change</th><th className="px-4 py-2 font-medium">What</th><th className="px-4 py-2 font-medium">Stage</th><th className="px-4 py-2 font-medium">Effective</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.items.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-2"><Link href={`${ENG}/changes/${r.id}`} className="font-medium hover:underline">{r.number ?? "Draft"}</Link><span className="block text-xs text-muted">{formatDate(r.docDate)} · {r.title}</span></td>
-                  <td className="px-4 py-2">{CHANGE_KIND[r.kind]}<span className="block text-xs text-muted">{r.items} item{r.items === 1 ? "" : "s"}{r.priority !== "normal" ? ` · ${r.priority}` : ""}</span></td>
-                  <td className="px-4 py-2"><Badge tone={STAGE[r.stage].tone}>{STAGE[r.stage].label}</Badge></td>
-                  <td className="px-4 py-2">{r.effectiveDate ? formatDate(r.effectiveDate) : "–"}</td>
-                  <td className="px-4 py-2"><StatusBadge status={r.status} /></td>
-                </tr>
-              ))}
-              {!q.data.items.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No engineering changes.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data.items}
+            rowKey={(r) => String(r.id)}
+            exportName="engineering-changes"
+            storageKey="engineering-changes-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No engineering changes.</p>}
+            columns={[
+              { key: "change", label: "Change", locked: true, className: "whitespace-normal", render: (r) => <><Link href={`${ENG}/changes/${r.id}`} className="font-medium hover:underline">{r.number ?? "Draft"}</Link><span className="block text-xs text-muted">{formatDate(r.docDate)} · {r.title}</span></> },
+              { key: "what", label: "What", className: "whitespace-normal", render: (r) => <>{CHANGE_KIND[r.kind]}<span className="block text-xs text-muted">{r.items} item{r.items === 1 ? "" : "s"}{r.priority !== "normal" ? ` · ${r.priority}` : ""}</span></> },
+              { key: "stage", label: "Stage", className: "whitespace-normal", render: (r) => <><Badge tone={STAGE[r.stage].tone}>{STAGE[r.stage].label}</Badge></> },
+              { key: "effective", label: "Effective", className: "whitespace-normal", render: (r) => <>{r.effectiveDate ? formatDate(r.effectiveDate) : "–"}</> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <><StatusBadge status={r.status} /></> },
+            ]}
+          />
         </Card>
       )}
     </div>

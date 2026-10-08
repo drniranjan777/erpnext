@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, type DocumentStatus } from "@/lib/documents";
 import { GRN_API, GRN_ROUTE, grnKeys, PO_ROUTE, type GrnListItem } from "@/lib/purchase";
+import { DataTable } from "@/components/ui/data-table";
 
 type Tab = "all" | DocumentStatus;
 const TABS: { value: Tab; label: string }[] = [
@@ -77,51 +78,29 @@ export default function GoodsReceiptsPage() {
         {list.data && items.length === 0 && <EmptyState title="No goods receipts" description="Receive goods from an approved purchase order." />}
         {items.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Number</th>
-                  <th className="px-4 py-2.5 font-medium">Date</th>
-                  <th className="px-4 py-2.5 font-medium">Vendor</th>
-                  <th className="px-4 py-2.5 font-medium">PO</th>
-                  <th className="px-4 py-2.5 font-medium">Supplier invoice</th>
-                  <th className="px-4 py-2.5 font-medium">Into</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Value</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {items.map((r) => (
-                  <tr key={r.id} className="hover:bg-surface-muted/60">
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Link href={`${GRN_ROUTE}/${r.id}`} className="font-medium text-primary hover:underline">
-                        {r.number ?? "Draft"}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">{formatDate(r.docDate)}</td>
-                    <td className="max-w-xs truncate px-4 py-3">{r.vendor.name}</td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Link href={`${PO_ROUTE}/${r.poId}`} className="hover:underline">
-                        {r.poNumber}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-muted">{r.supplierInvoiceNo ?? "—"}</td>
-                    <td className="px-4 py-3">{r.warehouse.code}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{formatMoney(r.amount)}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={r.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {list.hasNextPage && (
-          <div className="border-t border-border p-3 text-center">
-            <Button variant="secondary" size="sm" loading={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
-              Load more
-            </Button>
+            <DataTable
+              rows={items}
+              hasMore={list.hasNextPage}
+              loadingMore={list.isFetchingNextPage}
+              onLoadMore={() => void list.fetchNextPage()}
+              rowKey={(r) => String(r.id)}
+              exportName="purchase-receipts"
+              storageKey="purchase-receipts-0"
+              columns={[
+                { key: "number", label: "Number", locked: true, render: (r) => <><Link href={`${GRN_ROUTE}/${r.id}`} className="font-medium text-primary hover:underline">
+                                      {r.number ?? "Draft"}
+                                    </Link></> },
+                { key: "date", label: "Date", className: "text-muted", render: (r) => <>{formatDate(r.docDate)}</> },
+                { key: "vendor", label: "Vendor", className: "max-w-xs truncate whitespace-normal", render: (r) => <>{r.vendor.name}</> },
+                { key: "po", label: "PO", render: (r) => <><Link href={`${PO_ROUTE}/${r.poId}`} className="hover:underline">
+                                      {r.poNumber}
+                                    </Link></> },
+                { key: "supplier-invoice", label: "Supplier invoice", className: "text-muted whitespace-normal", render: (r) => <>{r.supplierInvoiceNo ?? "—"}</> },
+                { key: "into", label: "Into", className: "whitespace-normal", render: (r) => <>{r.warehouse.code}</> },
+                { key: "value", label: "Value", align: "right", render: (r) => <>{formatMoney(r.amount)}</> },
+                { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <><StatusBadge status={r.status} /></> },
+              ]}
+            />
           </div>
         )}
       </Card>

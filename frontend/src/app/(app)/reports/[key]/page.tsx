@@ -95,7 +95,7 @@ function ReportView() {
         <>
           {data.truncated && <Alert tone="warning">Showing the first 10,000 rows. Narrow the filters to see the rest.</Alert>}
           {data.chart && data.rows.length > 1 && <Chart data={data} />}
-          <ReportTable data={data} />
+          <ReportTable data={data} name={key} />
         </>
       )}
     </div>

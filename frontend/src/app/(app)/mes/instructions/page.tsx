@@ -13,6 +13,7 @@ import { PageHeader, timeAgo } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Characteristic, Instruction, InstructionStep } from "@/lib/mes";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; itemId: string; itemCode: string; itemName: string; operationSeq: number; version: number; status: string; title: string; steps: number; characteristics: number; firstOffRequired: boolean; scanMaterials: boolean; releasedAt: string | null; releasedBy: string | null }
 type Draft = Omit<Instruction, "id" | "version" | "status"> & { id: string | null; itemLabel: string };
@@ -59,26 +60,24 @@ export default function InstructionsPage() {
       <PageHeader title="Work instructions" description="Shown at the machine terminal for each item's operation. Editing a released version starts a new draft; releasing it replaces the old one. Steps marked 'confirm' must be ticked before the job can start." actions={manage && <Button onClick={() => setEdit(blank())}><Plus className="size-4" aria-hidden /> New instructions</Button>} />
       {error && !edit && <Alert>{error}</Alert>}
       <Card>
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item · operation</th><th className="px-4 py-2 font-medium">Title</th><th className="px-4 py-2 font-medium">Version</th><th className="px-4 py-2 font-medium">Content</th><th className="px-4 py-2" /></tr></thead>
-          <tbody className="divide-y divide-border">
-            {list.data?.map((r) => (
-              <tr key={r.id} className={r.status === "retired" ? "opacity-60" : ""}>
-                <td className="px-4 py-2">{r.itemCode} · {r.itemName}<span className="block text-xs text-muted">operation {r.operationSeq}</span></td>
-                <td className="px-4 py-2">{r.title}</td>
-                <td className="px-4 py-2"><Badge tone={STATUS_TONE[r.status]}>v{r.version} {r.status}</Badge>{r.releasedAt && <span className="block text-xs text-muted">{r.releasedBy} · {timeAgo(r.releasedAt)}</span>}</td>
-                <td className="px-4 py-2 text-xs">{r.steps} steps · {r.characteristics} checks{r.firstOffRequired ? " · first-off" : ""}{r.scanMaterials ? " · scan materials" : ""}</td>
-                <td className="px-4 py-2 text-right">
-                  <span className="flex justify-end gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => open(r)}>{manage && r.status !== "retired" ? "Edit" : "View"}</Button>
-                    {manage && r.status === "draft" && <Button size="sm" onClick={() => run(() => api(`/mes/instructions/${r.id}/release`, { body: {} }))}>Release</Button>}
-                  </span>
-                </td>
-              </tr>
-            ))}
-            {list.data && !list.data.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">No work instructions yet.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={list.data ?? []}
+          rowKey={(r) => String(r.id)}
+          rowClassName={(r) => r.status === "retired" ? "opacity-60" : ""}
+          exportName="mes-instructions"
+          storageKey="mes-instructions-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No work instructions yet.</p>}
+          columns={[
+            { key: "item-operation", label: "Item · operation", locked: true, className: "whitespace-normal", render: (r) => <>{r.itemCode} · {r.itemName}<span className="block text-xs text-muted">operation {r.operationSeq}</span></> },
+            { key: "title", label: "Title", className: "whitespace-normal", render: (r) => <>{r.title}</> },
+            { key: "version", label: "Version", className: "whitespace-normal", render: (r) => <><Badge tone={STATUS_TONE[r.status]}>v{r.version} {r.status}</Badge>{r.releasedAt && <span className="block text-xs text-muted">{r.releasedBy} · {timeAgo(r.releasedAt)}</span>}</> },
+            { key: "content", label: "Content", className: "text-xs whitespace-normal", render: (r) => <>{r.steps} steps · {r.characteristics} checks{r.firstOffRequired ? " · first-off" : ""}{r.scanMaterials ? " · scan materials" : ""}</> },
+            { key: "col4", label: "", align: "right", noSort: true, render: (r) => <><span className="flex justify-end gap-1">
+                              <Button size="sm" variant="ghost" onClick={() => open(r)}>{manage && r.status !== "retired" ? "Edit" : "View"}</Button>
+                              {manage && r.status === "draft" && <Button size="sm" onClick={() => run(() => api(`/mes/instructions/${r.id}/release`, { body: {} }))}>Release</Button>}
+                            </span></> },
+          ]}
+        />
       </Card>
       <Dialog open={!!edit} onClose={() => setEdit(null)} size="xl" title={edit?.id ? "Edit work instructions" : "New work instructions"} footer={manage && <Button disabled={!edit?.itemId || (edit?.title.length ?? 0) < 2 || !edit?.steps.every((s) => s.title.trim())} onClick={save}>Save draft</Button>}>
         {edit && (

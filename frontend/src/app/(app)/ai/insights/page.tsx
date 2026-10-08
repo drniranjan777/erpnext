@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Why { metric: string; answer: string; current: { label: string }; previous: { label: string }; bridge: { effects: Record<string, number>; previousPct: number; currentPct: number } | null }
 interface Collections { buckets: { week: number; from: string; to: string; amount: number; invoices: number }[]; later: number; total: number; overallDelay: number; paidInvoicesLearned: number; rows: { id: string; number: string; customer: string; dueDate: string; expected: string; outstanding: number; typicalDelay: number; basis: string; atRisk: boolean }[] }
@@ -89,20 +90,19 @@ export default function InsightsPage() {
       {prices.data && (
         <Card>
           <CardHeader title="Purchase price outlook" description="Monthly average price paid for the biggest-spend items, with the next three months forecast (80 % range)." />
-          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 text-right font-medium">Last</th><th className="px-4 py-2 font-medium">Next months</th><th className="px-4 py-2 text-right font-medium">Change</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {prices.data.map((p) => (
-                <tr key={p.itemId}>
-                  <td className="px-4 py-2">{p.code} · {p.name}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatMoney(p.lastRate)}</td>
-                  <td className="px-4 py-2 text-xs">{p.forecast.map((f) => `${f.period}: ${formatMoney(f.rate)}`).join(" · ")}</td>
-                  <td className="px-4 py-2 text-right">{p.changePct === null ? "–" : <Badge tone={p.changePct > 3 ? "danger" : p.changePct < -3 ? "success" : "neutral"}>{p.changePct > 0 ? "+" : ""}{p.changePct} %</Badge>}</td>
-                </tr>
-              ))}
-              {!prices.data.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Needs purchase orders in at least two months.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={prices.data}
+            rowKey={(p) => String(p.itemId)}
+            exportName="ai-insights"
+            storageKey="ai-insights-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">Needs purchase orders in at least two months.</p>}
+            columns={[
+              { key: "item", label: "Item", locked: true, className: "whitespace-normal", render: (p) => <>{p.code} · {p.name}</> },
+              { key: "last", label: "Last", align: "right", render: (p) => <>{formatMoney(p.lastRate)}</> },
+              { key: "next-months", label: "Next months", className: "text-xs whitespace-normal", render: (p) => <>{p.forecast.map((f) => `${f.period}: ${formatMoney(f.rate)}`).join(" · ")}</> },
+              { key: "change", label: "Change", align: "right", render: (p) => <>{p.changePct === null ? "–" : <Badge tone={p.changePct > 3 ? "danger" : p.changePct < -3 ? "success" : "neutral"}>{p.changePct > 0 ? "+" : ""}{p.changePct} %</Badge>}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

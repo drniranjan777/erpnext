@@ -11,6 +11,7 @@ import { api, ApiError } from "@/lib/api";
 import { formatDate, formatMoney, todayIST } from "@/lib/documents";
 import { TMS } from "@/lib/tms";
 import { askText } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Bill { id: string; number: string; billNo: string; billDate: string; transporter: string; claimedAmount: string; computedAmount: string; difference: string; status: string; decisionNote: string | null; trips: number }
 interface Billable { id: string; number: string; tripDate: string; vehicleNo: string; freightAmount: string | null; freightBasis: string | null; expenses: string }
@@ -74,26 +75,23 @@ export default function FreightBillsPage() {
         </div>
       </Card>
       <Card>
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Bill</th><th className="px-4 py-2 font-medium">Transporter</th><th className="px-4 py-2 text-right font-medium">Claimed</th><th className="px-4 py-2 text-right font-medium">Contract</th><th className="px-4 py-2 text-right font-medium">Difference</th><th className="px-4 py-2 font-medium" /></tr></thead>
-          <tbody className="divide-y divide-border">
-            {bills.data?.map((b) => (
-              <tr key={b.id}>
-                <td className="px-4 py-2"><span className="font-mono text-xs">{b.number}</span> {b.billNo}<span className="block text-xs text-muted">{formatDate(b.billDate)} · {b.trips} trip(s)</span></td>
-                <td className="px-4 py-2">{b.transporter}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{formatMoney(b.claimedAmount)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{formatMoney(b.computedAmount)}</td>
-                <td className={`px-4 py-2 text-right tabular-nums ${Number(b.difference) > 0 ? "text-danger" : ""}`}>{formatMoney(b.difference)}</td>
-                <td className="px-4 py-2 text-right">
-                  <Badge tone={b.status === "approved" ? "success" : b.status === "disputed" ? "danger" : "warning"}>{b.status}</Badge>
-                  {b.status === "pending" && <><Button size="sm" variant="ghost" onClick={() => decide(b, true)}>Approve</Button><Button size="sm" variant="ghost" onClick={() => decide(b, false)}>Dispute</Button></>}
-                  {b.decisionNote && <span className="block text-xs text-muted">{b.decisionNote}</span>}
-                </td>
-              </tr>
-            ))}
-            {bills.data && !bills.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No bills.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={bills.data ?? []}
+          rowKey={(b) => String(b.id)}
+          exportName="tms-freight"
+          storageKey="tms-freight-1"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No bills.</p>}
+          columns={[
+            { key: "bill", label: "Bill", locked: true, className: "whitespace-normal", render: (b) => <><span className="font-mono text-xs">{b.number}</span> {b.billNo}<span className="block text-xs text-muted">{formatDate(b.billDate)} · {b.trips} trip(s)</span></> },
+            { key: "transporter", label: "Transporter", className: "whitespace-normal", render: (b) => <>{b.transporter}</> },
+            { key: "claimed", label: "Claimed", align: "right", render: (b) => <>{formatMoney(b.claimedAmount)}</> },
+            { key: "contract", label: "Contract", align: "right", render: (b) => <>{formatMoney(b.computedAmount)}</> },
+            { key: "difference", label: "Difference", align: "right", render: (b) => <><span className={`${Number(b.difference) > 0 ? "text-danger" : ""}`}>{formatMoney(b.difference)}</span></> },
+            { key: "col5", label: "", align: "right", noSort: true, render: (b) => <><Badge tone={b.status === "approved" ? "success" : b.status === "disputed" ? "danger" : "warning"}>{b.status}</Badge>
+                            {b.status === "pending" && <><Button size="sm" variant="ghost" onClick={() => decide(b, true)}>Approve</Button><Button size="sm" variant="ghost" onClick={() => decide(b, false)}>Dispute</Button></>}
+                            {b.decisionNote && <span className="block text-xs text-muted">{b.decisionNote}</span>}</> },
+          ]}
+        />
       </Card>
     </div>
   );

@@ -14,6 +14,7 @@ import { api, ApiError, apiUpload } from "@/lib/api";
 import { ACC, VOUCHER_LABEL, VOUCHER_PATH, type AccountRow, type MoneyAccount } from "@/lib/accounting";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, todayIST } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Line { id: string; txnDate: string; description: string; reference: string | null; withdrawal: string; deposit: string; balance: string | null; status: "unmatched" | "matched" | "ignored"; matchedBy: string | null; entries: { entryId: string; voucherId: string; voucherType: string; voucherNumber: string | null }[] }
 interface Entry { id: string; postingDate: string; amount: string; voucherId: string; voucherType: string; voucherNumber: string | null; narration: string | null; party: string | null }
@@ -121,36 +122,29 @@ export default function BankReconciliationPage() {
         {lines.error && <div className="p-5"><ErrorBlock error={lines.error} /></div>}
         {lines.data && !lines.data.lines.length && <EmptyState title="No lines" description={status === "unmatched" ? "Everything imported is matched." : "Import a statement to start."} />}
         {!!lines.data?.lines.length && (
-          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-              <tr><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Narration</th><th className="px-4 py-2 text-right font-medium">Withdrawal</th><th className="px-4 py-2 text-right font-medium">Deposit</th><th className="px-4 py-2 font-medium">Matched to</th><th /></tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {lines.data.lines.map((l) => (
-                <tr key={l.id}>
-                  <td className="whitespace-nowrap px-4 py-2 text-muted">{formatDate(l.txnDate)}</td>
-                  <td className="max-w-md px-4 py-2">{l.description}{l.reference && <span className="block font-mono text-xs text-muted">{l.reference}</span>}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{Number(l.withdrawal) ? formatMoney(l.withdrawal) : ""}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{Number(l.deposit) ? formatMoney(l.deposit) : ""}</td>
-                  <td className="px-4 py-2">
-                    {l.entries.map((e) => <Link key={e.entryId} href={`${VOUCHER_PATH[e.voucherType] ?? ""}/${e.voucherId}`} className="mr-2 font-mono text-primary hover:underline">{e.voucherNumber}</Link>)}
-                    {l.status === "matched" && <Badge className="ml-1">{l.matchedBy}</Badge>}
-                    {l.status === "ignored" && <Badge>Ignored</Badge>}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-1 text-right">
-                    {reconcile && l.status === "unmatched" && (
-                      <>
-                        <Button size="sm" variant="ghost" onClick={() => setMatching(l)}>Match</Button>
-                        <Button size="sm" variant="ghost" onClick={() => setRecording(l)}>Record</Button>
-                        <Button size="sm" variant="ghost" onClick={() => act(`${ACC}/bank/lines/${l.id}/ignore`, "Line ignored.")}>Ignore</Button>
-                      </>
-                    )}
-                    {reconcile && l.status !== "unmatched" && <Button size="sm" variant="ghost" onClick={() => act(`${ACC}/bank/lines/${l.id}/unmatch`, "Line reopened.")}>Undo</Button>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={lines.data.lines}
+            rowKey={(l) => String(l.id)}
+            exportName="accounting-bank"
+            storageKey="accounting-bank-0"
+            columns={[
+              { key: "date", label: "Date", locked: true, className: "text-muted", render: (l) => <>{formatDate(l.txnDate)}</> },
+              { key: "narration", label: "Narration", className: "max-w-md whitespace-normal", render: (l) => <>{l.description}{l.reference && <span className="block font-mono text-xs text-muted">{l.reference}</span>}</> },
+              { key: "withdrawal", label: "Withdrawal", align: "right", render: (l) => <>{Number(l.withdrawal) ? formatMoney(l.withdrawal) : ""}</> },
+              { key: "deposit", label: "Deposit", align: "right", render: (l) => <>{Number(l.deposit) ? formatMoney(l.deposit) : ""}</> },
+              { key: "matched-to", label: "Matched to", className: "whitespace-normal", render: (l) => <>{l.entries.map((e) => <Link key={e.entryId} href={`${VOUCHER_PATH[e.voucherType] ?? ""}/${e.voucherId}`} className="mr-2 font-mono text-primary hover:underline">{e.voucherNumber}</Link>)}
+                                {l.status === "matched" && <Badge className="ml-1">{l.matchedBy}</Badge>}
+                                {l.status === "ignored" && <Badge>Ignored</Badge>}</> },
+              { key: "col5", label: "", align: "right", noSort: true, render: (l) => <>{reconcile && l.status === "unmatched" && (
+                                  <>
+                                    <Button size="sm" variant="ghost" onClick={() => setMatching(l)}>Match</Button>
+                                    <Button size="sm" variant="ghost" onClick={() => setRecording(l)}>Record</Button>
+                                    <Button size="sm" variant="ghost" onClick={() => act(`${ACC}/bank/lines/${l.id}/ignore`, "Line ignored.")}>Ignore</Button>
+                                  </>
+                                )}
+                                {reconcile && l.status !== "unmatched" && <Button size="sm" variant="ghost" onClick={() => act(`${ACC}/bank/lines/${l.id}/unmatch`, "Line reopened.")}>Undo</Button>}</> },
+            ]}
+          />
         )}
       </Card>
       {matching && lines.data && <MatchDialog line={matching} entries={lines.data.openEntries} onClose={() => setMatching(null)} onDone={refresh} />}

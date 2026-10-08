@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; code: string; name: string; customer: string | null; item: string | null; sopDate: string | null; status: string; gatesPassed: number; progress: { phase: number; pct: number }[] }
 
@@ -27,20 +28,19 @@ export default function ApqpPage() {
     <div className="mx-auto max-w-6xl space-y-4">
       <PageHeader title="APQP" description="Advanced product quality planning for new and changed parts: the 24 standard deliverables across five phases, each phase closed by a signed gate. PPAP is the deliverable of phase 4." actions={can("auto.apqp.manage") && <Button onClick={() => setCreating(true)}><Plus className="size-4" aria-hidden /> New project</Button>} />
       <Card>
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Project</th><th className="px-4 py-2 font-medium">Customer · part</th><th className="px-4 py-2 font-medium">SOP</th><th className="px-4 py-2 font-medium">Phases</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {list.data?.map((r) => (
-              <tr key={r.id}>
-                <td className="px-4 py-2"><Link className="font-medium text-primary hover:underline" href={`/auto/apqp/${r.id}`}>{r.code}</Link><span className="block text-xs text-muted">{r.name}</span></td>
-                <td className="px-4 py-2">{r.customer ?? "–"}<span className="block text-xs text-muted">{r.item ?? ""}</span></td>
-                <td className="px-4 py-2">{r.sopDate ? formatDate(r.sopDate) : "–"}</td>
-                <td className="px-4 py-2"><div className="flex gap-1">{r.progress.map((p) => <span key={p.phase} title={`Phase ${p.phase}: ${p.pct} %`} className={`h-2 w-8 rounded ${p.phase <= r.gatesPassed ? "bg-success" : p.pct > 0 ? "bg-warning" : "bg-surface-muted"}`} />)}</div><span className="text-xs text-muted">{r.gatesPassed} of 5 gates</span>{r.status !== "active" && <Badge className="ml-1">{r.status}</Badge>}</td>
-              </tr>
-            ))}
-            {list.data && !list.data.length && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted">No APQP projects.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={list.data ?? []}
+          rowKey={(r) => String(r.id)}
+          exportName="auto-apqp"
+          storageKey="auto-apqp-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No APQP projects.</p>}
+          columns={[
+            { key: "project", label: "Project", locked: true, className: "whitespace-normal", render: (r) => <><Link className="font-medium text-primary hover:underline" href={`/auto/apqp/${r.id}`}>{r.code}</Link><span className="block text-xs text-muted">{r.name}</span></> },
+            { key: "customer-part", label: "Customer · part", className: "whitespace-normal", render: (r) => <>{r.customer ?? "–"}<span className="block text-xs text-muted">{r.item ?? ""}</span></> },
+            { key: "sop", label: "SOP", className: "whitespace-normal", render: (r) => <>{r.sopDate ? formatDate(r.sopDate) : "–"}</> },
+            { key: "phases", label: "Phases", className: "whitespace-normal", render: (r) => <><div className="flex gap-1">{r.progress.map((p) => <span key={p.phase} title={`Phase ${p.phase}: ${p.pct} %`} className={`h-2 w-8 rounded ${p.phase <= r.gatesPassed ? "bg-success" : p.pct > 0 ? "bg-warning" : "bg-surface-muted"}`} />)}</div><span className="text-xs text-muted">{r.gatesPassed} of 5 gates</span>{r.status !== "active" && <Badge className="ml-1">{r.status}</Badge>}</> },
+          ]}
+        />
       </Card>
       {creating && <NewProject onClose={() => setCreating(false)} />}
     </div>

@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, todayIST } from "@/lib/documents";
 import { QMS } from "@/lib/qms";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; title: string; standard: string; area: string; plannedDate: string; auditor: string; auditee: string | null; status: "planned" | "done"; doneOn: string | null; overdue: boolean; ncs: number; openFindings: number }
 
@@ -56,21 +57,20 @@ export default function AuditsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Audit</th><th className="px-4 py-2 font-medium">Standard · area</th><th className="px-4 py-2 font-medium">When</th><th className="px-4 py-2 font-medium">Findings</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-2"><Link href={`/quality/audits/${r.id}`} className="font-medium hover:underline">{r.title}</Link><span className="block text-xs text-muted">{r.auditor}{r.auditee && ` → ${r.auditee}`}</span></td>
-                  <td className="px-4 py-2">{r.standard}<span className="block text-xs text-muted">{r.area}</span></td>
-                  <td className="px-4 py-2">{formatDate(r.doneOn ?? r.plannedDate)}</td>
-                  <td className="px-4 py-2">{r.ncs ? <Badge tone="danger">{r.ncs} NC</Badge> : "–"}{r.openFindings > 0 && <span className="ml-2 text-xs text-muted">{r.openFindings} open</span>}</td>
-                  <td className="px-4 py-2">{r.status === "done" ? <Badge tone="success">Done</Badge> : r.overdue ? <Badge tone="danger">Overdue</Badge> : <Badge>Planned</Badge>}</td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No audits planned this year.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(r) => String(r.id)}
+            exportName="quality-audits"
+            storageKey="quality-audits-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No audits planned this year.</p>}
+            columns={[
+              { key: "audit", label: "Audit", locked: true, className: "whitespace-normal", render: (r) => <><Link href={`/quality/audits/${r.id}`} className="font-medium hover:underline">{r.title}</Link><span className="block text-xs text-muted">{r.auditor}{r.auditee && ` → ${r.auditee}`}</span></> },
+              { key: "standard-area", label: "Standard · area", className: "whitespace-normal", render: (r) => <>{r.standard}<span className="block text-xs text-muted">{r.area}</span></> },
+              { key: "when", label: "When", className: "whitespace-normal", render: (r) => <>{formatDate(r.doneOn ?? r.plannedDate)}</> },
+              { key: "findings", label: "Findings", className: "whitespace-normal", render: (r) => <>{r.ncs ? <Badge tone="danger">{r.ncs} NC</Badge> : "–"}{r.openFindings > 0 && <span className="ml-2 text-xs text-muted">{r.openFindings} open</span>}</> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <>{r.status === "done" ? <Badge tone="success">Done</Badge> : r.overdue ? <Badge tone="danger">Overdue</Badge> : <Badge>Planned</Badge>}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

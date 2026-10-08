@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, type DocumentStatus } from "@/lib/documents";
 import { PO_API, PO_ROUTE, poKeys, type PoListItem } from "@/lib/purchase";
+import { DataTable } from "@/components/ui/data-table";
 
 type Tab = "all" | "to_receive" | DocumentStatus;
 const TABS: { value: Tab; label: string }[] = [
@@ -95,60 +96,37 @@ export default function PurchaseOrdersPage() {
         {list.data && items.length === 0 && <EmptyState title={search ? "No matching orders" : "No purchase orders"} description={search ? "Try another search." : "Create one, or convert an approved requisition."} />}
         {items.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Number</th>
-                  <th className="px-4 py-2.5 font-medium">Date</th>
-                  <th className="px-4 py-2.5 font-medium">Vendor</th>
-                  <th className="px-4 py-2.5 font-medium">Expected</th>
-                  <th className="px-4 py-2.5 font-medium">Received</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Total</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {items.map((r) => (
-                  <tr key={r.id} className="hover:bg-surface-muted/60">
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Link href={`${PO_ROUTE}/${r.id}`} className="font-medium text-primary hover:underline">
-                        {r.number ? `${r.number}${r.revision ? ` (Rev ${r.revision})` : ""}` : "Draft"}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">{formatDate(r.docDate)}</td>
-                    <td className="max-w-xs px-4 py-3">
-                      <p className="truncate">{r.vendor.name}</p>
-                      <p className="truncate text-xs text-muted">{r.title}</p>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">{formatDate(r.expectedDate)}</td>
-                    <td className="px-4 py-3">
-                      {r.poType === "service" ? (
-                        <Badge>Services</Badge>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-muted">
-                            <div className="h-full bg-primary" style={{ width: `${Math.min(100, r.receivedPct)}%` }} />
-                          </div>
-                          <span className="text-xs tabular-nums text-muted">{r.receivedPct}%</span>
-                          {r.closedAt && <Badge>Short-closed</Badge>}
-                        </div>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{formatMoney(r.grandTotal)}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={r.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {list.hasNextPage && (
-          <div className="border-t border-border p-3 text-center">
-            <Button variant="secondary" size="sm" loading={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
-              Load more
-            </Button>
+            <DataTable
+              rows={items}
+              hasMore={list.hasNextPage}
+              loadingMore={list.isFetchingNextPage}
+              onLoadMore={() => void list.fetchNextPage()}
+              rowKey={(r) => String(r.id)}
+              exportName="purchase-orders"
+              storageKey="purchase-orders-0"
+              columns={[
+                { key: "number", label: "Number", locked: true, render: (r) => <><Link href={`${PO_ROUTE}/${r.id}`} className="font-medium text-primary hover:underline">
+                                      {r.number ? `${r.number}${r.revision ? ` (Rev ${r.revision})` : ""}` : "Draft"}
+                                    </Link></> },
+                { key: "date", label: "Date", className: "text-muted", render: (r) => <>{formatDate(r.docDate)}</> },
+                { key: "vendor", label: "Vendor", className: "max-w-xs whitespace-normal", render: (r) => <><p className="truncate">{r.vendor.name}</p>
+                                    <p className="truncate text-xs text-muted">{r.title}</p></> },
+                { key: "expected", label: "Expected", className: "text-muted", render: (r) => <>{formatDate(r.expectedDate)}</> },
+                { key: "received", label: "Received", className: "whitespace-normal", render: (r) => <>{r.poType === "service" ? (
+                                      <Badge>Services</Badge>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-muted">
+                                          <div className="h-full bg-primary" style={{ width: `${Math.min(100, r.receivedPct)}%` }} />
+                                        </div>
+                                        <span className="text-xs tabular-nums text-muted">{r.receivedPct}%</span>
+                                        {r.closedAt && <Badge>Short-closed</Badge>}
+                                      </div>
+                                    )}</> },
+                { key: "total", label: "Total", align: "right", render: (r) => <>{formatMoney(r.grandTotal)}</> },
+                { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <><StatusBadge status={r.status} /></> },
+              ]}
+            />
           </div>
         )}
       </Card>

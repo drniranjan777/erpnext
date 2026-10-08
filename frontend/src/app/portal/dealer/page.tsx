@@ -12,6 +12,7 @@ import { ErrorBlock, PageHeader } from "@/components/ui/page";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatMoney, formatQty, todayIST } from "@/lib/documents";
 import { portalApi } from "@/lib/portal";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Scheme { id: string; code: string; name: string; kind: string; level: string; slabs: { min: number; discountPct?: number; perUnit?: number; freeQty?: number }[]; fromDate: string; toDate: string; items: string[] }
 interface Claim { id: string; number: string; kind: string; fromDate: string; toDate: string; claimedAmount: string; computedAmount: string | null; approvedAmount: string | null; status: string; decisionNote: string | null; schemeCode: string | null }
@@ -64,15 +65,19 @@ export default function DealerPage() {
       </Card>
       <Card>
         <CardHeader title="Your stock" description="Our invoices to you, less the secondary sales reported, plus any stock counts." />
-        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 text-right font-medium">On hand</th><th className="px-4 py-2 text-right font-medium">Sold, last 30 days</th><th className="px-4 py-2 text-right font-medium">Days of cover</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {stock.data?.map((s) => (
-              <tr key={s.itemId}><td className="px-4 py-2">{s.code} · {s.name}</td><td className="px-4 py-2 text-right tabular-nums">{formatQty(s.onHand)}</td><td className="px-4 py-2 text-right tabular-nums">{formatQty(s.sold30)}</td><td className="px-4 py-2 text-right tabular-nums">{s.daysCover ?? "–"}</td></tr>
-            ))}
-            {stock.data && !stock.data.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No stock recorded.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={stock.data ?? []}
+          rowKey={(s) => String(s.itemId)}
+          exportName="app-portal-dealer"
+          storageKey="app-portal-dealer-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No stock recorded.</p>}
+          columns={[
+            { key: "item", label: "Item", locked: true, className: "whitespace-normal", render: (s) => <>{s.code} · {s.name}</> },
+            { key: "on-hand", label: "On hand", align: "right", render: (s) => <>{formatQty(s.onHand)}</> },
+            { key: "sold-last-30-days", label: "Sold, last 30 days", align: "right", render: (s) => <>{formatQty(s.sold30)}</> },
+            { key: "days-of-cover", label: "Days of cover", align: "right", render: (s) => <>{s.daysCover ?? "–"}</> },
+          ]}
+        />
       </Card>
       {raising && <ClaimDialog schemes={schemes.data ?? []} onClose={() => setRaising(false)} />}
     </div>

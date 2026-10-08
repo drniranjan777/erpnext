@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, formatQty, type DocumentStatus } from "@/lib/documents";
 import { NCR_SOURCE, QA, type NcrSource } from "@/lib/quality";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; number: string | null; status: DocumentStatus; docDate: string; source: NcrSource; severity: string; defectCategory: string; qtyAffected: string; batchNo: string | null; copq: string; closedAt: string | null; item: { id: string; code: string; name: string }; party: string | null }
 
@@ -44,22 +45,21 @@ export default function NcrsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">NCR</th><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 font-medium">Defect</th><th className="px-4 py-2 text-right font-medium">Qty</th><th className="px-4 py-2 text-right font-medium">COPQ</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.items.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-2"><Link href={`${QA}/ncrs/${r.id}`} className="font-medium hover:underline">{r.number ?? "Draft"}</Link><span className="block text-xs text-muted">{formatDate(r.docDate)} · {NCR_SOURCE[r.source]}{r.party ? ` · ${r.party}` : ""}</span></td>
-                  <td className="px-4 py-2"><span className="font-mono text-xs text-muted">{r.item.code}</span> {r.item.name}{r.batchNo && <span className="block font-mono text-xs text-muted">{r.batchNo}</span>}</td>
-                  <td className="px-4 py-2">{r.defectCategory}{r.severity !== "major" && <Badge tone={r.severity === "critical" ? "danger" : "neutral"} className="ml-2">{r.severity}</Badge>}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatQty(r.qtyAffected)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{Number(r.copq) ? formatMoney(r.copq) : "–"}</td>
-                  <td className="px-4 py-2">{r.closedAt ? <Badge tone="success">Closed</Badge> : <StatusBadge status={r.status} />}</td>
-                </tr>
-              ))}
-              {!q.data.items.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No non-conformance reports.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data.items}
+            rowKey={(r) => String(r.id)}
+            exportName="quality-ncrs"
+            storageKey="quality-ncrs-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No non-conformance reports.</p>}
+            columns={[
+              { key: "ncr", label: "NCR", locked: true, className: "whitespace-normal", render: (r) => <><Link href={`${QA}/ncrs/${r.id}`} className="font-medium hover:underline">{r.number ?? "Draft"}</Link><span className="block text-xs text-muted">{formatDate(r.docDate)} · {NCR_SOURCE[r.source]}{r.party ? ` · ${r.party}` : ""}</span></> },
+              { key: "item", label: "Item", className: "whitespace-normal", render: (r) => <><span className="font-mono text-xs text-muted">{r.item.code}</span> {r.item.name}{r.batchNo && <span className="block font-mono text-xs text-muted">{r.batchNo}</span>}</> },
+              { key: "defect", label: "Defect", className: "whitespace-normal", render: (r) => <>{r.defectCategory}{r.severity !== "major" && <Badge tone={r.severity === "critical" ? "danger" : "neutral"} className="ml-2">{r.severity}</Badge>}</> },
+              { key: "qty", label: "Qty", align: "right", render: (r) => <>{formatQty(r.qtyAffected)}</> },
+              { key: "copq", label: "COPQ", align: "right", render: (r) => <>{Number(r.copq) ? formatMoney(r.copq) : "–"}</> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <>{r.closedAt ? <Badge tone="success">Closed</Badge> : <StatusBadge status={r.status} />}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

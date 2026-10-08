@@ -9,6 +9,7 @@ import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
 import { PageHeader, formatDateTime } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
+import { DataTable } from "@/components/ui/data-table";
 
 interface WorkCenter { id: string; code: string; name: string; units: number; hoursPerDay: string; daysPerWeek: number; efficiencyPct: string; kind: string }
 interface Load { workCenterId: string; code: string; name: string; units: number; hoursPerDay: number; busyHours: number; loadPct: number | null }
@@ -112,19 +113,18 @@ export default function SimulatePage() {
           </Card>
           <Card>
             <CardHeader title="Orders" description="Biggest changes first." />
-            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Order</th><th className="px-4 py-2 font-medium">Finishes now</th><th className="px-4 py-2 font-medium">Would finish</th><th className="px-4 py-2 text-right font-medium">Change</th></tr></thead>
-              <tbody className="divide-y divide-border">
-                {result.orders.map((o) => (
-                  <tr key={o.id}>
-                    <td className="px-4 py-2"><span className="font-mono text-xs">{o.number}</span> {o.item}{o.added && <Badge tone="warning" className="ml-1">what-if</Badge>}</td>
-                    <td className="px-4 py-2 text-xs">{o.before ? <>{formatDateTime(o.before.end)}{o.before.late && <Badge tone="danger" className="ml-1">late</Badge>}</> : "–"}</td>
-                    <td className="px-4 py-2 text-xs">{formatDateTime(o.after.end)}{o.after.late && <Badge tone="danger" className="ml-1">late</Badge>}</td>
-                    <td className={`px-4 py-2 text-right tabular-nums ${(o.shiftHours ?? 0) > 0 ? "text-danger" : (o.shiftHours ?? 0) < 0 ? "text-success" : ""}`}>{o.shiftHours === null ? "–" : `${o.shiftHours > 0 ? "+" : ""}${o.shiftHours} h`}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
+            <DataTable
+              rows={result.orders}
+              rowKey={(o) => String(o.id)}
+              exportName="twin-simulate"
+              storageKey="twin-simulate-1"
+              columns={[
+                { key: "order", label: "Order", locked: true, className: "whitespace-normal", render: (o) => <><span className="font-mono text-xs">{o.number}</span> {o.item}{o.added && <Badge tone="warning" className="ml-1">what-if</Badge>}</> },
+                { key: "finishes-now", label: "Finishes now", className: "text-xs whitespace-normal", render: (o) => <>{o.before ? <>{formatDateTime(o.before.end)}{o.before.late && <Badge tone="danger" className="ml-1">late</Badge>}</> : "–"}</> },
+                { key: "would-finish", label: "Would finish", className: "text-xs whitespace-normal", render: (o) => <>{formatDateTime(o.after.end)}{o.after.late && <Badge tone="danger" className="ml-1">late</Badge>}</> },
+                { key: "change", label: "Change", align: "right", render: (o) => <><span className={`${(o.shiftHours ?? 0) > 0 ? "text-danger" : (o.shiftHours ?? 0) < 0 ? "text-success" : ""}`}>{o.shiftHours === null ? "–" : `${o.shiftHours > 0 ? "+" : ""}${o.shiftHours} h`}</span></> },
+              ]}
+            />
           </Card>
         </>
       )}

@@ -12,6 +12,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { fmtValue } from "@/lib/iot";
 import { askConfirm, askText } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Model { signalId: string; code: string; name: string; purpose: string; unit: string | null; machineCode: string | null; lastValue: number | null; id: string | null; enabled: boolean; minSamples: number | null; zThreshold: number | null; consecutive: number | null; driftThreshold: number | null; createMaintenance: boolean | null; n: number | null; mean: number | null; std: number | null; lastScore: number | null; learned: boolean | null; openAnomalies: number }
 interface Anomaly { id: string; kind: string; raisedAt: string; value: number; score: number; baselineMean: number; baselineStd: number; clearedAt: string | null; maintenanceOrderId: string | null; feedback: string | null; feedbackNote: string | null; feedbackBy: string | null; signalId: string; signalCode: string; unit: string | null; machineCode: string | null; machineName: string | null }
@@ -78,27 +79,24 @@ export default function ConditionPage() {
       </Card>
       <Card>
         <CardHeader title="Monitored signals" description="Vibration, temperature, current, pressure and speed signals. The baseline is fixed once learned: relearn it after maintenance or a change in the process." />
-        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Signal</th><th className="px-4 py-2 font-medium">Normal</th><th className="px-4 py-2 text-right font-medium">Now</th><th className="px-4 py-2" /></tr></thead>
-          <tbody className="divide-y divide-border">
-            {models.data?.map((m) => (
-              <tr key={m.signalId}>
-                <td className="px-4 py-2"><Link className="font-mono text-xs text-primary hover:underline" href={`/iot/signals/${m.signalId}`}>{m.code}</Link><p>{m.name}{m.machineCode ? ` · ${m.machineCode}` : ""}</p></td>
-                <td className="px-4 py-2 text-xs">{!m.enabled ? "Not monitored" : !m.learned ? `Learning: ${m.n ?? 0} of ${m.minSamples} readings` : `${fmtValue(m.mean, m.unit)} ± ${Math.round((m.std ?? 0) * 1000) / 1000}`}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{fmtValue(m.lastValue, m.unit)}{m.learned && m.lastScore !== null && <span className="block text-xs text-muted">{m.lastScore} σ</span>}{m.openAnomalies > 0 && <Badge tone="danger">anomaly</Badge>}</td>
-                <td className="px-4 py-2 text-right">
-                  {manage && (
-                    <span className="flex justify-end gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => run(() => api(`/plant/condition/models/${m.signalId}`, { method: "PUT", body: { ...cfg(m), enabled: !m.enabled } }))}>{m.enabled ? "Stop" : "Monitor"}</Button>
-                      {m.enabled && m.id && <Button size="sm" variant="ghost" onClick={async () => await askConfirm("Forget the learned baseline and learn it again from the next readings?") && run(() => api(`/plant/condition/models/${m.signalId}/relearn`, { body: cfg(m) }))}>Relearn</Button>}
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {models.data && !models.data.length && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted">No measured signals yet.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={models.data ?? []}
+          rowKey={(m) => String(m.signalId)}
+          exportName="plant-condition"
+          storageKey="plant-condition-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No measured signals yet.</p>}
+          columns={[
+            { key: "signal", label: "Signal", locked: true, className: "whitespace-normal", render: (m) => <><Link className="font-mono text-xs text-primary hover:underline" href={`/iot/signals/${m.signalId}`}>{m.code}</Link><p>{m.name}{m.machineCode ? ` · ${m.machineCode}` : ""}</p></> },
+            { key: "normal", label: "Normal", className: "text-xs whitespace-normal", render: (m) => <>{!m.enabled ? "Not monitored" : !m.learned ? `Learning: ${m.n ?? 0} of ${m.minSamples} readings` : `${fmtValue(m.mean, m.unit)} ± ${Math.round((m.std ?? 0) * 1000) / 1000}`}</> },
+            { key: "now", label: "Now", align: "right", render: (m) => <>{fmtValue(m.lastValue, m.unit)}{m.learned && m.lastScore !== null && <span className="block text-xs text-muted">{m.lastScore} σ</span>}{m.openAnomalies > 0 && <Badge tone="danger">anomaly</Badge>}</> },
+            { key: "col3", label: "", align: "right", noSort: true, render: (m) => <>{manage && (
+                              <span className="flex justify-end gap-1">
+                                <Button size="sm" variant="ghost" onClick={() => run(() => api(`/plant/condition/models/${m.signalId}`, { method: "PUT", body: { ...cfg(m), enabled: !m.enabled } }))}>{m.enabled ? "Stop" : "Monitor"}</Button>
+                                {m.enabled && m.id && <Button size="sm" variant="ghost" onClick={async () => await askConfirm("Forget the learned baseline and learn it again from the next readings?") && run(() => api(`/plant/condition/models/${m.signalId}/relearn`, { body: cfg(m) }))}>Relearn</Button>}
+                              </span>
+                            )}</> },
+          ]}
+        />
       </Card>
     </div>
   );

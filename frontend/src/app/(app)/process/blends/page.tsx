@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, formatQty } from "@/lib/documents";
 import { useWarehouses } from "@/lib/masters";
 import { PROC } from "@/lib/process";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Blend { id: string; number: string; docDate: string; item: { code: string; name: string }; newBatchNo: string; totalQty: string; value: string; warehouse: string }
 
@@ -29,21 +30,20 @@ export default function BlendsPage() {
       {list.error && <ErrorBlock error={list.error} />}
       {list.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Blend</th><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 font-medium">New lot</th><th className="px-4 py-2 text-right font-medium">Quantity</th><th className="px-4 py-2 text-right font-medium">Value</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {list.data.items.map((b) => (
-                <tr key={b.id}>
-                  <td className="px-4 py-2">{b.number}<span className="block text-xs text-muted">{formatDate(b.docDate)} · {b.warehouse}</span></td>
-                  <td className="px-4 py-2"><span className="font-mono text-xs text-muted">{b.item.code}</span> {b.item.name}</td>
-                  <td className="px-4 py-2 font-mono">{b.newBatchNo}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatQty(b.totalQty)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatMoney(b.value)}</td>
-                </tr>
-              ))}
-              {!list.data.items.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No blends yet.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={list.data.items}
+            rowKey={(b) => String(b.id)}
+            exportName="process-blends"
+            storageKey="process-blends-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No blends yet.</p>}
+            columns={[
+              { key: "blend", label: "Blend", locked: true, className: "whitespace-normal", render: (b) => <>{b.number}<span className="block text-xs text-muted">{formatDate(b.docDate)} · {b.warehouse}</span></> },
+              { key: "item", label: "Item", className: "whitespace-normal", render: (b) => <><span className="font-mono text-xs text-muted">{b.item.code}</span> {b.item.name}</> },
+              { key: "new-lot", label: "New lot", className: "font-mono whitespace-normal", render: (b) => <>{b.newBatchNo}</> },
+              { key: "quantity", label: "Quantity", align: "right", render: (b) => <>{formatQty(b.totalQty)}</> },
+              { key: "value", label: "Value", align: "right", render: (b) => <>{formatMoney(b.value)}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

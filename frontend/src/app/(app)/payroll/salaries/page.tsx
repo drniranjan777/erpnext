@@ -12,6 +12,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, todayIST } from "@/lib/documents";
 import { inr, PAY, type Component, type SalaryTemplate } from "@/lib/payroll";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { employeeId: string; code: string; fullName: string; id: string | null; effectiveFrom: string | null; ctcAnnual: string | null; lines: { code: string; monthly: string }[] | null; monthlyGross: string }
 
@@ -28,22 +29,21 @@ export default function SalariesPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Employee</th><th className="px-4 py-2 font-medium">From</th><th className="px-4 py-2 font-medium">Components (monthly)</th><th className="px-4 py-2 text-right font-medium">Monthly gross</th><th className="px-4 py-2 text-right font-medium">CTC a year</th><th /></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((r) => (
-                <tr key={r.employeeId}>
-                  <td className="px-4 py-2"><span className="font-medium">{r.fullName}</span> <span className="font-mono text-xs text-muted">{r.code}</span></td>
-                  <td className="px-4 py-2">{r.effectiveFrom ? formatDate(r.effectiveFrom) : <span className="text-warning">Not set</span>}</td>
-                  <td className="px-4 py-2 text-xs text-muted">{r.lines?.map((l) => `${name(l.code)} ${inr(l.monthly)}`).join(" · ")}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{r.lines ? inr(r.monthlyGross) : "–"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{inr(r.ctcAnnual)}</td>
-                  <td className="px-4 py-2 text-right">{can("payroll.salaries.manage") && <Button size="sm" variant="ghost" aria-label={`Set salary of ${r.fullName}`} onClick={() => setEditing(r)}><Pencil className="size-3.5" aria-hidden /></Button>}</td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No employees.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(r) => String(r.employeeId)}
+            exportName="payroll-salaries"
+            storageKey="payroll-salaries-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No employees.</p>}
+            columns={[
+              { key: "employee", label: "Employee", locked: true, className: "whitespace-normal", render: (r) => <><span className="font-medium">{r.fullName}</span> <span className="font-mono text-xs text-muted">{r.code}</span></> },
+              { key: "from", label: "From", className: "whitespace-normal", render: (r) => <>{r.effectiveFrom ? formatDate(r.effectiveFrom) : <span className="text-warning">Not set</span>}</> },
+              { key: "components-monthly", label: "Components (monthly)", className: "text-xs text-muted whitespace-normal", render: (r) => <>{r.lines?.map((l) => `${name(l.code)} ${inr(l.monthly)}`).join(" · ")}</> },
+              { key: "monthly-gross", label: "Monthly gross", align: "right", render: (r) => <>{r.lines ? inr(r.monthlyGross) : "–"}</> },
+              { key: "ctc-a-year", label: "CTC a year", align: "right", render: (r) => <>{inr(r.ctcAnnual)}</> },
+              { key: "col5", label: "", align: "right", noSort: true, render: (r) => <>{can("payroll.salaries.manage") && <Button size="sm" variant="ghost" aria-label={`Set salary of ${r.fullName}`} onClick={() => setEditing(r)}><Pencil className="size-3.5" aria-hidden /></Button>}</> },
+            ]}
+          />
         </Card>
       )}
       {editing && <SalaryDialog row={editing} comps={comps.data ?? []} onClose={() => setEditing(null)} />}

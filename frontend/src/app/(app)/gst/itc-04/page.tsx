@@ -7,14 +7,13 @@ import { EmptyState, ErrorBlock, LoadingBlock, PageHeader } from "@/components/u
 import { api } from "@/lib/api";
 import { formatDate, formatMoney, formatQty } from "@/lib/documents";
 import { PeriodBar, thisMonth } from "../_components/period";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Itc04 {
   table4: { jobWorkerGstin: string | null; jobWorkerState: string; challanNo: string; challanDate: string; typeOfGoods: string; description: string; uqc: string; qty: string; taxableValue: string; igstRate: string; cgstRate: string; sgstRate: string }[];
   table5a: { jobWorkerGstin: string | null; jobWorkerState: string; originalChallanNo: string; originalChallanDate: string; jobWorkerChallanNo: string; jobWorkerChallanDate: string; natureOfJob: string; description: string; uqc: string; qty: string; lossUqc: string; lossQty: string }[];
 }
 
-const th = "px-3 py-2 font-medium";
-const td = "px-3 py-2";
 
 export default function Itc04Page() {
   const [period, setPeriod] = useState(thisMonth());
@@ -35,24 +34,21 @@ export default function Itc04Page() {
               <EmptyState title="Nothing sent" />
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                    <tr><th className={th}>Job worker</th><th className={th}>Challan</th><th className={th}>Goods</th><th className={th}>Description</th><th className={`${th} text-right`}>Qty</th><th className={`${th} text-right`}>Taxable</th><th className={`${th} text-right`}>IGST / CGST / SGST %</th></tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {q.data.table4.map((r, i) => (
-                      <tr key={i}>
-                        <td className={td}><span className="font-mono text-xs">{r.jobWorkerGstin ?? "Unregistered"}</span><p className="text-xs text-muted">{r.jobWorkerState}</p></td>
-                        <td className={td}><span className="font-mono">{r.challanNo}</span><p className="text-xs text-muted">{formatDate(r.challanDate)}</p></td>
-                        <td className={td}>{r.typeOfGoods}</td>
-                        <td className={td}>{r.description}</td>
-                        <td className={`${td} text-right tabular-nums`}>{formatQty(r.qty)} {r.uqc}</td>
-                        <td className={`${td} text-right tabular-nums`}>{formatMoney(r.taxableValue)}</td>
-                        <td className={`${td} text-right tabular-nums`}>{r.igstRate} / {r.cgstRate} / {r.sgstRate}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DataTable
+                  rows={q.data.table4}
+                  rowKey={(_r, i) => String(i)}
+                  exportName="gst-itc-04"
+                  storageKey="gst-itc-04-0"
+                  columns={[
+                    { key: "job-worker", label: "Job worker", locked: true, className: "whitespace-normal", render: (r) => <><span className="font-mono text-xs">{r.jobWorkerGstin ?? "Unregistered"}</span><p className="text-xs text-muted">{r.jobWorkerState}</p></> },
+                    { key: "challan", label: "Challan", className: "whitespace-normal", render: (r) => <><span className="font-mono">{r.challanNo}</span><p className="text-xs text-muted">{formatDate(r.challanDate)}</p></> },
+                    { key: "goods", label: "Goods", className: "whitespace-normal", render: (r) => <>{r.typeOfGoods}</> },
+                    { key: "description", label: "Description", className: "whitespace-normal", render: (r) => <>{r.description}</> },
+                    { key: "qty", label: "Qty", align: "right", render: (r) => <>{formatQty(r.qty)} {r.uqc}</> },
+                    { key: "taxable", label: "Taxable", align: "right", render: (r) => <>{formatMoney(r.taxableValue)}</> },
+                    { key: "igst-cgst-sgst", label: "IGST / CGST / SGST %", align: "right", render: (r) => <>{r.igstRate} / {r.cgstRate} / {r.sgstRate}</> },
+                  ]}
+                />
               </div>
             )}
           </Card>
@@ -62,24 +58,21 @@ export default function Itc04Page() {
               <EmptyState title="Nothing received" />
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                    <tr><th className={th}>Job worker</th><th className={th}>Original challan</th><th className={th}>Job worker&apos;s challan</th><th className={th}>Job done</th><th className={th}>Description</th><th className={`${th} text-right`}>Qty</th><th className={`${th} text-right`}>Losses</th></tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {q.data.table5a.map((r, i) => (
-                      <tr key={i}>
-                        <td className={td}><span className="font-mono text-xs">{r.jobWorkerGstin ?? "Unregistered"}</span><p className="text-xs text-muted">{r.jobWorkerState}</p></td>
-                        <td className={td}><span className="font-mono">{r.originalChallanNo}</span><p className="text-xs text-muted">{formatDate(r.originalChallanDate)}</p></td>
-                        <td className={td}>{r.jobWorkerChallanNo || "—"}<p className="text-xs text-muted">{formatDate(r.jobWorkerChallanDate)}</p></td>
-                        <td className={td}>{r.natureOfJob}</td>
-                        <td className={td}>{r.description}</td>
-                        <td className={`${td} text-right tabular-nums`}>{formatQty(r.qty)} {r.uqc}</td>
-                        <td className={`${td} text-right tabular-nums`}>{r.lossQty ? `${formatQty(r.lossQty)} ${r.lossUqc}` : "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DataTable
+                  rows={q.data.table5a}
+                  rowKey={(_r, i) => String(i)}
+                  exportName="gst-itc-04"
+                  storageKey="gst-itc-04-1"
+                  columns={[
+                    { key: "job-worker", label: "Job worker", locked: true, className: "whitespace-normal", render: (r) => <><span className="font-mono text-xs">{r.jobWorkerGstin ?? "Unregistered"}</span><p className="text-xs text-muted">{r.jobWorkerState}</p></> },
+                    { key: "original-challan", label: "Original challan", className: "whitespace-normal", render: (r) => <><span className="font-mono">{r.originalChallanNo}</span><p className="text-xs text-muted">{formatDate(r.originalChallanDate)}</p></> },
+                    { key: "job-worker-apos-s-challan", label: "Job worker&apos;s challan", className: "whitespace-normal", render: (r) => <>{r.jobWorkerChallanNo || "—"}<p className="text-xs text-muted">{formatDate(r.jobWorkerChallanDate)}</p></> },
+                    { key: "job-done", label: "Job done", className: "whitespace-normal", render: (r) => <>{r.natureOfJob}</> },
+                    { key: "description", label: "Description", className: "whitespace-normal", render: (r) => <>{r.description}</> },
+                    { key: "qty", label: "Qty", align: "right", render: (r) => <>{formatQty(r.qty)} {r.uqc}</> },
+                    { key: "losses", label: "Losses", align: "right", render: (r) => <>{r.lossQty ? `${formatQty(r.lossQty)} ${r.lossUqc}` : "—"}</> },
+                  ]}
+                />
               </div>
             )}
           </Card>

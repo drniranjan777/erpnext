@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
 import { DMS, WEEKDAYS, type Beat, type Distributor, type Retailer } from "@/lib/dms";
 import { inr } from "@/lib/payroll";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Member { userId: string; fullName: string }
 type Tab = "distributors" | "beats" | "retailers";
@@ -62,20 +63,19 @@ function Distributors({ manage, members }: { manage: boolean; members: Member[] 
   if (q.error) return <ErrorBlock error={q.error} />;
   return (
     <Card>
-      <div className="overflow-x-auto"><table className="w-full text-sm">
-        <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Distributor</th><th className="px-4 py-2 font-medium">Salesperson</th><th className="px-4 py-2 text-right font-medium">Retailers</th><th className="px-4 py-2 text-right font-medium">Secondary this month</th></tr></thead>
-        <tbody className="divide-y divide-border">
-          {q.data!.map((d) => (
-            <tr key={d.id}>
-              <td className="px-4 py-2"><Link className="font-medium hover:underline" href={`${DMS}/distributors/${d.id}`}>{d.name}</Link><span className="block text-xs text-muted">{d.code}{d.gstin && ` · ${d.gstin}`}{d.territory && ` · ${d.territory}`}</span>{!d.isActive && <Badge>inactive</Badge>}</td>
-              <td className="px-4 py-2">{d.salesperson ?? "–"}</td>
-              <td className="px-4 py-2 text-right tabular-nums">{d.retailers}</td>
-              <td className="px-4 py-2 text-right tabular-nums">{inr(d.secondaryMtd)}</td>
-            </tr>
-          ))}
-          {!q.data!.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No distributors yet. Any customer can be made a distributor.</td></tr>}
-        </tbody>
-      </table></div>
+      <DataTable
+        rows={q.data!}
+        rowKey={(d) => String(d.id)}
+        exportName="dms"
+        storageKey="dms-0"
+        empty={<p className="px-4 py-6 text-center text-sm text-muted">No distributors yet. Any customer can be made a distributor.</p>}
+        columns={[
+          { key: "distributor", label: "Distributor", locked: true, className: "whitespace-normal", render: (d) => <><Link className="font-medium hover:underline" href={`${DMS}/distributors/${d.id}`}>{d.name}</Link><span className="block text-xs text-muted">{d.code}{d.gstin && ` · ${d.gstin}`}{d.territory && ` · ${d.territory}`}</span>{!d.isActive && <Badge>inactive</Badge>}</> },
+          { key: "salesperson", label: "Salesperson", className: "whitespace-normal", render: (d) => <>{d.salesperson ?? "–"}</> },
+          { key: "retailers", label: "Retailers", align: "right", render: (d) => <>{d.retailers}</> },
+          { key: "secondary-this-month", label: "Secondary this month", align: "right", render: (d) => <>{inr(d.secondaryMtd)}</> },
+        ]}
+      />
       {manage && (
         <div className="flex flex-wrap items-end gap-2 border-t border-border p-4">
           {error && <Alert>{error}</Alert>}
@@ -122,21 +122,20 @@ function Retailers({ manage }: { manage: boolean }) {
     <>
       <div className="flex gap-3"><Input className="h-9 w-64" placeholder="Name, code or phone" aria-label="Search" value={search} onChange={(e) => setSearch(e.target.value)} />{manage && <Button onClick={() => setAdding(true)}><Plus className="size-4" aria-hidden /> Retailer</Button>}</div>
       <Card>
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Retailer</th><th className="px-4 py-2 font-medium">Distributor · beat</th><th className="px-4 py-2 font-medium">Class</th><th className="px-4 py-2 text-right font-medium">Points</th><th className="px-4 py-2 font-medium">Last visit</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {q.data?.map((r) => (
-              <tr key={r.id}>
-                <td className="px-4 py-2"><span className="font-medium">{r.name}</span><span className="block text-xs text-muted">{r.code}{r.city && ` · ${r.city}`}{r.phone && ` · ${r.phone}`}{!r.latitude && " · no location yet"}</span></td>
-                <td className="px-4 py-2">{r.distributor}<span className="block text-xs text-muted">{r.beat ?? "no beat"}</span></td>
-                <td className="px-4 py-2"><Badge>{r.outletClass}</Badge></td>
-                <td className="px-4 py-2 text-right tabular-nums">{r.points}</td>
-                <td className="px-4 py-2 text-xs">{r.lastVisit ? formatDate(r.lastVisit.slice(0, 10)) : "never"}</td>
-              </tr>
-            ))}
-            {q.data && !q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No retailers.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={q.data ?? []}
+          rowKey={(r) => String(r.id)}
+          exportName="dms"
+          storageKey="dms-1"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No retailers.</p>}
+          columns={[
+            { key: "retailer", label: "Retailer", locked: true, className: "whitespace-normal", render: (r) => <><span className="font-medium">{r.name}</span><span className="block text-xs text-muted">{r.code}{r.city && ` · ${r.city}`}{r.phone && ` · ${r.phone}`}{!r.latitude && " · no location yet"}</span></> },
+            { key: "distributor-beat", label: "Distributor · beat", className: "whitespace-normal", render: (r) => <>{r.distributor}<span className="block text-xs text-muted">{r.beat ?? "no beat"}</span></> },
+            { key: "class", label: "Class", className: "whitespace-normal", render: (r) => <><Badge>{r.outletClass}</Badge></> },
+            { key: "points", label: "Points", align: "right", render: (r) => <>{r.points}</> },
+            { key: "last-visit", label: "Last visit", className: "text-xs whitespace-normal", render: (r) => <>{r.lastVisit ? formatDate(r.lastVisit.slice(0, 10)) : "never"}</> },
+          ]}
+        />
       </Card>
       {adding && <RetailerDialog onClose={() => setAdding(false)} />}
     </>

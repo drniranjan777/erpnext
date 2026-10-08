@@ -14,6 +14,7 @@ import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, todayIST } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Schedule { id: string; number: string; month: string; revision: number; reference: string | null; customerPartNo: string | null; customer: string; itemCode: string; itemName: string; qty: number }
 interface Adherence { scheduleId: string; customer: string; itemCode: string; itemName: string; scheduled: number; dueToDate: number; delivered: number; deliveredToDate: number; adherencePct: number | null; onTimePct: number | null; shortfall: number; excess: number }
@@ -99,23 +100,22 @@ function AdherenceView({ month }: { month: string }) {
   const tone = (p: number | null) => (p === null ? "neutral" : p >= 95 ? "success" : p >= 80 ? "warning" : "danger");
   return (
     <Card>
-      <div className="overflow-x-auto"><table className="w-full text-sm">
-        <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Customer · item</th><th className="px-3 py-2 text-right font-medium">Month</th><th className="px-3 py-2 text-right font-medium">Due to date</th><th className="px-3 py-2 text-right font-medium">Dispatched</th><th className="px-3 py-2 text-right font-medium">Short</th><th className="px-3 py-2 font-medium">Quantity</th><th className="px-3 py-2 font-medium">On time</th></tr></thead>
-        <tbody className="divide-y divide-border">
-          {q.data!.map((r) => (
-            <tr key={r.scheduleId}>
-              <td className="px-4 py-2"><span className="font-medium">{r.customer}</span><span className="block text-xs text-muted">{r.itemCode} {r.itemName}</span></td>
-              <td className="px-3 py-2 text-right tabular-nums">{r.scheduled}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{r.dueToDate}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{r.deliveredToDate}{r.excess > 0 && <span className="block text-xs text-warning">{r.excess} over</span>}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{r.shortfall || ""}</td>
-              <td className="px-3 py-2"><Badge tone={tone(r.adherencePct)}>{r.adherencePct === null ? "–" : `${r.adherencePct} %`}</Badge></td>
-              <td className="px-3 py-2"><Badge tone={tone(r.onTimePct)}>{r.onTimePct === null ? "–" : `${r.onTimePct} %`}</Badge></td>
-            </tr>
-          ))}
-          {!q.data!.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No schedules for this month.</td></tr>}
-        </tbody>
-      </table></div>
+      <DataTable
+        rows={q.data!}
+        rowKey={(r) => String(r.scheduleId)}
+        exportName="sales-schedules"
+        storageKey="sales-schedules-0"
+        empty={<p className="px-4 py-6 text-center text-sm text-muted">No schedules for this month.</p>}
+        columns={[
+          { key: "customer-item", label: "Customer · item", locked: true, className: "whitespace-normal", render: (r) => <><span className="font-medium">{r.customer}</span><span className="block text-xs text-muted">{r.itemCode} {r.itemName}</span></> },
+          { key: "month", label: "Month", align: "right", render: (r) => <>{r.scheduled}</> },
+          { key: "due-to-date", label: "Due to date", align: "right", render: (r) => <>{r.dueToDate}</> },
+          { key: "dispatched", label: "Dispatched", align: "right", render: (r) => <>{r.deliveredToDate}{r.excess > 0 && <span className="block text-xs text-warning">{r.excess} over</span>}</> },
+          { key: "short", label: "Short", align: "right", render: (r) => <>{r.shortfall || ""}</> },
+          { key: "quantity", label: "Quantity", className: "whitespace-normal", render: (r) => <><Badge tone={tone(r.adherencePct)}>{r.adherencePct === null ? "–" : `${r.adherencePct} %`}</Badge></> },
+          { key: "on-time", label: "On time", className: "whitespace-normal", render: (r) => <><Badge tone={tone(r.onTimePct)}>{r.onTimePct === null ? "–" : `${r.onTimePct} %`}</Badge></> },
+        ]}
+      />
       <p className="border-t border-border px-4 py-2 text-xs text-muted">Quantity: dispatched ÷ due so far. On time: schedule dates whose cumulative quantity had been dispatched by that date.</p>
     </Card>
   );

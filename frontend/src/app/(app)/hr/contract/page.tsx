@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate, todayIST } from "@/lib/documents";
 import { HR, type OrgRow } from "@/lib/hr";
 import { inr } from "@/lib/payroll";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Contractor { id: string; code: string; name: string; licenceNo: string | null; licenceValidUntil: string | null; maxWorkers: number | null; work: string | null; locationId: string | null; location: string | null; workers: number; isActive: boolean; pfCode: string | null; esiCode: string | null; contactName: string | null; mobile: string | null }
 interface Worker { id: string; code: string; name: string; contractorId: string; contractor: string; skill: string; dailyWage: string; uan: string | null; joinedOn: string; leftOn: string | null }
@@ -132,22 +133,21 @@ function Workers({ manage }: { manage: boolean }) {
   if (q.isLoading) return <LoadingBlock />;
   return (
     <Card>
-      <div className="overflow-x-auto"><table className="w-full text-sm">
-        <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Worker</th><th className="px-4 py-2 font-medium">Contractor</th><th className="px-4 py-2 font-medium">Skill</th><th className="px-4 py-2 text-right font-medium">Daily wage</th><th className="px-4 py-2 font-medium">UAN</th><th className="px-4 py-2 font-medium">Engaged</th></tr></thead>
-        <tbody className="divide-y divide-border">
-          {q.data?.map((w) => (
-            <tr key={w.id}>
-              <td className="px-4 py-2"><span className="font-medium">{w.name}</span> <span className="font-mono text-xs text-muted">{w.code}</span></td>
-              <td className="px-4 py-2">{w.contractor}</td>
-              <td className="px-4 py-2">{SKILLS[w.skill as keyof typeof SKILLS] ?? w.skill}</td>
-              <td className="px-4 py-2 text-right tabular-nums">{inr(w.dailyWage)}</td>
-              <td className="px-4 py-2 font-mono text-xs">{w.uan ?? "–"}</td>
-              <td className="px-4 py-2 text-xs">{formatDate(w.joinedOn)}{w.leftOn && ` – ${formatDate(w.leftOn)}`}</td>
-            </tr>
-          ))}
-          {q.data && !q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No contract workers.</td></tr>}
-        </tbody>
-      </table></div>
+      <DataTable
+        rows={q.data ?? []}
+        rowKey={(w) => String(w.id)}
+        exportName="hr-contract"
+        storageKey="hr-contract-0"
+        empty={<p className="px-4 py-6 text-center text-sm text-muted">No contract workers.</p>}
+        columns={[
+          { key: "worker", label: "Worker", locked: true, className: "whitespace-normal", render: (w) => <><span className="font-medium">{w.name}</span> <span className="font-mono text-xs text-muted">{w.code}</span></> },
+          { key: "contractor", label: "Contractor", className: "whitespace-normal", render: (w) => <>{w.contractor}</> },
+          { key: "skill", label: "Skill", className: "whitespace-normal", render: (w) => <>{SKILLS[w.skill as keyof typeof SKILLS] ?? w.skill}</> },
+          { key: "daily-wage", label: "Daily wage", align: "right", render: (w) => <>{inr(w.dailyWage)}</> },
+          { key: "uan", label: "UAN", className: "font-mono text-xs whitespace-normal", render: (w) => <>{w.uan ?? "–"}</> },
+          { key: "engaged", label: "Engaged", className: "text-xs whitespace-normal", render: (w) => <>{formatDate(w.joinedOn)}{w.leftOn && ` – ${formatDate(w.leftOn)}`}</> },
+        ]}
+      />
       {manage && (
         <div className="flex flex-wrap items-end gap-2 border-t border-border p-4">
           {error && <Alert>{error}</Alert>}
@@ -249,22 +249,21 @@ function ComplianceView() {
             ))}
           </div>
           <Card>
-            <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Worker</th><th className="px-3 py-2 text-right font-medium">Days</th><th className="px-3 py-2 text-right font-medium">Rate due</th><th className="px-3 py-2 text-right font-medium">Due</th><th className="px-3 py-2 text-right font-medium">Paid</th><th className="px-4 py-2 font-medium">Findings</th></tr></thead>
-              <tbody className="divide-y divide-border">
-                {q.data.workers.map((w) => (
-                  <tr key={w.workerId}>
-                    <td className="px-4 py-2"><span className="font-medium">{w.name}</span><span className="block text-xs text-muted">{w.contractor}</span></td>
-                    <td className="px-3 py-2 text-right tabular-nums">{w.present}{w.otHours ? ` + ${w.otHours} h OT` : ""}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{inr(w.rate)}{w.minDaily ? <span className="block text-xs text-muted">min {inr(w.minDaily)}</span> : null}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{inr(w.dueGross)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{inr(w.grossPaid)}</td>
-                    <td className="px-4 py-2 text-xs">{w.issues.length ? w.issues.map((i) => <span key={i} className="block text-danger">{i}</span>) : <Badge tone="success">OK</Badge>}</td>
-                  </tr>
-                ))}
-                {!q.data.workers.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No contract workers engaged in this month.</td></tr>}
-              </tbody>
-            </table></div>
+            <DataTable
+              rows={q.data.workers}
+              rowKey={(w) => String(w.workerId)}
+              exportName="hr-contract"
+              storageKey="hr-contract-2"
+              empty={<p className="px-4 py-6 text-center text-sm text-muted">No contract workers engaged in this month.</p>}
+              columns={[
+                { key: "worker", label: "Worker", locked: true, className: "whitespace-normal", render: (w) => <><span className="font-medium">{w.name}</span><span className="block text-xs text-muted">{w.contractor}</span></> },
+                { key: "days", label: "Days", align: "right", render: (w) => <>{w.present}{w.otHours ? ` + ${w.otHours} h OT` : ""}</> },
+                { key: "rate-due", label: "Rate due", align: "right", render: (w) => <>{inr(w.rate)}{w.minDaily ? <span className="block text-xs text-muted">min {inr(w.minDaily)}</span> : null}</> },
+                { key: "due", label: "Due", align: "right", render: (w) => <>{inr(w.dueGross)}</> },
+                { key: "paid", label: "Paid", align: "right", render: (w) => <>{inr(w.grossPaid)}</> },
+                { key: "findings", label: "Findings", className: "text-xs whitespace-normal", render: (w) => <>{w.issues.length ? w.issues.map((i) => <span key={i} className="block text-danger">{i}</span>) : <Badge tone="success">OK</Badge>}</> },
+              ]}
+            />
           </Card>
         </>
       )}

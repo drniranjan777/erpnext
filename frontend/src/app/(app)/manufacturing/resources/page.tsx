@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatMoney } from "@/lib/documents";
 import { MFG, type Machine, type Tool, type WorkCenter } from "@/lib/manufacturing";
+import { DataTable } from "@/components/ui/data-table";
 
 type Edit = { kind: "wc"; row?: WorkCenter } | { kind: "machine"; row?: Machine } | { kind: "tool"; row?: Tool } | null;
 
@@ -30,23 +31,24 @@ export default function ResourcesPage() {
       <PageHeader title="Work centres, machines and tools" description="Where operations run, what they cost per hour, and the moulds and dies they use." />
       <Card>
         <CardHeader title="Work centres" action={manage ? <Button size="sm" variant="secondary" onClick={() => setEdit({ kind: "wc" })}><Plus className="size-4" aria-hidden /> Add</Button> : undefined} />
-        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Work centre</th><th className="px-4 py-2 font-medium">Kind</th><th className="px-4 py-2 text-right font-medium">Capacity / day</th><th className="px-4 py-2 text-right font-medium">Labour</th><th className="px-4 py-2 text-right font-medium">Machine</th><th className="px-4 py-2 text-right font-medium">Overhead</th><th className="px-4 py-2 text-right font-medium">Per hour</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {(wcs.data ?? []).map((w) => (
-              <tr key={w.id} className={manage ? "cursor-pointer hover:bg-surface-muted/50" : ""} onClick={() => manage && setEdit({ kind: "wc", row: w })}>
-                <td className="px-4 py-2"><span className="font-mono text-xs text-muted">{w.code}</span> {w.name}{!w.isActive && <Badge className="ml-1">Inactive</Badge>}</td>
-                <td className="px-4 py-2 capitalize">{w.kind}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{(Number(w.hoursPerDay) * w.units).toFixed(1)} h</td>
-                <td className="px-4 py-2 text-right tabular-nums">{formatMoney(w.labourRate)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{formatMoney(w.machineRate)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{formatMoney(w.overheadRate)}</td>
-                <td className="px-4 py-2 text-right font-medium tabular-nums">{formatMoney(hourly(w))}</td>
-              </tr>
-            ))}
-            {wcs.data && !wcs.data.length && <tr><td colSpan={7} className="px-4 py-3 text-muted">No work centres yet</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={wcs.data ?? []}
+          rowKey={(w) => String(w.id)}
+          rowClassName={() => (manage ? "cursor-pointer" : "")}
+          onRowClick={manage ? (w) => setEdit({ kind: "wc", row: w }) : undefined}
+          exportName="manufacturing-resources"
+          storageKey="manufacturing-resources-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No work centres yet</p>}
+          columns={[
+            { key: "work-centre", label: "Work centre", locked: true, className: "whitespace-normal", render: (w) => <><span className="font-mono text-xs text-muted">{w.code}</span> {w.name}{!w.isActive && <Badge className="ml-1">Inactive</Badge>}</> },
+            { key: "kind", label: "Kind", className: "capitalize whitespace-normal", render: (w) => <>{w.kind}</> },
+            { key: "capacity-day", label: "Capacity / day", align: "right", render: (w) => <>{(Number(w.hoursPerDay) * w.units).toFixed(1)} h</> },
+            { key: "labour", label: "Labour", align: "right", render: (w) => <>{formatMoney(w.labourRate)}</> },
+            { key: "machine", label: "Machine", align: "right", render: (w) => <>{formatMoney(w.machineRate)}</> },
+            { key: "overhead", label: "Overhead", align: "right", render: (w) => <>{formatMoney(w.overheadRate)}</> },
+            { key: "per-hour", label: "Per hour", align: "right", className: "font-medium", render: (w) => <>{formatMoney(hourly(w))}</> },
+          ]}
+        />
       </Card>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

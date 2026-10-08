@@ -12,6 +12,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, formatQty, todayIST } from "@/lib/documents";
 import { useWmsWarehouses, WMS } from "@/lib/wms";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Client { id: string; client: string; warehouse: string; storagePerPalletDay: string; inboundPerUnit: string; outboundPerUnit: string; minimumMonthly: string | null; serviceItem: string; items: number; billedTo: string | null; isActive: boolean }
 interface Preview { perItem: { itemId: string; code: string; name: string; palletDays: string; unitsIn: string; unitsOut: string }[]; palletDays: number; unitsIn: number; unitsOut: number; storage: number; handling: number; topUp: number; total: number }
@@ -64,10 +65,18 @@ export default function ThreePlPage() {
           <CardHeader title="Billing" action={<span className="flex gap-2"><Input className="h-9 w-40" type="date" aria-label="From" value={period.from} onChange={(e) => setPeriod({ ...period, from: e.target.value })} /><Input className="h-9 w-40" type="date" aria-label="To" value={period.to} onChange={(e) => setPeriod({ ...period, to: e.target.value })} /></span>} />
           {preview.data && (
             <div className="space-y-3 border-t border-border p-4 text-sm">
-              <div className="overflow-x-auto"><table className="w-full">
-                <thead className="text-left text-xs text-muted"><tr><th>Item</th><th className="text-right">Pallet-days</th><th className="text-right">In</th><th className="text-right">Out</th></tr></thead>
-                <tbody>{preview.data.perItem.map((i) => <tr key={i.itemId}><td>{i.code} · {i.name}</td><td className="text-right tabular-nums">{formatQty(i.palletDays)}</td><td className="text-right tabular-nums">{formatQty(i.unitsIn)}</td><td className="text-right tabular-nums">{formatQty(i.unitsOut)}</td></tr>)}</tbody>
-              </table></div>
+              <DataTable
+                rows={preview.data.perItem}
+                rowKey={(i) => String(i.itemId)}
+                exportName="wms-3pl"
+                storageKey="wms-3pl-0"
+                columns={[
+                  { key: "item", label: "Item", locked: true, className: "whitespace-normal", render: (i) => <>{i.code} · {i.name}</> },
+                  { key: "pallet-days", label: "Pallet-days", align: "right", render: (i) => <>{formatQty(i.palletDays)}</> },
+                  { key: "in", label: "In", align: "right", render: (i) => <>{formatQty(i.unitsIn)}</> },
+                  { key: "out", label: "Out", align: "right", render: (i) => <>{formatQty(i.unitsOut)}</> },
+                ]}
+              />
               <p className="text-right">Storage {formatMoney(preview.data.storage)} · handling {formatMoney(preview.data.handling)}{preview.data.topUp > 0 && ` · minimum top-up ${formatMoney(preview.data.topUp)}`} · <span className="font-semibold">total {formatMoney(preview.data.total)}</span></p>
               {can("wms.setup.manage") && can("sales.invoices.manage") && <div className="flex justify-end"><Button disabled={preview.data.total <= 0} onClick={() => run(() => api(`${WMS}/3pl/clients/${open}/bills`, { body: period }), "Bill saved and a draft invoice raised.")}>Bill this period</Button></div>}
             </div>

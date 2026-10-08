@@ -16,6 +16,7 @@ import { formatDate } from "@/lib/documents";
 import { HR, type OrgRow } from "@/lib/hr";
 import { inr } from "@/lib/payroll";
 import { REQ_TONE, type Requisition } from "@/lib/talent";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function RecruitmentPage() {
   const { can } = useAuth();
@@ -42,30 +43,27 @@ export default function RecruitmentPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Requisition</th><th className="px-4 py-2 font-medium">Where</th><th className="px-4 py-2 text-right font-medium">Openings</th><th className="px-4 py-2 text-right font-medium">Candidates</th><th className="px-4 py-2 text-right font-medium">Budget (CTC)</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-2"><Link className="font-medium text-primary hover:underline" href={`${HR}/recruitment/${r.id}`}>{r.title}</Link><span className="block font-mono text-xs text-muted">{r.number}{r.neededBy && ` · needed by ${formatDate(r.neededBy)}`}</span></td>
-                  <td className="px-4 py-2 text-xs">{[r.designation, r.department, r.location].filter(Boolean).join(" · ") || "–"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{r.hired}/{r.openings}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{r.candidates}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{inr(r.maxCtc)}</td>
-                  <td className="px-4 py-2">
-                    <Badge tone={REQ_TONE[r.status]}>{r.status === "approved" ? "open" : r.status}</Badge>
-                    {r.status === "pending" && can("hr.recruitment.approve") && (
-                      <span className="ml-2 inline-flex gap-1">
-                        <Button size="sm" variant="ghost" aria-label="Approve" onClick={() => decide(r.id, true)}><Check className="size-3.5" aria-hidden /></Button>
-                        <Button size="sm" variant="ghost" aria-label="Reject" onClick={() => decide(r.id, false)}><X className="size-3.5" aria-hidden /></Button>
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No requisitions.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(r) => String(r.id)}
+            exportName="hr-recruitment"
+            storageKey="hr-recruitment-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No requisitions.</p>}
+            columns={[
+              { key: "requisition", label: "Requisition", locked: true, className: "whitespace-normal", render: (r) => <><Link className="font-medium text-primary hover:underline" href={`${HR}/recruitment/${r.id}`}>{r.title}</Link><span className="block font-mono text-xs text-muted">{r.number}{r.neededBy && ` · needed by ${formatDate(r.neededBy)}`}</span></> },
+              { key: "where", label: "Where", className: "text-xs whitespace-normal", render: (r) => <>{[r.designation, r.department, r.location].filter(Boolean).join(" · ") || "–"}</> },
+              { key: "openings", label: "Openings", align: "right", render: (r) => <>{r.hired}/{r.openings}</> },
+              { key: "candidates", label: "Candidates", align: "right", render: (r) => <>{r.candidates}</> },
+              { key: "budget-ctc", label: "Budget (CTC)", align: "right", render: (r) => <>{inr(r.maxCtc)}</> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <><Badge tone={REQ_TONE[r.status]}>{r.status === "approved" ? "open" : r.status}</Badge>
+                                {r.status === "pending" && can("hr.recruitment.approve") && (
+                                  <span className="ml-2 inline-flex gap-1">
+                                    <Button size="sm" variant="ghost" aria-label="Approve" onClick={() => decide(r.id, true)}><Check className="size-3.5" aria-hidden /></Button>
+                                    <Button size="sm" variant="ghost" aria-label="Reject" onClick={() => decide(r.id, false)}><X className="size-3.5" aria-hidden /></Button>
+                                  </span>
+                                )}</> },
+            ]}
+          />
         </Card>
       )}
       {raising && <RaiseDialog onClose={() => setRaising(false)} />}

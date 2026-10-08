@@ -16,6 +16,7 @@ import { formatDate } from "@/lib/documents";
 import { HR, type OrgRow } from "@/lib/hr";
 import { inr } from "@/lib/payroll";
 import { askConfirm } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Cycle { id: string; name: string; fromDate: string; toDate: string; status: "goal_setting" | "review" | "closed"; incrementGuide: Record<string, number> }
 interface Goal { id: string; kra: string | null; title: string; target: string | null; weight: string; selfRating: number | null; selfComment: string | null; managerRating: number | null; managerComment: string | null }
@@ -165,23 +166,22 @@ function Calibrate({ cycle, manage }: { cycle: Cycle; manage: boolean }) {
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       {manage && cycle.status !== "goal_setting" && <Button variant="secondary" onClick={apply}>Apply increments to salaries</Button>}
       <Card>
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Employee</th><th className="px-4 py-2 text-right font-medium">Self</th><th className="px-4 py-2 text-right font-medium">Manager</th><th className="px-4 py-2 text-right font-medium">Final</th><th className="px-4 py-2 text-right font-medium">Increment</th><th className="px-4 py-2 text-right font-medium">New CTC</th><th /></tr></thead>
-          <tbody className="divide-y divide-border">
-            {q.data!.map((a) => (
-              <tr key={a.employeeId}>
-                <td className="px-4 py-2"><span className="font-medium">{a.fullName}</span><span className="block text-xs text-muted">{[a.designation, a.department].filter(Boolean).join(" · ")} · {a.rated}/{a.goals} rated</span></td>
-                <td className="px-4 py-2 text-right tabular-nums">{a.selfScore ?? "–"}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{a.managerScore ?? "–"}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{a.finalRating ?? "–"}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{a.incrementPct ? `${Number(a.incrementPct)} %` : "–"}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{inr(a.newCtc)}{a.appliedAt && <Badge tone="success" className="ml-1">applied</Badge>}</td>
-                <td className="px-4 py-2 text-right">{manage && !a.appliedAt && cycle.status !== "goal_setting" && <Button size="sm" variant="ghost" onClick={() => setEditing(a)}>Calibrate</Button>}</td>
-              </tr>
-            ))}
-            {!q.data!.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">Nobody has goals in this cycle.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={q.data!}
+          rowKey={(a) => String(a.employeeId)}
+          exportName="hr-performance"
+          storageKey="hr-performance-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">Nobody has goals in this cycle.</p>}
+          columns={[
+            { key: "employee", label: "Employee", locked: true, className: "whitespace-normal", render: (a) => <><span className="font-medium">{a.fullName}</span><span className="block text-xs text-muted">{[a.designation, a.department].filter(Boolean).join(" · ")} · {a.rated}/{a.goals} rated</span></> },
+            { key: "self", label: "Self", align: "right", render: (a) => <>{a.selfScore ?? "–"}</> },
+            { key: "manager", label: "Manager", align: "right", render: (a) => <>{a.managerScore ?? "–"}</> },
+            { key: "final", label: "Final", align: "right", render: (a) => <>{a.finalRating ?? "–"}</> },
+            { key: "increment", label: "Increment", align: "right", render: (a) => <>{a.incrementPct ? `${Number(a.incrementPct)} %` : "–"}</> },
+            { key: "new-ctc", label: "New CTC", align: "right", render: (a) => <>{inr(a.newCtc)}{a.appliedAt && <Badge tone="success" className="ml-1">applied</Badge>}</> },
+            { key: "col6", label: "", align: "right", noSort: true, render: (a) => <>{manage && !a.appliedAt && cycle.status !== "goal_setting" && <Button size="sm" variant="ghost" onClick={() => setEditing(a)}>Calibrate</Button>}</> },
+          ]}
+        />
       </Card>
       {editing && <CalibrateDialog cycle={cycle} a={editing} designations={desigs.data ?? []} onClose={() => setEditing(null)} />}
     </>

@@ -15,6 +15,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
 import { inr } from "@/lib/payroll";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Est { id: string; number: string; kind: string; title: string; qty: string; unitCost: string; unitPrice: string; marginPct: string; status: string; quotationId: string | null; createdAt: string; party: string | null }
 interface Result { lines: { label: string; basis: string; amount: number }[]; unitCost: number; unitPrice: number; total: number; facts: Record<string, string | number> }
@@ -42,22 +43,21 @@ export default function EstimatesPage() {
         <Card>
           {q.isLoading && <LoadingBlock />}
           {q.error && <ErrorBlock error={q.error} />}
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Estimate</th><th className="px-4 py-2 font-medium">Customer</th><th className="px-4 py-2 text-right font-medium">Qty</th><th className="px-4 py-2 text-right font-medium">Cost</th><th className="px-4 py-2 text-right font-medium">Price</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data?.map((e) => (
-                <tr key={e.id}>
-                  <td className="px-4 py-2"><span className="font-medium">{e.title}</span><span className="block text-xs text-muted">{e.number} · {KIND[e.kind]} · {formatDate(e.createdAt.slice(0, 10))}</span></td>
-                  <td className="px-4 py-2">{e.party ?? "–"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{Number(e.qty)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{Number(e.unitCost) ? inr(e.unitCost) : "–"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{inr(e.unitPrice)}<span className="block text-xs text-muted">{Number(e.marginPct) ? `${Number(e.marginPct)} % margin` : ""}</span></td>
-                  <td className="px-4 py-2">{e.quotationId ? <Link href={`/sales/quotations/${e.quotationId}`}><Badge tone="success">quoted</Badge></Link> : manage ? <Button size="sm" variant="secondary" onClick={() => setQuoting(e)}><FileText className="size-3.5" aria-hidden /> Quote</Button> : <Badge>draft</Badge>}</td>
-                </tr>
-              ))}
-              {q.data && !q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No estimates yet.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data ?? []}
+            rowKey={(e) => String(e.id)}
+            exportName="crm-estimates"
+            storageKey="crm-estimates-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No estimates yet.</p>}
+            columns={[
+              { key: "estimate", label: "Estimate", locked: true, className: "whitespace-normal", render: (e) => <><span className="font-medium">{e.title}</span><span className="block text-xs text-muted">{e.number} · {KIND[e.kind]} · {formatDate(e.createdAt.slice(0, 10))}</span></> },
+              { key: "customer", label: "Customer", className: "whitespace-normal", render: (e) => <>{e.party ?? "–"}</> },
+              { key: "qty", label: "Qty", align: "right", render: (e) => <>{Number(e.qty)}</> },
+              { key: "cost", label: "Cost", align: "right", render: (e) => <>{Number(e.unitCost) ? inr(e.unitCost) : "–"}</> },
+              { key: "price", label: "Price", align: "right", render: (e) => <>{inr(e.unitPrice)}<span className="block text-xs text-muted">{Number(e.marginPct) ? `${Number(e.marginPct)} % margin` : ""}</span></> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (e) => <>{e.quotationId ? <Link href={`/sales/quotations/${e.quotationId}`}><Badge tone="success">quoted</Badge></Link> : manage ? <Button size="sm" variant="secondary" onClick={() => setQuoting(e)}><FileText className="size-3.5" aria-hidden /> Quote</Button> : <Badge>draft</Badge>}</> },
+            ]}
+          />
         </Card>
       )}
       {tab === "templates" && <Templates manage={manage} />}

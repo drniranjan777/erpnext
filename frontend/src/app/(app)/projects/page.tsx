@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; code: string; name: string; customer: string | null; contractValue: number; startDate: string; endDate: string; status: string; bac: number; ac: number; cpi: number | null; spi: number | null; percentComplete: number; billed: number }
 
@@ -31,24 +32,23 @@ export default function ProjectsPage() {
     <div className="space-y-4">
       <PageHeader title="Projects" description="Engineer-to-order and EPC projects: WBS with budgets, costs charged from purchasing, stores and time sheets, milestone billing, and earned value (CPI below 1 is over cost, SPI below 1 is behind schedule)." actions={<span className="flex gap-2"><Link className="inline-flex h-9 items-center rounded-lg border border-border px-3 text-sm hover:bg-surface-muted" href="/projects/resources">Resource load</Link>{can("projects.plan.manage") && <Button onClick={() => setCreating(true)}><Plus className="size-4" aria-hidden /> New project</Button>}</span>} />
       <Card className="overflow-x-auto">
-        <table className="w-full min-w-[900px] text-sm">
-          <thead className="bg-surface-muted text-left text-xs text-muted"><tr><th className="px-3 py-2">Project</th><th className="px-3 py-2">Customer</th><th className="px-3 py-2 text-right">Contract</th><th className="px-3 py-2 text-right">Budget</th><th className="px-3 py-2 text-right">Actual</th><th className="px-3 py-2 text-right">Billed</th><th className="px-3 py-2 text-right">Done</th><th className="px-3 py-2">CPI / SPI</th><th className="px-3 py-2">End</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {list.data?.map((r) => (
-              <tr key={r.id} className="hover:bg-surface-muted">
-                <td className="px-3 py-2"><Link className="font-medium text-primary hover:underline" href={`/projects/${r.id}`}>{r.code}</Link> {r.name} <Badge>{r.status}</Badge></td>
-                <td className="px-3 py-2">{r.customer ?? ""}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{inr(r.contractValue)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{inr(r.bac)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{inr(r.ac)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{inr(r.billed)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{r.percentComplete} %</td>
-                <td className="px-3 py-2"><Badge tone={tone(r.cpi)}>{r.cpi ?? "–"}</Badge> <Badge tone={tone(r.spi)}>{r.spi ?? "–"}</Badge></td>
-                <td className="px-3 py-2">{formatDate(r.endDate)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          rows={list.data ?? []}
+          rowKey={(r) => String(r.id)}
+          exportName="projects"
+          storageKey="projects-0"
+          columns={[
+            { key: "project", label: "Project", locked: true, className: "whitespace-normal", render: (r) => <><Link className="font-medium text-primary hover:underline" href={`/projects/${r.id}`}>{r.code}</Link> {r.name} <Badge>{r.status}</Badge></> },
+            { key: "customer", label: "Customer", className: "whitespace-normal", render: (r) => <>{r.customer ?? ""}</> },
+            { key: "contract", label: "Contract", align: "right", render: (r) => <>{inr(r.contractValue)}</> },
+            { key: "budget", label: "Budget", align: "right", render: (r) => <>{inr(r.bac)}</> },
+            { key: "actual", label: "Actual", align: "right", render: (r) => <>{inr(r.ac)}</> },
+            { key: "billed", label: "Billed", align: "right", render: (r) => <>{inr(r.billed)}</> },
+            { key: "done", label: "Done", align: "right", render: (r) => <>{r.percentComplete} %</> },
+            { key: "cpi-spi", label: "CPI / SPI", className: "whitespace-normal", render: (r) => <><Badge tone={tone(r.cpi)}>{r.cpi ?? "–"}</Badge> <Badge tone={tone(r.spi)}>{r.spi ?? "–"}</Badge></> },
+            { key: "end", label: "End", className: "whitespace-normal", render: (r) => <>{formatDate(r.endDate)}</> },
+          ]}
+        />
         {list.data && !list.data.length && <p className="p-8 text-center text-muted">No projects.</p>}
       </Card>
       {creating && <NewProject onClose={() => setCreating(false)} />}

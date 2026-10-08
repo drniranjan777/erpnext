@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { formatDate, formatMoney } from "@/lib/documents";
 import { portalApi } from "@/lib/portal";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Invoice { id: string; number: string; docDate: string; dueDate: string | null; grandTotal: string; outstanding: string; customerPoNo: string | null; eInvoice: boolean; ewayBillNo: string | null; state: string }
 interface Payment { id: string; number: string; docDate: string; amount: string; mode: string; instrumentNo: string | null; reference: string | null; tdsDeducted: string }
@@ -30,43 +31,41 @@ export default function PortalInvoices() {
       {q.error && <ErrorBlock error={q.error} />}
       {tab === "invoices" && inv.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Invoice</th><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Due</th><th className="px-4 py-2 font-medium">Your PO</th><th className="px-4 py-2 text-right font-medium">Amount</th><th className="px-4 py-2 text-right font-medium">Balance</th><th className="px-4 py-2 font-medium" /></tr></thead>
-            <tbody className="divide-y divide-border">
-              {inv.data.map((i) => (
-                <tr key={i.id}>
-                  <td className="px-4 py-2"><Link className="text-primary hover:underline" href={`/portal/invoices/${i.id}`}>{i.number}</Link>{i.eInvoice && <span className="ml-1 text-xs text-muted">e-invoice</span>}</td>
-                  <td className="px-4 py-2">{formatDate(i.docDate)}</td>
-                  <td className="px-4 py-2">{i.dueDate ? formatDate(i.dueDate) : "–"}</td>
-                  <td className="px-4 py-2">{i.customerPoNo ?? "–"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatMoney(i.grandTotal)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatMoney(i.outstanding)}</td>
-                  <td className="px-4 py-2"><Badge tone={TONE[i.state as keyof typeof TONE]}>{i.state}</Badge></td>
-                </tr>
-              ))}
-              {!inv.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No invoices yet.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={inv.data}
+            rowKey={(i) => String(i.id)}
+            exportName="app-portal-invoices"
+            storageKey="app-portal-invoices-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No invoices yet.</p>}
+            columns={[
+              { key: "invoice", label: "Invoice", locked: true, className: "whitespace-normal", render: (i) => <><Link className="text-primary hover:underline" href={`/portal/invoices/${i.id}`}>{i.number}</Link>{i.eInvoice && <span className="ml-1 text-xs text-muted">e-invoice</span>}</> },
+              { key: "date", label: "Date", className: "whitespace-normal", render: (i) => <>{formatDate(i.docDate)}</> },
+              { key: "due", label: "Due", className: "whitespace-normal", render: (i) => <>{i.dueDate ? formatDate(i.dueDate) : "–"}</> },
+              { key: "your-po", label: "Your PO", className: "whitespace-normal", render: (i) => <>{i.customerPoNo ?? "–"}</> },
+              { key: "amount", label: "Amount", align: "right", render: (i) => <>{formatMoney(i.grandTotal)}</> },
+              { key: "balance", label: "Balance", align: "right", render: (i) => <>{formatMoney(i.outstanding)}</> },
+              { key: "col6", label: "", noSort: true, className: "whitespace-normal", render: (i) => <><Badge tone={TONE[i.state as keyof typeof TONE]}>{i.state}</Badge></> },
+            ]}
+          />
         </Card>
       )}
       {tab === "payments" && pay.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Receipt</th><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Mode</th><th className="px-4 py-2 font-medium">Reference</th><th className="px-4 py-2 text-right font-medium">TDS</th><th className="px-4 py-2 text-right font-medium">Amount</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {pay.data.map((p) => (
-                <tr key={p.id}>
-                  <td className="px-4 py-2 font-mono text-xs">{p.number}</td>
-                  <td className="px-4 py-2">{formatDate(p.docDate)}</td>
-                  <td className="px-4 py-2 uppercase">{p.mode}</td>
-                  <td className="px-4 py-2">{[p.instrumentNo, p.reference].filter(Boolean).join(" · ") || "–"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{Number(p.tdsDeducted) ? formatMoney(p.tdsDeducted) : "–"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatMoney(p.amount)}</td>
-                </tr>
-              ))}
-              {!pay.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No payments recorded yet.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={pay.data}
+            rowKey={(p) => String(p.id)}
+            exportName="app-portal-invoices"
+            storageKey="app-portal-invoices-1"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No payments recorded yet.</p>}
+            columns={[
+              { key: "receipt", label: "Receipt", locked: true, className: "font-mono text-xs whitespace-normal", render: (p) => <>{p.number}</> },
+              { key: "date", label: "Date", className: "whitespace-normal", render: (p) => <>{formatDate(p.docDate)}</> },
+              { key: "mode", label: "Mode", className: "uppercase whitespace-normal", render: (p) => <>{p.mode}</> },
+              { key: "reference", label: "Reference", className: "whitespace-normal", render: (p) => <>{[p.instrumentNo, p.reference].filter(Boolean).join(" · ") || "–"}</> },
+              { key: "tds", label: "TDS", align: "right", render: (p) => <>{Number(p.tdsDeducted) ? formatMoney(p.tdsDeducted) : "–"}</> },
+              { key: "amount", label: "Amount", align: "right", render: (p) => <>{formatMoney(p.amount)}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

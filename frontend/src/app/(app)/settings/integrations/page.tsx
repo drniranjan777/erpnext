@@ -14,6 +14,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { PermissionGroup } from "@/lib/iam";
 import { askConfirm } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 interface ApiKey {
   id: string;
@@ -329,36 +330,24 @@ function Deliveries({ endpointId }: { endpointId: string }) {
   if (!list.data?.length) return <p className="mt-3 text-xs text-muted">No deliveries yet.</p>;
   return (
     <div className="mt-3 overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-xs">
-        <thead className="bg-surface-muted text-left text-muted">
-          <tr>
-            <th className="px-3 py-2 font-medium">When</th>
-            <th className="px-3 py-2 font-medium">Event</th>
-            <th className="px-3 py-2 font-medium">Result</th>
-            <th className="px-3 py-2" />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {list.data.map((d) => (
-            <tr key={d.id}>
-              <td className="whitespace-nowrap px-3 py-2">{formatDateTime(d.createdAt)}</td>
-              <td className="px-3 py-2 font-mono">{d.event}</td>
-              <td className="px-3 py-2">
-                <Badge tone={d.status === "succeeded" ? "success" : d.status === "failed" ? "danger" : "warning"}>{d.status}</Badge>{" "}
-                {d.responseStatus && <span className="text-muted">HTTP {d.responseStatus}</span>} {d.durationMs !== null && <span className="text-muted">· {d.durationMs} ms</span>}
-                {d.error && <p className="text-danger">{d.error}</p>}
-              </td>
-              <td className="px-3 py-2 text-right">
-                {d.status === "failed" && (
-                  <Button variant="ghost" size="sm" onClick={() => redeliver.mutate(d.id)}>
-                    Retry
-                  </Button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DataTable
+        rows={list.data}
+        rowKey={(d) => String(d.id)}
+        exportName="settings-integrations"
+        storageKey="settings-integrations-0"
+        columns={[
+          { key: "when", label: "When", locked: true, render: (d) => <>{formatDateTime(d.createdAt)}</> },
+          { key: "event", label: "Event", className: "font-mono whitespace-normal", render: (d) => <>{d.event}</> },
+          { key: "result", label: "Result", className: "whitespace-normal", render: (d) => <><Badge tone={d.status === "succeeded" ? "success" : d.status === "failed" ? "danger" : "warning"}>{d.status}</Badge>{" "}
+                        {d.responseStatus && <span className="text-muted">HTTP {d.responseStatus}</span>} {d.durationMs !== null && <span className="text-muted">· {d.durationMs} ms</span>}
+                        {d.error && <p className="text-danger">{d.error}</p>}</> },
+          { key: "col3", label: "", align: "right", noSort: true, render: (d) => <>{d.status === "failed" && (
+                          <Button variant="ghost" size="sm" onClick={() => redeliver.mutate(d.id)}>
+                            Retry
+                          </Button>
+                        )}</> },
+        ]}
+      />
     </div>
   );
 }

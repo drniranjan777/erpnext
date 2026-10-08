@@ -14,6 +14,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { iamKeys, type Invitation, type InvitationLink, type Member, type Role } from "@/lib/iam";
 import { askConfirm } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function UsersPage() {
   const { can, me } = useAuth();
@@ -45,59 +46,75 @@ export default function UsersPage() {
         {users.isLoading && <LoadingBlock />}
         {users.error && <div className="p-5"><ErrorBlock error={users.error} /></div>}
         {users.data && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-5 py-2.5 font-medium">Name</th>
-                  <th className="px-5 py-2.5 font-medium">Roles</th>
-                  <th className="px-5 py-2.5 font-medium">Status</th>
-                  <th className="px-5 py-2.5 font-medium">Last sign-in</th>
-                  {canManage && <th className="px-5 py-2.5"><span className="sr-only">Actions</span></th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {users.data.map((m) => {
-                  const isMe = m.userId === me?.user.id;
-                  return (
-                    <tr key={m.membershipId}>
-                      <td className="px-5 py-3">
-                        <div className="font-medium">
-                          {m.fullName} {isMe && <span className="text-xs font-normal text-muted">(you)</span>}
-                        </div>
-                        <div className="text-xs text-muted">{m.email}</div>
-                      </td>
-                      <td className="px-5 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {m.isOwner && <Badge tone="primary">Workspace owner</Badge>}
-                          {m.roles.filter((r) => !(m.isOwner && r.name === "Owner")).map((r) => (
-                            <Badge key={r.id}>{r.name}</Badge>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3">
-                        <Badge tone={m.status === "active" ? "success" : "neutral"}>
-                          {m.status === "active" ? "Active" : m.status === "disabled" ? "Disabled" : "Invited"}
-                        </Badge>
-                      </td>
-                      <td className="px-5 py-3 text-muted" title={formatDateTime(m.lastLoginAt)}>
-                        {timeAgo(m.lastLoginAt)}
-                      </td>
-                      {canManage && (
-                        <td className="px-5 py-3 text-right">
-                          {!isMe && !m.isOwner && (
-                            <Button variant="ghost" size="sm" onClick={() => setEditing(m)} aria-label={`Manage ${m.fullName}`}>
-                              <MoreHorizontal className="size-4" />
-                            </Button>
-                          )}
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            rows={users.data}
+            rowKey={(m) => m.membershipId}
+            exportName="users"
+            storageKey="settings-users"
+            columns={[
+              {
+                key: "name",
+                label: "Name",
+                locked: true,
+                value: (m) => m.fullName,
+                render: (m) => (
+                  <>
+                    <div className="font-medium">
+                      {m.fullName} {m.userId === me?.user.id && <span className="text-xs font-normal text-muted">(you)</span>}
+                    </div>
+                    <div className="text-xs text-muted">{m.email}</div>
+                  </>
+                ),
+              },
+              {
+                key: "roles",
+                label: "Roles",
+                value: (m) => [m.isOwner ? "Workspace owner" : "", ...m.roles.filter((r) => !(m.isOwner && r.name === "Owner")).map((r) => r.name)].filter(Boolean).join(", "),
+                className: "whitespace-normal",
+                render: (m) => (
+                  <div className="flex flex-wrap gap-1">
+                    {m.isOwner && <Badge tone="primary">Workspace owner</Badge>}
+                    {m.roles.filter((r) => !(m.isOwner && r.name === "Owner")).map((r) => (
+                      <Badge key={r.id}>{r.name}</Badge>
+                    ))}
+                  </div>
+                ),
+              },
+              {
+                key: "status",
+                label: "Status",
+                value: (m) => m.status,
+                render: (m) => <Badge tone={m.status === "active" ? "success" : "neutral"}>{m.status === "active" ? "Active" : m.status === "disabled" ? "Disabled" : "Invited"}</Badge>,
+              },
+              {
+                key: "last-sign-in",
+                label: "Last sign-in",
+                value: (m) => m.lastLoginAt ?? "",
+                render: (m) => (
+                  <span className="text-muted" title={formatDateTime(m.lastLoginAt)}>
+                    {timeAgo(m.lastLoginAt)}
+                  </span>
+                ),
+              },
+              ...(canManage
+                ? [
+                    {
+                      key: "actions",
+                      label: "",
+                      align: "right" as const,
+                      noSort: true,
+                      render: (m: (typeof users.data)[number]) =>
+                        m.userId !== me?.user.id &&
+                        !m.isOwner && (
+                          <Button variant="ghost" size="sm" onClick={() => setEditing(m)} aria-label={`Manage ${m.fullName}`}>
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        ),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         )}
       </Card>
 

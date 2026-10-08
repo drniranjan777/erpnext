@@ -11,6 +11,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatQty, todayIST } from "@/lib/documents";
 import { useWarehouseParam, WMS } from "@/lib/wms";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Productivity { people: { userId: string; name: string; picks: number; putaways: number; units: string; shortPicks: number; activeMinutes: number; picksPerHour: number | null }[]; totals: { picks: number; shortPicks: number; putaways: number }; accuracy: { counts: number; lines: number; avgPct: string | null } }
 interface Level { binId: string; bin: string; itemCode: string; currentMin: string | null; currentMax: string | null; avgDaily: number; peakDaily: number; suggestedMin: number | null; suggestedMax: number | null }
@@ -58,24 +59,39 @@ function Insights() {
       )}
       <Card>
         <CardHeader title="By person" description="Active time counts gaps of up to 10 minutes between confirmations." />
-        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Person</th><th className="px-4 py-2 text-right font-medium">Picks</th><th className="px-4 py-2 text-right font-medium">Put-aways</th><th className="px-4 py-2 text-right font-medium">Units</th><th className="px-4 py-2 text-right font-medium">Active</th><th className="px-4 py-2 text-right font-medium">Picks / hour</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {p?.people.map((x) => <tr key={x.userId}><td className="px-4 py-2">{x.name}</td><td className="px-4 py-2 text-right tabular-nums">{x.picks}{x.shortPicks ? ` (${x.shortPicks} short)` : ""}</td><td className="px-4 py-2 text-right tabular-nums">{x.putaways}</td><td className="px-4 py-2 text-right tabular-nums">{formatQty(x.units)}</td><td className="px-4 py-2 text-right tabular-nums">{x.activeMinutes} min</td><td className="px-4 py-2 text-right tabular-nums">{x.picksPerHour ?? "–"}</td></tr>)}
-            {p && !p.people.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No floor work in this period.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={p?.people ?? []}
+          rowKey={(x) => String(x.userId)}
+          exportName="wms-insights"
+          storageKey="wms-insights-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No floor work in this period.</p>}
+          columns={[
+            { key: "person", label: "Person", locked: true, className: "whitespace-normal", render: (x) => <>{x.name}</> },
+            { key: "picks", label: "Picks", align: "right", render: (x) => <>{x.picks}{x.shortPicks ? ` (${x.shortPicks} short)` : ""}</> },
+            { key: "put-aways", label: "Put-aways", align: "right", render: (x) => <>{x.putaways}</> },
+            { key: "units", label: "Units", align: "right", render: (x) => <>{formatQty(x.units)}</> },
+            { key: "active", label: "Active", align: "right", render: (x) => <>{x.activeMinutes} min</> },
+            { key: "picks-hour", label: "Picks / hour", align: "right", render: (x) => <>{x.picksPerHour ?? "–"}</> },
+          ]}
+        />
       </Card>
       <Card>
         <CardHeader title="Pick-face levels from demand" description="Min covers a day of demand plus half the gap to the busiest day; max adds three days of cover, within the bin's limit." action={can("wms.setup.manage") && changed.length > 0 && <Button size="sm" onClick={apply}>Apply {changed.length}</Button>} />
         {msg && <div className="px-5 pb-2"><Alert tone="success">{msg}</Alert></div>}
-        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-          <thead className="text-left text-xs text-muted"><tr><th className="px-4 py-2">Face</th><th className="px-4 py-2">Item</th><th className="px-4 py-2 text-right">Avg / peak a day</th><th className="px-4 py-2 text-right">Now</th><th className="px-4 py-2 text-right">Suggested</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {levels.data?.map((l) => <tr key={l.binId}><td className="px-4 py-2 font-mono">{l.bin}</td><td className="px-4 py-2">{l.itemCode}</td><td className="px-4 py-2 text-right tabular-nums">{l.avgDaily} / {l.peakDaily}</td><td className="px-4 py-2 text-right tabular-nums">{l.currentMin ? `${Number(l.currentMin)}–${Number(l.currentMax)}` : "–"}</td><td className="px-4 py-2 text-right tabular-nums">{l.suggestedMin !== null ? `${l.suggestedMin}–${l.suggestedMax}` : "no demand"}</td></tr>)}
-            {levels.data && !levels.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No bin has a fixed item.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={levels.data ?? []}
+          rowKey={(l) => String(l.binId)}
+          exportName="wms-insights"
+          storageKey="wms-insights-1"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No bin has a fixed item.</p>}
+          columns={[
+            { key: "face", label: "Face", locked: true, className: "font-mono whitespace-normal", render: (l) => <>{l.bin}</> },
+            { key: "item", label: "Item", className: "whitespace-normal", render: (l) => <>{l.itemCode}</> },
+            { key: "avg-peak-a-day", label: "Avg / peak a day", align: "right", render: (l) => <>{l.avgDaily} / {l.peakDaily}</> },
+            { key: "now", label: "Now", align: "right", render: (l) => <>{l.currentMin ? `${Number(l.currentMin)}–${Number(l.currentMax)}` : "–"}</> },
+            { key: "suggested", label: "Suggested", align: "right", render: (l) => <>{l.suggestedMin !== null ? `${l.suggestedMin}–${l.suggestedMax}` : "no demand"}</> },
+          ]}
+        />
       </Card>
     </div>
   );

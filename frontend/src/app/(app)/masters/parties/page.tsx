@@ -14,6 +14,7 @@ import { EmptyState, ErrorBlock, LoadingBlock, PageHeader } from "@/components/u
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { GST_REG_TYPES, type PartyListRow } from "@/lib/masters";
+import { DataTable } from "@/components/ui/data-table";
 
 type Role = "all" | "customer" | "vendor";
 
@@ -85,51 +86,31 @@ function Parties() {
         {list.data && !rows.length && <EmptyState title="Nobody here yet" description="Add your customers and vendors with their GSTIN, addresses and payment terms." />}
         {rows.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Code</th>
-                  <th className="px-4 py-2.5 font-medium">Name</th>
-                  <th className="px-4 py-2.5 font-medium">GSTIN</th>
-                  <th className="px-4 py-2.5 font-medium">Location</th>
-                  <th className="px-4 py-2.5 font-medium">Contact</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Credit days</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {rows.map((r) => (
-                  <tr key={r.id} className="hover:bg-surface-muted/60">
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Link href={`/masters/parties/${r.id}`} className="font-mono font-medium text-primary hover:underline">
-                        {r.code}
-                      </Link>
-                    </td>
-                    <td className="max-w-sm px-4 py-3">
-                      <p className="truncate font-medium">{r.name}</p>
-                      <p className="flex flex-wrap gap-1">
-                        {r.isCustomer && <Badge tone="primary">Customer</Badge>}
-                        {r.isVendor && <Badge tone="success">Vendor</Badge>}
-                        {r.msmeCategory && <Badge tone="warning">MSME · {r.msmeCategory}</Badge>}
-                        {!r.isActive && <Badge>Inactive</Badge>}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      {r.gstin ? <span className="font-mono text-xs">{r.gstin}</span> : <span className="text-xs text-muted">{GST_REG_TYPES[r.gstRegistrationType]}</span>}
-                    </td>
-                    <td className="px-4 py-3 text-muted">{[r.city, r.state].filter(Boolean).join(", ") || "—"}</td>
-                    <td className="px-4 py-3 text-muted">{r.phone ?? r.email ?? "—"}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{r.creditDays ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {list.hasNextPage && (
-          <div className="border-t border-border p-3 text-center">
-            <Button variant="secondary" size="sm" loading={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
-              Load more
-            </Button>
+            <DataTable
+              rows={rows}
+              hasMore={list.hasNextPage}
+              loadingMore={list.isFetchingNextPage}
+              onLoadMore={() => void list.fetchNextPage()}
+              rowKey={(r) => String(r.id)}
+              exportName="masters-parties"
+              storageKey="masters-parties-0"
+              columns={[
+                { key: "code", label: "Code", locked: true, render: (r) => <><Link href={`/masters/parties/${r.id}`} className="font-mono font-medium text-primary hover:underline">
+                                      {r.code}
+                                    </Link></> },
+                { key: "name", label: "Name", className: "max-w-sm whitespace-normal", render: (r) => <><p className="truncate font-medium">{r.name}</p>
+                                    <p className="flex flex-wrap gap-1">
+                                      {r.isCustomer && <Badge tone="primary">Customer</Badge>}
+                                      {r.isVendor && <Badge tone="success">Vendor</Badge>}
+                                      {r.msmeCategory && <Badge tone="warning">MSME · {r.msmeCategory}</Badge>}
+                                      {!r.isActive && <Badge>Inactive</Badge>}
+                                    </p></> },
+                { key: "gstin", label: "GSTIN", className: "whitespace-normal", render: (r) => <>{r.gstin ? <span className="font-mono text-xs">{r.gstin}</span> : <span className="text-xs text-muted">{GST_REG_TYPES[r.gstRegistrationType]}</span>}</> },
+                { key: "location", label: "Location", className: "text-muted whitespace-normal", render: (r) => <>{[r.city, r.state].filter(Boolean).join(", ") || "—"}</> },
+                { key: "contact", label: "Contact", className: "text-muted whitespace-normal", render: (r) => <>{r.phone ?? r.email ?? "—"}</> },
+                { key: "credit-days", label: "Credit days", align: "right", render: (r) => <>{r.creditDays ?? "—"}</> },
+              ]}
+            />
           </div>
         )}
       </Card>

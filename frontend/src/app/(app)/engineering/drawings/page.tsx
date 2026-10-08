@@ -14,6 +14,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, type DocumentStatus } from "@/lib/documents";
 import { ENG } from "@/lib/engineering";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; status: DocumentStatus; drawingNo: string; revision: string; title: string; sheetSize: string | null; releasedAt: string | null; supersededAt: string | null; item: { id: string; code: string; name: string } | null }
 
@@ -37,21 +38,20 @@ export default function DrawingsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Drawing</th><th className="px-4 py-2 font-medium">Rev</th><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 font-medium">Released</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.items.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-2"><Link href={`${ENG}/drawings/${r.id}`} className="font-mono font-medium hover:underline">{r.drawingNo}</Link><span className="block text-xs text-muted">{r.title}{r.sheetSize ? ` · ${r.sheetSize}` : ""}</span></td>
-                  <td className="px-4 py-2 font-mono">{r.revision}</td>
-                  <td className="px-4 py-2">{r.item ? <><span className="font-mono text-xs text-muted">{r.item.code}</span> {r.item.name}</> : "–"}</td>
-                  <td className="px-4 py-2">{r.releasedAt ? formatDate(r.releasedAt.slice(0, 10)) : "–"}</td>
-                  <td className="px-4 py-2">{r.supersededAt ? <Badge>Superseded</Badge> : <StatusBadge status={r.status} />}</td>
-                </tr>
-              ))}
-              {!q.data.items.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No drawings.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data.items}
+            rowKey={(r) => String(r.id)}
+            exportName="engineering-drawings"
+            storageKey="engineering-drawings-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No drawings.</p>}
+            columns={[
+              { key: "drawing", label: "Drawing", locked: true, className: "whitespace-normal", render: (r) => <><Link href={`${ENG}/drawings/${r.id}`} className="font-mono font-medium hover:underline">{r.drawingNo}</Link><span className="block text-xs text-muted">{r.title}{r.sheetSize ? ` · ${r.sheetSize}` : ""}</span></> },
+              { key: "rev", label: "Rev", className: "font-mono whitespace-normal", render: (r) => <>{r.revision}</> },
+              { key: "item", label: "Item", className: "whitespace-normal", render: (r) => <>{r.item ? <><span className="font-mono text-xs text-muted">{r.item.code}</span> {r.item.name}</> : "–"}</> },
+              { key: "released", label: "Released", className: "whitespace-normal", render: (r) => <>{r.releasedAt ? formatDate(r.releasedAt.slice(0, 10)) : "–"}</> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <>{r.supersededAt ? <Badge>Superseded</Badge> : <StatusBadge status={r.status} />}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

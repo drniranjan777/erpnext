@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import type { Asset } from "@/lib/assets";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, todayIST } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Register { items: Asset[]; totals: { cost: string; accumulated: string; netBookValue: string } }
 interface ItSchedule { fy: string; blocks: { ratePct: string; assets: number; year: { opening: string; additionsFull: string; additionsHalf: string; deletions: string; depreciation: string; closing: string } | null }[] }
@@ -66,26 +67,23 @@ export default function AssetsPage() {
         {q.isLoading && <LoadingBlock />}
         {q.error && <div className="p-5"><ErrorBlock error={q.error} /></div>}
         {q.data && !q.data.items.length && <EmptyState title="No assets" description="Add machines, vehicles, computers… to start depreciating them." />}
-        {!!q.data?.items.length && (
-          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Asset</th><th className="px-4 py-2 font-medium">Category</th><th className="px-4 py-2 font-medium">In use from</th><th className="px-4 py-2 text-right font-medium">Cost</th><th className="px-4 py-2 text-right font-medium">Depreciation</th><th className="px-4 py-2 text-right font-medium">Book value</th><th className="px-4 py-2 font-medium">Up to</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.items.map((a) => (
-                <tr key={a.id}>
-                  <td className="px-4 py-2"><Link href={`/assets/${a.id}`} className="font-medium hover:underline">{a.name}</Link><span className="block font-mono text-xs text-muted">{a.code}{a.location && ` · ${a.location}`}</span></td>
-                  <td className="px-4 py-2">{typeof a.category === "string" ? a.category : a.category.name}<span className="block text-xs text-muted">{a.method.toUpperCase()} · {Number(a.usefulLifeYears)} yrs</span></td>
-                  <td className="px-4 py-2">{formatDate(a.capitalisedOn)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatMoney(a.cost)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatMoney(a.accumulatedDepreciation)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatMoney(a.netBookValue)}</td>
-                  <td className="px-4 py-2">{a.status === "disposed" ? <Badge>Disposed {formatDate(a.disposedOn)}</Badge> : formatDate(a.depreciatedUntil)}</td>
-                </tr>
-              ))}
-            </tbody>
-            {status === "active" && (
-              <tfoot className="border-t-2 border-border font-semibold"><tr><td className="px-4 py-2" colSpan={3}>Total</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(q.data.totals.cost)}</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(q.data.totals.accumulated)}</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(q.data.totals.netBookValue)}</td><td /></tr></tfoot>
-            )}
-          </table></div>
+        {q.data && q.data.items.length > 0 && (
+          <DataTable
+            rows={q.data.items}
+            rowKey={(a) => a.id}
+            exportName="fixed-assets"
+            storageKey="assets-register"
+            totals={status === "active" ? { cost: formatMoney(q.data.totals.cost), depreciation: formatMoney(q.data.totals.accumulated), nbv: formatMoney(q.data.totals.netBookValue) } : undefined}
+            columns={[
+              { key: "asset", label: "Asset", locked: true, value: (a) => a.name, render: (a) => <><Link href={`/assets/${a.id}`} className="font-medium hover:underline">{a.name}</Link><span className="block font-mono text-xs text-muted">{a.code}{a.location && ` · ${a.location}`}</span></> },
+              { key: "category", label: "Category", value: (a) => (typeof a.category === "string" ? a.category : a.category.name), render: (a) => <>{typeof a.category === "string" ? a.category : a.category.name}<span className="block text-xs text-muted">{a.method.toUpperCase()} · {Number(a.usefulLifeYears)} yrs</span></> },
+              { key: "in-use-from", label: "In use from", value: (a) => a.capitalisedOn, render: (a) => formatDate(a.capitalisedOn) },
+              { key: "cost", label: "Cost", align: "right", value: (a) => Number(a.cost), render: (a) => formatMoney(a.cost) },
+              { key: "depreciation", label: "Depreciation", align: "right", value: (a) => Number(a.accumulatedDepreciation), render: (a) => formatMoney(a.accumulatedDepreciation) },
+              { key: "nbv", label: "Book value", align: "right", value: (a) => Number(a.netBookValue), render: (a) => formatMoney(a.netBookValue) },
+              { key: "up-to", label: "Up to", value: (a) => a.depreciatedUntil ?? "", render: (a) => (a.status === "disposed" ? <Badge>Disposed {formatDate(a.disposedOn)}</Badge> : formatDate(a.depreciatedUntil)) },
+            ]}
+          />
         )}
       </Card>
       <Card>

@@ -11,6 +11,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { todayIST } from "@/lib/documents";
 import { SVC } from "@/lib/service";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Report { byPriority: { priority: string; tickets: number; responsePct: number | null; resolutionPct: number | null; avgResolutionHours: number | null }[]; byCategory: { category: string; tickets: number }[]; backlog: { open: number; overdue: number; avgRating: number | null } }
 interface Settings { targets: Record<string, { response: number; resolution: number }>; businessHours: { start: string; end: string; days: number[] } | null; escalateToId: string | null; defaultWarrantyMonths: number }
@@ -41,21 +42,20 @@ export default function SlaPage() {
             <Card className="px-5 py-4"><p className="text-xs uppercase text-muted">Customer rating</p><p className="text-2xl font-semibold">{r.data.backlog.avgRating ?? "–"}</p></Card>
           </div>
           <Card>
-            <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Priority</th><th className="px-4 py-2 text-right font-medium">Tickets</th><th className="px-4 py-2 font-medium">Response met</th><th className="px-4 py-2 font-medium">Resolution met</th><th className="px-4 py-2 text-right font-medium">Average time to resolve</th></tr></thead>
-              <tbody className="divide-y divide-border">
-                {r.data.byPriority.map((p) => (
-                  <tr key={p.priority}>
-                    <td className="px-4 py-2 capitalize">{p.priority}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{p.tickets}</td>
-                    <td className="px-4 py-2"><Badge tone={tone(p.responsePct)}>{p.responsePct === null ? "–" : `${p.responsePct} %`}</Badge></td>
-                    <td className="px-4 py-2"><Badge tone={tone(p.resolutionPct)}>{p.resolutionPct === null ? "–" : `${p.resolutionPct} %`}</Badge></td>
-                    <td className="px-4 py-2 text-right tabular-nums">{p.avgResolutionHours === null ? "–" : `${p.avgResolutionHours} h`}</td>
-                  </tr>
-                ))}
-                {!r.data.byPriority.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No tickets in this period.</td></tr>}
-              </tbody>
-            </table></div>
+            <DataTable
+              rows={r.data.byPriority}
+              rowKey={(p) => String(p.priority)}
+              exportName="service-sla"
+              storageKey="service-sla-0"
+              empty={<p className="px-4 py-6 text-center text-sm text-muted">No tickets in this period.</p>}
+              columns={[
+                { key: "priority", label: "Priority", locked: true, className: "capitalize whitespace-normal", render: (p) => <>{p.priority}</> },
+                { key: "tickets", label: "Tickets", align: "right", render: (p) => <>{p.tickets}</> },
+                { key: "response-met", label: "Response met", className: "whitespace-normal", render: (p) => <><Badge tone={tone(p.responsePct)}>{p.responsePct === null ? "–" : `${p.responsePct} %`}</Badge></> },
+                { key: "resolution-met", label: "Resolution met", className: "whitespace-normal", render: (p) => <><Badge tone={tone(p.resolutionPct)}>{p.resolutionPct === null ? "–" : `${p.resolutionPct} %`}</Badge></> },
+                { key: "average-time-to-resolve", label: "Average time to resolve", align: "right", render: (p) => <>{p.avgResolutionHours === null ? "–" : `${p.avgResolutionHours} h`}</> },
+              ]}
+            />
             {r.data.byCategory.length > 0 && <p className="border-t border-border px-4 py-2 text-xs text-muted">By category: {r.data.byCategory.map((c) => `${c.category} ${c.tickets}`).join(" · ")}</p>}
           </Card>
         </>

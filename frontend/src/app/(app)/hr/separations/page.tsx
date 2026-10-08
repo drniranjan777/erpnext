@@ -17,6 +17,7 @@ import { HR } from "@/lib/hr";
 import { inr } from "@/lib/payroll";
 import { SEP_TONE, type SettlementLine } from "@/lib/talent";
 import { askConfirm } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Sep { id: string; kind: string; noticeDate: string; lastWorkingDay: string; reason: string; status: keyof typeof SEP_TONE; noticeShortfallDays: number; waiveShortfall: boolean; journalId: string | null; employeeId: string; code: string; fullName: string; department: string | null; pendingTasks: number }
 interface Settlement { serviceDays?: number; earnings: SettlementLine[]; deductions: SettlementLine[]; net: string; checks: string[]; note?: string | null }
@@ -59,28 +60,25 @@ export default function SeparationsPage() {
           {q.error && <ErrorBlock error={q.error} />}
           {q.data && (
             <Card>
-              <div className="overflow-x-auto"><table className="w-full text-sm">
-                <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Employee</th><th className="px-4 py-2 font-medium">Kind</th><th className="px-4 py-2 font-medium">Notice · last day</th><th className="px-4 py-2 font-medium">Short notice</th><th className="px-4 py-2 font-medium">Status</th><th /></tr></thead>
-                <tbody className="divide-y divide-border">
-                  {q.data.map((s) => (
-                    <tr key={s.id}>
-                      <td className="px-4 py-2"><Link className="font-medium hover:underline" href={`${HR}/employees/${s.employeeId}`}>{s.fullName}</Link><span className="block text-xs text-muted">{s.reason}</span></td>
-                      <td className="px-4 py-2 capitalize">{s.kind}</td>
-                      <td className="px-4 py-2">{formatDate(s.noticeDate)} · {formatDate(s.lastWorkingDay)}</td>
-                      <td className="px-4 py-2">{s.noticeShortfallDays ? `${s.noticeShortfallDays} days${s.waiveShortfall ? " (waived)" : ""}` : "–"}</td>
-                      <td className="px-4 py-2"><Badge tone={SEP_TONE[s.status]}>{s.status === "accepted" ? "serving notice" : s.status}</Badge>{s.pendingTasks > 0 && <span className="ml-1 text-xs text-warning">{s.pendingTasks} clearance pending</span>}</td>
-                      <td className="px-4 py-2 text-right">
-                        <span className="inline-flex gap-1">
-                          {s.status === "requested" && can("hr.exit.manage") && <Button size="sm" variant="secondary" onClick={() => setDlg({ kind: "accept", s })}><Check className="size-3.5" aria-hidden /> Accept</Button>}
-                          {(s.status === "accepted" || s.status === "settled") && <Button size="sm" variant="secondary" onClick={() => setDlg({ kind: "ff", s })}><Calculator className="size-3.5" aria-hidden /> F&F</Button>}
-                          {["requested", "accepted"].includes(s.status) && can("hr.exit.manage") && <Button size="sm" variant="ghost" aria-label="Withdraw" onClick={() => withdraw(s.id)}><Undo2 className="size-3.5" aria-hidden /></Button>}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {!q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No separations.</td></tr>}
-                </tbody>
-              </table></div>
+              <DataTable
+                rows={q.data}
+                rowKey={(s) => String(s.id)}
+                exportName="hr-separations"
+                storageKey="hr-separations-0"
+                empty={<p className="px-4 py-6 text-center text-sm text-muted">No separations.</p>}
+                columns={[
+                  { key: "employee", label: "Employee", locked: true, className: "whitespace-normal", render: (s) => <><Link className="font-medium hover:underline" href={`${HR}/employees/${s.employeeId}`}>{s.fullName}</Link><span className="block text-xs text-muted">{s.reason}</span></> },
+                  { key: "kind", label: "Kind", className: "capitalize whitespace-normal", render: (s) => <>{s.kind}</> },
+                  { key: "notice-last-day", label: "Notice · last day", className: "whitespace-normal", render: (s) => <>{formatDate(s.noticeDate)} · {formatDate(s.lastWorkingDay)}</> },
+                  { key: "short-notice", label: "Short notice", className: "whitespace-normal", render: (s) => <>{s.noticeShortfallDays ? `${s.noticeShortfallDays} days${s.waiveShortfall ? " (waived)" : ""}` : "–"}</> },
+                  { key: "status", label: "Status", className: "whitespace-normal", render: (s) => <><Badge tone={SEP_TONE[s.status]}>{s.status === "accepted" ? "serving notice" : s.status}</Badge>{s.pendingTasks > 0 && <span className="ml-1 text-xs text-warning">{s.pendingTasks} clearance pending</span>}</> },
+                  { key: "col5", label: "", align: "right", noSort: true, render: (s) => <><span className="inline-flex gap-1">
+                                          {s.status === "requested" && can("hr.exit.manage") && <Button size="sm" variant="secondary" onClick={() => setDlg({ kind: "accept", s })}><Check className="size-3.5" aria-hidden /> Accept</Button>}
+                                          {(s.status === "accepted" || s.status === "settled") && <Button size="sm" variant="secondary" onClick={() => setDlg({ kind: "ff", s })}><Calculator className="size-3.5" aria-hidden /> F&F</Button>}
+                                          {["requested", "accepted"].includes(s.status) && can("hr.exit.manage") && <Button size="sm" variant="ghost" aria-label="Withdraw" onClick={() => withdraw(s.id)}><Undo2 className="size-3.5" aria-hidden /></Button>}
+                                        </span></> },
+                ]}
+              />
             </Card>
           )}
         </>

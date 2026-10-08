@@ -9,6 +9,7 @@ import { Input, Select } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Company { id: string; name: string }
 interface Member { companyId: string; ownershipPct: number; investmentCost: number; acquiredOn: string }
@@ -87,10 +88,20 @@ export default function ConsolidationPage() {
           </div>
           <Card>
             <CardHeader title="Subsidiaries" />
-            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-              <thead className="bg-surface-muted text-xs text-muted"><tr><th className="px-4 py-1.5 text-left">Company</th><th className="px-4 py-1.5 text-right">Held</th><th className="px-4 py-1.5 text-right">Goodwill / (capital reserve)</th><th className="px-4 py-1.5 text-right">Group share since acquisition</th><th className="px-4 py-1.5 text-right">NCI</th><th className="px-4 py-1.5 text-right">NCI in profit</th></tr></thead>
-              <tbody className="divide-y divide-border">{r.subsidiaries.map((s) => <tr key={s.name}><td className="px-4 py-1.5">{s.name}</td><td className="px-4 py-1.5 text-right">{s.ownershipPct} %</td><td className="px-4 py-1.5 text-right tabular-nums">{inr(s.goodwill)}</td><td className="px-4 py-1.5 text-right tabular-nums">{inr(s.postAcquisitionShare)}</td><td className="px-4 py-1.5 text-right tabular-nums">{inr(s.nci)}</td><td className="px-4 py-1.5 text-right tabular-nums">{inr(s.nciProfit)}</td></tr>)}</tbody>
-            </table></div>
+            <DataTable
+              rows={r.subsidiaries}
+              rowKey={(s) => String(s.name)}
+              exportName="accounting-consolidation"
+              storageKey="accounting-consolidation-0"
+              columns={[
+                { key: "company", label: "Company", locked: true, className: "whitespace-normal", render: (s) => <>{s.name}</> },
+                { key: "held", label: "Held", align: "right", render: (s) => <>{s.ownershipPct} %</> },
+                { key: "goodwill-capital-reserve", label: "Goodwill / (capital reserve)", align: "right", render: (s) => <>{inr(s.goodwill)}</> },
+                { key: "group-share-since-acquisition", label: "Group share since acquisition", align: "right", render: (s) => <>{inr(s.postAcquisitionShare)}</> },
+                { key: "nci", label: "NCI", align: "right", render: (s) => <>{inr(s.nci)}</> },
+                { key: "nci-in-profit", label: "NCI in profit", align: "right", render: (s) => <>{inr(s.nciProfit)}</> },
+              ]}
+            />
           </Card>
         </>
       )}

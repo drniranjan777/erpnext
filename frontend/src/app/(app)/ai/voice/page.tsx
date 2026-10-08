@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api } from "@/lib/api";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Stats {
   days: number;
@@ -39,13 +40,19 @@ export default function VoiceStatsPage() {
       )}
       <Card>
         <CardHeader title="Use in the last 30 days" description={`Speech recognition languages: ${s.languages.map((l) => l.name).join(", ")}. Commands in languages other than English and Hindi are understood when an AI key is set.`} />
-        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-          <thead className="text-left text-xs text-muted"><tr><th className="px-4 py-2">Language</th><th className="px-4 py-2">Command</th><th className="px-4 py-2">Outcome</th><th className="px-4 py-2 text-right">Times</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {s.byOutcome.map((r, i) => <tr key={i}><td className="px-4 py-1.5">{r.lang}</td><td className="px-4 py-1.5">{r.command ?? "question"}</td><td className="px-4 py-1.5">{r.outcome}</td><td className="px-4 py-1.5 text-right tabular-nums">{r.n}</td></tr>)}
-            {!s.byOutcome.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No voice commands yet.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={s.byOutcome}
+          rowKey={(_r, i) => String(i)}
+          exportName="ai-voice"
+          storageKey="ai-voice-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No voice commands yet.</p>}
+          columns={[
+            { key: "language", label: "Language", locked: true, className: "whitespace-normal", render: (r) => <>{r.lang}</> },
+            { key: "command", label: "Command", className: "whitespace-normal", render: (r) => <>{r.command ?? "question"}</> },
+            { key: "outcome", label: "Outcome", className: "whitespace-normal", render: (r) => <>{r.outcome}</> },
+            { key: "times", label: "Times", align: "right", render: (r) => <>{r.n}</> },
+          ]}
+        />
       </Card>
     </div>
   );

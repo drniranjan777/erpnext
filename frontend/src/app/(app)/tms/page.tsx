@@ -14,6 +14,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, formatQty, todayIST } from "@/lib/documents";
 import { TMS, TRIP_TONE } from "@/lib/tms";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; number: string; tripDate: string; status: string; vehicleNo: string; vehicleType: string | null; driverName: string | null; transporter: string | null; weightKg: string | null; freightAmount: string | null; stops: number; delivered: number; lastSeen: string | null }
 interface Unplanned { id: string; number: string; docDate: string; customer: string; city: string | null; grossWeightKg: string | null; packages: number | null; warehouse: string | null }
@@ -31,23 +32,22 @@ export default function TripsPage() {
       {planning && <Plan onDone={() => setPlanning(false)} />}
       <Input className="h-9 w-44" type="date" aria-label="From" value={from} onChange={(e) => setFrom(e.target.value)} />
       <Card>
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Trip</th><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Vehicle</th><th className="px-4 py-2 font-medium">Drops</th><th className="px-4 py-2 text-right font-medium">Weight</th><th className="px-4 py-2 text-right font-medium">Freight</th><th className="px-4 py-2 font-medium" /></tr></thead>
-          <tbody className="divide-y divide-border">
-            {q.data?.map((t) => (
-              <tr key={t.id}>
-                <td className="px-4 py-2"><Link className="font-mono text-primary hover:underline" href={`${TMS}/trips/${t.id}`}>{t.number}</Link></td>
-                <td className="px-4 py-2">{formatDate(t.tripDate)}</td>
-                <td className="px-4 py-2">{t.vehicleNo}<span className="block text-xs text-muted">{[t.vehicleType, t.transporter, t.driverName].filter(Boolean).join(" · ")}</span></td>
-                <td className="px-4 py-2">{t.delivered}/{t.stops}{t.lastSeen && <span className="block text-xs text-muted">seen {new Date(t.lastSeen).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</span>}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{t.weightKg ? `${formatQty(t.weightKg)} kg` : "–"}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{t.freightAmount ? formatMoney(t.freightAmount) : "–"}</td>
-                <td className="px-4 py-2 text-right"><Badge tone={TRIP_TONE[t.status]}>{t.status}</Badge></td>
-              </tr>
-            ))}
-            {q.data && !q.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No trips.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={q.data ?? []}
+          rowKey={(t) => String(t.id)}
+          exportName="tms"
+          storageKey="tms-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No trips.</p>}
+          columns={[
+            { key: "trip", label: "Trip", locked: true, className: "whitespace-normal", render: (t) => <><Link className="font-mono text-primary hover:underline" href={`${TMS}/trips/${t.id}`}>{t.number}</Link></> },
+            { key: "date", label: "Date", className: "whitespace-normal", render: (t) => <>{formatDate(t.tripDate)}</> },
+            { key: "vehicle", label: "Vehicle", className: "whitespace-normal", render: (t) => <>{t.vehicleNo}<span className="block text-xs text-muted">{[t.vehicleType, t.transporter, t.driverName].filter(Boolean).join(" · ")}</span></> },
+            { key: "drops", label: "Drops", className: "whitespace-normal", render: (t) => <>{t.delivered}/{t.stops}{t.lastSeen && <span className="block text-xs text-muted">seen {new Date(t.lastSeen).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</span>}</> },
+            { key: "weight", label: "Weight", align: "right", render: (t) => <>{t.weightKg ? `${formatQty(t.weightKg)} kg` : "–"}</> },
+            { key: "freight", label: "Freight", align: "right", render: (t) => <>{t.freightAmount ? formatMoney(t.freightAmount) : "–"}</> },
+            { key: "col6", label: "", align: "right", noSort: true, render: (t) => <><Badge tone={TRIP_TONE[t.status]}>{t.status}</Badge></> },
+          ]}
+        />
       </Card>
     </div>
   );

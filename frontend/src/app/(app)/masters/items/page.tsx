@@ -18,6 +18,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatMoney, formatQty } from "@/lib/documents";
 import { ITEM_TYPES, useItemGroups, type ItemListRow } from "@/lib/masters";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function ItemsPage() {
   const { can } = useAuth();
@@ -149,76 +150,37 @@ export default function ItemsPage() {
         )}
         {rows.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Code</th>
-                  <th className="px-4 py-2.5 font-medium">Item</th>
-                  <th className="px-4 py-2.5 font-medium">Type</th>
-                  <th className="px-4 py-2.5 font-medium">HSN</th>
-                  <th className="px-4 py-2.5 text-right font-medium">GST</th>
-                  <th className="px-4 py-2.5 font-medium">Unit</th>
-                  <th className="px-4 py-2.5 text-right font-medium">
-                    Reorder at
-                  </th>
-                  <th className="px-4 py-2.5 text-right font-medium">
-                    Selling rate
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {rows.map((r) => (
-                  <tr key={r.id} className="hover:bg-surface-muted/60">
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Link
-                        href={`/masters/items/${r.id}`}
-                        className="font-mono font-medium text-primary hover:underline"
-                      >
-                        {r.code}
-                      </Link>
-                    </td>
-                    <td className="max-w-sm px-4 py-3">
-                      <p className="truncate">{r.name}</p>
-                      <p className="flex flex-wrap gap-1 text-xs text-muted">
-                        {r.group}
-                        {r.trackBatch && <Badge>Batch</Badge>}
-                        {r.trackSerial && <Badge>Serial</Badge>}
-                        {!r.isStockItem && <Badge>Non-stock</Badge>}
-                        {!r.isActive && <Badge tone="warning">Inactive</Badge>}
-                      </p>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">
-                      {ITEM_TYPES[r.type]}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs">
-                      {r.hsnCode ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {r.gstRate !== null ? `${Number(r.gstRate)}%` : "—"}
-                    </td>
-                    <td className="px-4 py-3">{r.baseUom}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {r.reorderLevel ? formatQty(r.reorderLevel) : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {r.sellingRate ? formatMoney(r.sellingRate) : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {list.hasNextPage && (
-          <div className="border-t border-border p-3 text-center">
-            <Button
-              variant="secondary"
-              size="sm"
-              loading={list.isFetchingNextPage}
-              onClick={() => list.fetchNextPage()}
-            >
-              Load more
-            </Button>
+            <DataTable
+              rows={rows}
+              hasMore={list.hasNextPage}
+              loadingMore={list.isFetchingNextPage}
+              onLoadMore={() => void list.fetchNextPage()}
+              rowKey={(r) => String(r.id)}
+              exportName="masters-items"
+              storageKey="masters-items-0"
+              columns={[
+                { key: "code", label: "Code", locked: true, render: (r) => <><Link
+                                      href={`/masters/items/${r.id}`}
+                                      className="font-mono font-medium text-primary hover:underline"
+                                    >
+                                      {r.code}
+                                    </Link></> },
+                { key: "item", label: "Item", className: "max-w-sm whitespace-normal", render: (r) => <><p className="truncate">{r.name}</p>
+                                    <p className="flex flex-wrap gap-1 text-xs text-muted">
+                                      {r.group}
+                                      {r.trackBatch && <Badge>Batch</Badge>}
+                                      {r.trackSerial && <Badge>Serial</Badge>}
+                                      {!r.isStockItem && <Badge>Non-stock</Badge>}
+                                      {!r.isActive && <Badge tone="warning">Inactive</Badge>}
+                                    </p></> },
+                { key: "type", label: "Type", className: "text-muted", render: (r) => <>{ITEM_TYPES[r.type]}</> },
+                { key: "hsn", label: "HSN", className: "font-mono text-xs whitespace-normal", render: (r) => <>{r.hsnCode ?? "—"}</> },
+                { key: "gst", label: "GST", align: "right", render: (r) => <>{r.gstRate !== null ? `${Number(r.gstRate)}%` : "—"}</> },
+                { key: "unit", label: "Unit", className: "whitespace-normal", render: (r) => <>{r.baseUom}</> },
+                { key: "reorder-at", label: "Reorder at", align: "right", render: (r) => <>{r.reorderLevel ? formatQty(r.reorderLevel) : "—"}</> },
+                { key: "selling-rate", label: "Selling rate", align: "right", render: (r) => <>{r.sellingRate ? formatMoney(r.sellingRate) : "—"}</> },
+              ]}
+            />
           </div>
         )}
       </Card>

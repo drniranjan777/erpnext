@@ -9,6 +9,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Branch, Company } from "@/lib/types";
 import { EditCompanyDialog } from "./edit-company";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function CompaniesPage() {
   const { can } = useAuth();
@@ -60,36 +61,26 @@ export default function CompaniesPage() {
             </dl>
             {own.length > 0 && (
               <div className="overflow-x-auto border-t border-border">
-                <table className="w-full text-sm">
-                  <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                    <tr>
-                      <th className="px-5 py-2.5 font-medium">Code</th>
-                      <th className="px-5 py-2.5 font-medium">Branch</th>
-                      <th className="px-5 py-2.5 font-medium">GSTIN</th>
-                      <th className="px-5 py-2.5 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {own.map((b) => (
-                      <tr key={b.id}>
-                        <td className="px-5 py-3 font-mono">{b.code}</td>
-                        <td className="px-5 py-3">{b.name}</td>
-                        <td className="px-5 py-3 font-mono">{b.gstin ?? "—"}</td>
-                        <td className="px-5 py-3">
-                          <span
-                            className={
-                              b.isActive
-                                ? "rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success"
-                                : "rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-muted"
-                            }
-                          >
-                            {b.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DataTable
+                  rows={own}
+                  rowKey={(b) => String(b.id)}
+                  exportName="settings-companies"
+                  storageKey="settings-companies-0"
+                  columns={[
+                    { key: "code", label: "Code", locked: true, className: "font-mono whitespace-normal", render: (b) => <>{b.code}</> },
+                    { key: "branch", label: "Branch", className: "whitespace-normal", render: (b) => <>{b.name}</> },
+                    { key: "gstin", label: "GSTIN", className: "font-mono whitespace-normal", render: (b) => <>{b.gstin ?? "—"}</> },
+                    { key: "status", label: "Status", className: "whitespace-normal", render: (b) => <><span
+                                              className={
+                                                b.isActive
+                                                  ? "rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success"
+                                                  : "rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-muted"
+                                              }
+                                            >
+                                              {b.isActive ? "Active" : "Inactive"}
+                                            </span></> },
+                  ]}
+                />
               </div>
             )}
           </Card>

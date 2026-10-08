@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate, todayIST } from "@/lib/documents";
 import { inr, PAY, type Component } from "@/lib/payroll";
 import { askConfirm } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 interface InputRow { id: string; employeeId: string; code: string; amount: string; remarks: string | null; empCode: string; fullName: string; name: string | null; kind: string | null }
 interface Loan { id: string; employeeId: string; code: string; fullName: string; kind: string; issuedOn: string; principal: string; emi: string; startMonth: string; recovered: string; outstanding: string; status: string }
@@ -85,23 +86,22 @@ export default function PayrollInputsPage() {
       {tab === "loans" && (
         <Card>
           {loans.isLoading && <LoadingBlock />}
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Employee</th><th className="px-4 py-2 font-medium">Given</th><th className="px-4 py-2 text-right font-medium">Amount</th><th className="px-4 py-2 text-right font-medium">Instalment</th><th className="px-4 py-2 text-right font-medium">Outstanding</th><th className="px-4 py-2 font-medium">Status</th><th /></tr></thead>
-            <tbody className="divide-y divide-border">
-              {loans.data?.map((l) => (
-                <tr key={l.id}>
-                  <td className="px-4 py-2"><span className="font-medium">{l.fullName}</span> <span className="text-xs text-muted">{l.kind}</span></td>
-                  <td className="px-4 py-2">{formatDate(l.issuedOn)}<span className="block text-xs text-muted">recovery from {l.startMonth}</span></td>
-                  <td className="px-4 py-2 text-right tabular-nums">{inr(l.principal)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{inr(l.emi)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{inr(l.outstanding)}</td>
-                  <td className="px-4 py-2"><Badge tone={l.status === "active" ? "primary" : "neutral"}>{l.status}</Badge></td>
-                  <td className="px-4 py-2 text-right">{manage && l.status === "active" && <Button size="sm" variant="ghost" aria-label="Close loan" onClick={async () => await askConfirm("Stop recovering this loan?") && run(() => api(`${PAY}/loans/${l.id}/close`, { body: {} }))}><X className="size-3.5" aria-hidden /></Button>}</td>
-                </tr>
-              ))}
-              {loans.data && !loans.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No loans or advances.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={loans.data ?? []}
+            rowKey={(l) => String(l.id)}
+            exportName="payroll-inputs"
+            storageKey="payroll-inputs-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No loans or advances.</p>}
+            columns={[
+              { key: "employee", label: "Employee", locked: true, className: "whitespace-normal", render: (l) => <><span className="font-medium">{l.fullName}</span> <span className="text-xs text-muted">{l.kind}</span></> },
+              { key: "given", label: "Given", className: "whitespace-normal", render: (l) => <>{formatDate(l.issuedOn)}<span className="block text-xs text-muted">recovery from {l.startMonth}</span></> },
+              { key: "amount", label: "Amount", align: "right", render: (l) => <>{inr(l.principal)}</> },
+              { key: "instalment", label: "Instalment", align: "right", render: (l) => <>{inr(l.emi)}</> },
+              { key: "outstanding", label: "Outstanding", align: "right", render: (l) => <>{inr(l.outstanding)}</> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (l) => <><Badge tone={l.status === "active" ? "primary" : "neutral"}>{l.status}</Badge></> },
+              { key: "col6", label: "", align: "right", noSort: true, render: (l) => <>{manage && l.status === "active" && <Button size="sm" variant="ghost" aria-label="Close loan" onClick={async () => await askConfirm("Stop recovering this loan?") && run(() => api(`${PAY}/loans/${l.id}/close`, { body: {} }))}><X className="size-3.5" aria-hidden /></Button>}</> },
+            ]}
+          />
           {manage && (
             <div className="flex flex-wrap items-end gap-2 border-t border-border p-4">
               {person("fl")}

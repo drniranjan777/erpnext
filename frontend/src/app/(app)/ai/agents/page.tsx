@@ -12,6 +12,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { AI, type AgentRow } from "@/lib/ai";
 import { askText } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Overview { killed: boolean; killReason: string | null; killedAt: string | null; agents: AgentRow[] }
 interface Eval { agentCode: string; kind: string; raised: number; accepted: number; dismissed: number; executed: number; failed: number; expired: number; open: number; auto: number; hoursToDecide: string | null; acceptancePct: number | null }
@@ -44,23 +45,22 @@ export default function AgentsPage() {
       </div>
       <Card>
         <CardHeader title="How the agents are doing (90 days)" description="Acceptance = approved or executed out of those decided. The target at pilots is 60 % or more." />
-        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Agent · finding</th><th className="px-4 py-2 text-right font-medium">Raised</th><th className="px-4 py-2 text-right font-medium">Done</th><th className="px-4 py-2 text-right font-medium">Dismissed</th><th className="px-4 py-2 text-right font-medium">Expired</th><th className="px-4 py-2 text-right font-medium">Accepted</th><th className="px-4 py-2 text-right font-medium">Hours to decide</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {ev.data?.map((e) => (
-              <tr key={`${e.agentCode}-${e.kind}`}>
-                <td className="px-4 py-2">{e.agentCode} · {e.kind.replace(/_/g, " ")}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{e.raised}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{e.accepted + e.executed}{e.auto ? ` (${e.auto} auto)` : ""}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{e.dismissed}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{e.expired}</td>
-                <td className="px-4 py-2 text-right">{e.acceptancePct === null ? "–" : <Badge tone={e.acceptancePct >= 60 ? "success" : e.acceptancePct >= 40 ? "warning" : "danger"}>{e.acceptancePct} %</Badge>}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{e.hoursToDecide ?? "–"}</td>
-              </tr>
-            ))}
-            {ev.data && !ev.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No recommendations yet.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={ev.data ?? []}
+          rowKey={(e) => String(`${e.agentCode}-${e.kind}`)}
+          exportName="ai-agents"
+          storageKey="ai-agents-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No recommendations yet.</p>}
+          columns={[
+            { key: "agent-finding", label: "Agent · finding", locked: true, className: "whitespace-normal", render: (e) => <>{e.agentCode} · {e.kind.replace(/_/g, " ")}</> },
+            { key: "raised", label: "Raised", align: "right", render: (e) => <>{e.raised}</> },
+            { key: "done", label: "Done", align: "right", render: (e) => <>{e.accepted + e.executed}{e.auto ? ` (${e.auto} auto)` : ""}</> },
+            { key: "dismissed", label: "Dismissed", align: "right", render: (e) => <>{e.dismissed}</> },
+            { key: "expired", label: "Expired", align: "right", render: (e) => <>{e.expired}</> },
+            { key: "accepted", label: "Accepted", align: "right", render: (e) => <>{e.acceptancePct === null ? "–" : <Badge tone={e.acceptancePct >= 60 ? "success" : e.acceptancePct >= 40 ? "warning" : "danger"}>{e.acceptancePct} %</Badge>}</> },
+            { key: "hours-to-decide", label: "Hours to decide", align: "right", render: (e) => <>{e.hoursToDecide ?? "–"}</> },
+          ]}
+        />
       </Card>
       <Card>
         <CardHeader title="Recent runs" />

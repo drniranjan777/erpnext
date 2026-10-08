@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/ui/page";
 import { formatDate } from "@/lib/documents";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; code: string; itemCode: string; itemName: string; batchNo: string; kind: string; temperatureC: number; humidityPct: number | null; startDate: string; status: string; oos: number; nextPull: { timePoint: number; pullDate: string } | null; overdue: number }
 
@@ -35,21 +36,20 @@ export default function StabilityPage() {
     <div className="mx-auto max-w-6xl space-y-4">
       <PageHeader title="Stability studies" description="Each study is a batch at one storage condition with its time points and tests. Results outside specification raise an OOS deviation; the shelf life the data supports is worked out as ICH Q1E describes." actions={can("pharma.stability.manage") && <Button onClick={() => setCreating(true)}><Plus className="size-4" aria-hidden /> New study</Button>} />
       <Card>
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Study</th><th className="px-4 py-2 font-medium">Product · batch</th><th className="px-4 py-2 font-medium">Condition</th><th className="px-4 py-2 font-medium">Next pull</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {list.data?.map((r) => (
-              <tr key={r.id}>
-                <td className="px-4 py-2"><Link className="font-medium text-primary hover:underline" href={`/pharma/stability/${r.id}`}>{r.code}</Link><span className="block text-xs text-muted">{KIND[r.kind]} · from {formatDate(r.startDate)}</span></td>
-                <td className="px-4 py-2">{r.itemCode} · {r.itemName}<span className="block text-xs text-muted">batch {r.batchNo}</span></td>
-                <td className="px-4 py-2">{r.temperatureC} °C{r.humidityPct ? ` / ${r.humidityPct} % RH` : ""}</td>
-                <td className="px-4 py-2">{r.nextPull ? `${r.nextPull.timePoint} M · ${formatDate(r.nextPull.pullDate)}` : "–"}{r.overdue > 0 && <Badge tone="danger" className="ml-1">{r.overdue} overdue</Badge>}</td>
-                <td className="px-4 py-2"><Badge tone={r.status === "active" ? "success" : "neutral"}>{r.status}</Badge>{r.oos > 0 && <Badge tone="danger" className="ml-1">{r.oos} OOS</Badge>}</td>
-              </tr>
-            ))}
-            {list.data && !list.data.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">No studies yet.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={list.data ?? []}
+          rowKey={(r) => String(r.id)}
+          exportName="pharma-stability"
+          storageKey="pharma-stability-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No studies yet.</p>}
+          columns={[
+            { key: "study", label: "Study", locked: true, className: "whitespace-normal", render: (r) => <><Link className="font-medium text-primary hover:underline" href={`/pharma/stability/${r.id}`}>{r.code}</Link><span className="block text-xs text-muted">{KIND[r.kind]} · from {formatDate(r.startDate)}</span></> },
+            { key: "product-batch", label: "Product · batch", className: "whitespace-normal", render: (r) => <>{r.itemCode} · {r.itemName}<span className="block text-xs text-muted">batch {r.batchNo}</span></> },
+            { key: "condition", label: "Condition", className: "whitespace-normal", render: (r) => <>{r.temperatureC} °C{r.humidityPct ? ` / ${r.humidityPct} % RH` : ""}</> },
+            { key: "next-pull", label: "Next pull", className: "whitespace-normal", render: (r) => <>{r.nextPull ? `${r.nextPull.timePoint} M · ${formatDate(r.nextPull.pullDate)}` : "–"}{r.overdue > 0 && <Badge tone="danger" className="ml-1">{r.overdue} overdue</Badge>}</> },
+            { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <><Badge tone={r.status === "active" ? "success" : "neutral"}>{r.status}</Badge>{r.oos > 0 && <Badge tone="danger" className="ml-1">{r.oos} OOS</Badge>}</> },
+          ]}
+        />
       </Card>
       {creating && <NewStudy onClose={() => setCreating(false)} />}
     </div>

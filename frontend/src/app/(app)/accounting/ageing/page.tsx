@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { ACC } from "@/lib/accounting";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, todayIST } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Ageing {
   labels: string[];
@@ -65,41 +66,38 @@ export default function AgeingPage() {
         {q.isLoading && <LoadingBlock />}
         {q.error && <div className="p-5"><ErrorBlock error={q.error} /></div>}
         {d && !d.parties.length && <EmptyState title="Nothing outstanding" />}
-        {!!d?.parties.length && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">{side === "receivable" ? "Customer" : "Vendor"}</th>
-                  {d.labels.map((l) => <th key={l} className="px-3 py-2.5 text-right font-medium">{l}</th>)}
-                  <th className="px-3 py-2.5 text-right font-medium">Total</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Advance</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {d.parties.map((p) => (
-                  <tr key={p.partyId}>
-                    <td className="px-4 py-2.5">
-                      <Link href={`${ACC}/statement/${p.partyId}`} className="font-medium hover:underline">{p.name}</Link>
-                      {p.msme && ["micro", "small"].includes(p.msme) && <Badge tone="warning" className="ml-2">MSME {p.msme}</Badge>}
-                      <p className="text-xs text-muted">{p.bills} bill(s){p.oldestDue && ` · oldest due ${formatDate(p.oldestDue)}`}</p>
-                    </td>
-                    {p.buckets.map((b, i) => <td key={i} className={`px-3 py-2.5 text-right tabular-nums ${i >= 2 && Number(b) ? "text-danger" : ""}`}>{Number(b) ? formatMoney(b) : "—"}</td>)}
-                    <td className="px-3 py-2.5 text-right font-medium tabular-nums">{formatMoney(p.total)}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-muted">{Number(p.advance) ? formatMoney(p.advance) : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="border-t-2 border-border font-semibold">
-                <tr>
-                  <td className="px-4 py-2.5">Total</td>
-                  {d.totals.buckets.map((b, i) => <td key={i} className="px-3 py-2.5 text-right tabular-nums">{formatMoney(b)}</td>)}
-                  <td className="px-3 py-2.5 text-right tabular-nums">{formatMoney(d.totals.total)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{formatMoney(d.totals.advance)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+        {d && d.parties.length > 0 && (
+          <DataTable
+            rows={d.parties}
+            rowKey={(p) => p.partyId}
+            exportName={`ageing-${side}`}
+            storageKey="accounting-ageing"
+            totals={{ ...Object.fromEntries(d.totals.buckets.map((b, i) => [`b${i}`, formatMoney(b)])), total: formatMoney(d.totals.total), advance: formatMoney(d.totals.advance) }}
+            columns={[
+              {
+                key: "party",
+                label: side === "receivable" ? "Customer" : "Vendor",
+                locked: true,
+                value: (p) => p.name,
+                render: (p) => (
+                  <>
+                    <Link href={`${ACC}/statement/${p.partyId}`} className="font-medium hover:underline">{p.name}</Link>
+                    {p.msme && ["micro", "small"].includes(p.msme) && <Badge tone="warning" className="ml-2">MSME {p.msme}</Badge>}
+                    <p className="text-xs text-muted">{p.bills} bill(s){p.oldestDue && ` · oldest due ${formatDate(p.oldestDue)}`}</p>
+                  </>
+                ),
+              },
+              ...d.labels.map((l, i) => ({
+                key: `b${i}`,
+                label: l,
+                align: "right" as const,
+                value: (p: (typeof d.parties)[number]) => Number(p.buckets[i]),
+                render: (p: (typeof d.parties)[number]) => <span className={i >= 2 && Number(p.buckets[i]) ? "text-danger" : undefined}>{Number(p.buckets[i]) ? formatMoney(p.buckets[i]) : "—"}</span>,
+              })),
+              { key: "total", label: "Total", align: "right", className: "font-medium", value: (p) => Number(p.total), render: (p) => formatMoney(p.total) },
+              { key: "advance", label: "Advance", align: "right", className: "text-muted", value: (p) => Number(p.advance), render: (p) => (Number(p.advance) ? formatMoney(p.advance) : "—") },
+            ]}
+          />
         )}
       </Card>
       {side === "receivable" && (

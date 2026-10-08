@@ -9,6 +9,7 @@ import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api } from "@/lib/api";
 import { formatDate, formatMoney } from "@/lib/documents";
 import { MFG } from "@/lib/manufacturing";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Group { key: string; processed: number; rejected: number; cost: number; rate: number }
 interface Report {
@@ -117,14 +118,19 @@ export default function ScrapPage() {
           {r.supplier.length > 0 && (
             <Card>
               <CardHeader title="Suppliers" description="Incoming inspection" />
-              <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-                <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Vendor</th><th className="px-4 py-2 text-right font-medium">Lots</th><th className="px-4 py-2 text-right font-medium">Inspected</th><th className="px-4 py-2 text-right font-medium">Rejected</th><th className="px-4 py-2 text-right font-medium">Rate</th></tr></thead>
-                <tbody className="divide-y divide-border">
-                  {r.supplier.map((s) => (
-                    <tr key={s.vendor}><td className="px-4 py-2">{s.vendor}</td><td className="px-4 py-2 text-right tabular-nums">{s.lots}</td><td className="px-4 py-2 text-right tabular-nums">{n(s.inspected)}</td><td className="px-4 py-2 text-right tabular-nums">{n(s.rejected)}</td><td className={`px-4 py-2 text-right tabular-nums ${s.rate > 5 ? "font-semibold text-danger" : ""}`}>{s.rate}%</td></tr>
-                  ))}
-                </tbody>
-              </table></div>
+              <DataTable
+                rows={r.supplier}
+                rowKey={(s) => String(s.vendor)}
+                exportName="manufacturing-scrap"
+                storageKey="manufacturing-scrap-0"
+                columns={[
+                  { key: "vendor", label: "Vendor", locked: true, className: "whitespace-normal", render: (s) => <>{s.vendor}</> },
+                  { key: "lots", label: "Lots", align: "right", render: (s) => <>{s.lots}</> },
+                  { key: "inspected", label: "Inspected", align: "right", render: (s) => <>{n(s.inspected)}</> },
+                  { key: "rejected", label: "Rejected", align: "right", render: (s) => <>{n(s.rejected)}</> },
+                  { key: "rate", label: "Rate", align: "right", render: (s) => <><span className={`${s.rate > 5 ? "font-semibold text-danger" : ""}`}>{s.rate}%</span></> },
+                ]}
+              />
             </Card>
           )}
         </>

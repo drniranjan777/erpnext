@@ -12,6 +12,7 @@ import { PageHeader, timeAgo } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Gateway } from "@/lib/iot";
+import { DataTable } from "@/components/ui/data-table";
 
 /** Edge gateways: register one, copy its token into the agent, watch its health. */
 export default function GatewaysPage() {
@@ -57,34 +58,27 @@ export default function GatewaysPage() {
       )}
       <Card>
         <CardHeader title="Gateways" />
-        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-            <tr><th className="px-4 py-2 font-medium">Gateway</th><th className="px-4 py-2 font-medium">Health</th><th className="px-4 py-2 text-right font-medium">Signals</th><th className="px-4 py-2 font-medium">Agent</th><th className="px-4 py-2" /></tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {list.data?.map((g) => (
-              <tr key={g.id}>
-                <td className="px-4 py-2"><p className="font-medium">{g.code} · {g.name}</p><p className="text-xs text-muted">{g.location ?? ""} {g.tokenHint ? `· token …${g.tokenHint}` : ""}</p></td>
-                <td className="px-4 py-2">
-                  {g.status === "disabled" ? <Badge tone="neutral">disabled</Badge> : g.online ? <Badge tone="success">online</Badge> : <Badge tone="danger">{g.lastSeenAt ? `offline, seen ${timeAgo(g.lastSeenAt)}` : "never connected"}</Badge>}
-                  {g.buffered > 0 && <Badge tone="warning" className="ml-1">{g.buffered} buffered</Badge>}
-                  <p className="text-xs text-muted">{g.batchesLastHour} batches in the last hour{g.lastIp ? ` · ${g.lastIp}` : ""}</p>
-                </td>
-                <td className="px-4 py-2 text-right tabular-nums">{g.signals}</td>
-                <td className="px-4 py-2 text-xs">{g.agentVersion ?? "–"}</td>
-                <td className="px-4 py-2 text-right">
-                  {manage && (
-                    <span className="flex justify-end gap-1">
-                      <Button size="sm" variant="ghost" loading={busy} onClick={() => run(() => api(`/iot/gateways/${g.id}/token`, { body: {} }))}>New token</Button>
-                      <Button size="sm" variant="ghost" loading={busy} onClick={() => run(() => api(`/iot/gateways/${g.id}/status`, { body: { status: g.status === "disabled" ? "active" : "disabled" } }))}>{g.status === "disabled" ? "Enable" : "Disable"}</Button>
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {list.data && !list.data.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">No gateways yet.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={list.data ?? []}
+          rowKey={(g) => String(g.id)}
+          exportName="iot-gateways"
+          storageKey="iot-gateways-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No gateways yet.</p>}
+          columns={[
+            { key: "gateway", label: "Gateway", locked: true, className: "whitespace-normal", render: (g) => <><p className="font-medium">{g.code} · {g.name}</p><p className="text-xs text-muted">{g.location ?? ""} {g.tokenHint ? `· token …${g.tokenHint}` : ""}</p></> },
+            { key: "health", label: "Health", className: "whitespace-normal", render: (g) => <>{g.status === "disabled" ? <Badge tone="neutral">disabled</Badge> : g.online ? <Badge tone="success">online</Badge> : <Badge tone="danger">{g.lastSeenAt ? `offline, seen ${timeAgo(g.lastSeenAt)}` : "never connected"}</Badge>}
+                            {g.buffered > 0 && <Badge tone="warning" className="ml-1">{g.buffered} buffered</Badge>}
+                            <p className="text-xs text-muted">{g.batchesLastHour} batches in the last hour{g.lastIp ? ` · ${g.lastIp}` : ""}</p></> },
+            { key: "signals", label: "Signals", align: "right", render: (g) => <>{g.signals}</> },
+            { key: "agent", label: "Agent", className: "text-xs whitespace-normal", render: (g) => <>{g.agentVersion ?? "–"}</> },
+            { key: "col4", label: "", align: "right", noSort: true, render: (g) => <>{manage && (
+                              <span className="flex justify-end gap-1">
+                                <Button size="sm" variant="ghost" loading={busy} onClick={() => run(() => api(`/iot/gateways/${g.id}/token`, { body: {} }))}>New token</Button>
+                                <Button size="sm" variant="ghost" loading={busy} onClick={() => run(() => api(`/iot/gateways/${g.id}/status`, { body: { status: g.status === "disabled" ? "active" : "disabled" } }))}>{g.status === "disabled" ? "Enable" : "Disable"}</Button>
+                              </span>
+                            )}</> },
+          ]}
+        />
       </Card>
       <Card>
         <CardHeader title="Running the agent" />

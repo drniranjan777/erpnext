@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; poNo: string; buyer: string; styleNo: string; exFactory: string; status: string; qty: number; value: number; currency: string; late: number; next: { label: string; due: string; state: string } | null; missingCertificates: string[] }
 interface Pack { id: string; styleNo: string; description: string; status: string }
@@ -29,23 +30,22 @@ export default function BuyerOrdersPage() {
     <div className="mx-auto max-w-6xl space-y-4">
       <PageHeader title="Buyer orders" description="Export orders by style with the size × colour breakdown, the time-and-action calendar worked back from ex-factory, and the certificates the buyer requires." actions={can("textile.orders.manage") && <Button onClick={() => setCreating(true)}><Plus className="size-4" aria-hidden /> New order</Button>} />
       <Card className="overflow-x-auto">
-        <table className="w-full min-w-[800px] text-sm">
-          <thead className="bg-surface-muted text-left text-xs text-muted"><tr><th className="px-3 py-2">PO</th><th className="px-3 py-2">Buyer</th><th className="px-3 py-2">Style</th><th className="px-3 py-2 text-right">Qty</th><th className="px-3 py-2 text-right">Value</th><th className="px-3 py-2">Ex-factory</th><th className="px-3 py-2">Next</th><th className="px-3 py-2" /></tr></thead>
-          <tbody className="divide-y divide-border">
-            {list.data?.map((r) => (
-              <tr key={r.id} className="hover:bg-surface-muted">
-                <td className="px-3 py-2"><Link className="font-medium text-primary hover:underline" href={`/textile/orders/${r.id}`}>{r.poNo}</Link></td>
-                <td className="px-3 py-2">{r.buyer}</td>
-                <td className="px-3 py-2">{r.styleNo}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{r.qty.toLocaleString("en-IN")}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{r.currency} {r.value.toLocaleString("en-IN")}</td>
-                <td className="px-3 py-2">{formatDate(r.exFactory)}</td>
-                <td className="px-3 py-2 text-xs">{r.status === "shipped" ? "Shipped" : r.next ? `${r.next.label} by ${formatDate(r.next.due)}` : ""}</td>
-                <td className="px-3 py-2">{r.late > 0 && <Badge tone="danger">{r.late} late</Badge>} {r.missingCertificates.length > 0 && <Badge tone="warning">needs {r.missingCertificates.join(", ").toUpperCase()}</Badge>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          rows={list.data ?? []}
+          rowKey={(r) => String(r.id)}
+          exportName="textile-orders"
+          storageKey="textile-orders-0"
+          columns={[
+            { key: "po", label: "PO", locked: true, className: "whitespace-normal", render: (r) => <><Link className="font-medium text-primary hover:underline" href={`/textile/orders/${r.id}`}>{r.poNo}</Link></> },
+            { key: "buyer", label: "Buyer", className: "whitespace-normal", render: (r) => <>{r.buyer}</> },
+            { key: "style", label: "Style", className: "whitespace-normal", render: (r) => <>{r.styleNo}</> },
+            { key: "qty", label: "Qty", align: "right", render: (r) => <>{r.qty.toLocaleString("en-IN")}</> },
+            { key: "value", label: "Value", align: "right", render: (r) => <>{r.currency} {r.value.toLocaleString("en-IN")}</> },
+            { key: "ex-factory", label: "Ex-factory", className: "whitespace-normal", render: (r) => <>{formatDate(r.exFactory)}</> },
+            { key: "next", label: "Next", className: "text-xs whitespace-normal", render: (r) => <>{r.status === "shipped" ? "Shipped" : r.next ? `${r.next.label} by ${formatDate(r.next.due)}` : ""}</> },
+            { key: "col7", label: "", noSort: true, className: "whitespace-normal", render: (r) => <>{r.late > 0 && <Badge tone="danger">{r.late} late</Badge>} {r.missingCertificates.length > 0 && <Badge tone="warning">needs {r.missingCertificates.join(", ").toUpperCase()}</Badge>}</> },
+          ]}
+        />
         {list.data && !list.data.length && <p className="p-8 text-center text-muted">No buyer orders.</p>}
       </Card>
       {creating && <NewOrder onClose={() => setCreating(false)} />}

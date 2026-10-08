@@ -10,6 +10,7 @@ import { EmptyState, ErrorBlock, LoadingBlock, PageHeader } from "@/components/u
 import { api } from "@/lib/api";
 import { formatMoney } from "@/lib/documents";
 import type { VendorPerformance } from "@/lib/purchase";
+import { DataTable } from "@/components/ui/data-table";
 
 const tone = (v: number | null) => (v === null ? "neutral" : v >= 95 ? "success" : v >= 85 ? "warning" : "danger");
 
@@ -35,39 +36,25 @@ export default function VendorPerformancePage() {
         {report.data && !report.data.length && <EmptyState title="No vendor activity" description="Scores appear once orders and goods receipts are posted." />}
         {!!report.data?.length && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Vendor</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Score</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Accepted</th>
-                  <th className="px-4 py-2.5 text-right font-medium">On time</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Avg delay</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Orders</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Order value</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Billed above PO</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {report.data.map((r) => (
-                  <tr key={r.vendorId}>
-                    <td className="px-4 py-3">
-                      <Link href={`/masters/parties/${r.vendorId}`} className="font-medium hover:underline">
-                        {r.vendor.name}
-                      </Link>
-                      {r.vendor.msmeCategory && <Badge className="ml-2">MSME</Badge>}
-                    </td>
-                    <td className="px-4 py-3 text-right">{r.score === null ? <span className="text-muted">—</span> : <Badge tone={tone(r.score)}>{r.score}</Badge>}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{r.acceptancePct === null ? "—" : `${r.acceptancePct}%`}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{r.onTimePct === null ? "—" : `${r.onTimePct}%`}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted">{r.avgDelayDays === null ? "—" : `${r.avgDelayDays} d`}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{r.orders}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{formatMoney(r.orderValue)}</td>
-                    <td className={`px-4 py-3 text-right tabular-nums ${Number(r.rateVariance) > 0 ? "text-danger" : "text-muted"}`}>{Number(r.rateVariance) ? formatMoney(r.rateVariance) : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              rows={report.data}
+              rowKey={(r) => String(r.vendorId)}
+              exportName="purchase-vendor-performance"
+              storageKey="purchase-vendor-performance-0"
+              columns={[
+                { key: "vendor", label: "Vendor", locked: true, className: "whitespace-normal", render: (r) => <><Link href={`/masters/parties/${r.vendorId}`} className="font-medium hover:underline">
+                                      {r.vendor.name}
+                                    </Link>
+                                    {r.vendor.msmeCategory && <Badge className="ml-2">MSME</Badge>}</> },
+                { key: "score", label: "Score", align: "right", render: (r) => <>{r.score === null ? <span className="text-muted">—</span> : <Badge tone={tone(r.score)}>{r.score}</Badge>}</> },
+                { key: "accepted", label: "Accepted", align: "right", render: (r) => <>{r.acceptancePct === null ? "—" : `${r.acceptancePct}%`}</> },
+                { key: "on-time", label: "On time", align: "right", render: (r) => <>{r.onTimePct === null ? "—" : `${r.onTimePct}%`}</> },
+                { key: "avg-delay", label: "Avg delay", align: "right", className: "text-muted", render: (r) => <>{r.avgDelayDays === null ? "—" : `${r.avgDelayDays} d`}</> },
+                { key: "orders", label: "Orders", align: "right", render: (r) => <>{r.orders}</> },
+                { key: "order-value", label: "Order value", align: "right", render: (r) => <>{formatMoney(r.orderValue)}</> },
+                { key: "billed-above-po", label: "Billed above PO", align: "right", render: (r) => <><span className={`${Number(r.rateVariance) > 0 ? "text-danger" : "text-muted"}`}>{Number(r.rateVariance) ? formatMoney(r.rateVariance) : "—"}</span></> },
+              ]}
+            />
           </div>
         )}
       </Card>

@@ -24,7 +24,14 @@ export function nodeText(node: React.ReactNode): string {
   if (node == null || typeof node === "boolean") return "";
   if (typeof node === "string" || typeof node === "number") return String(node);
   if (Array.isArray(node)) return node.map(nodeText).join(" ").replace(/\s+/g, " ").trim();
-  if (isValidElement(node)) return nodeText((node.props as { children?: React.ReactNode }).children);
+  if (isValidElement(node)) {
+    const props = node.props as { children?: React.ReactNode; status?: unknown; label?: unknown; value?: unknown };
+    const text = nodeText(props.children);
+    if (text) return text;
+    // Badges and similar components carry their meaning in a prop.
+    const v = [props.status, props.label, props.value].find((x) => typeof x === "string" || typeof x === "number");
+    return v === undefined ? "" : String(v);
+  }
   return "";
 }
 
@@ -63,7 +70,14 @@ export function downloadCsv(name: string, header: string[], rows: string[][]) {
 
 interface DataTableProps<T> {
   rows: T[];
-  rowKey: (row: T) => string;
+  /** Stable key; `index` is the row's position in `rows`. */
+  rowKey: (row: T, index: number) => string;
+  /** Extra classes for a row (highlights). */
+  rowClassName?: (row: T) => string | false | null | undefined;
+  /** Makes whole rows clickable. */
+  onRowClick?: (row: T) => void;
+  /** Totals row, by column key; shown under the last page. */
+  totals?: Partial<Record<string, React.ReactNode>>;
   columns: Column<T>[];
   /** Remembers hidden columns under this key. */
   storageKey?: string;
@@ -85,7 +99,7 @@ interface DataTableProps<T> {
  * The standard list table: sortable headers, column chooser, CSV export, row selection with
  * bulk actions, a sticky header and paging over rows (fetching more from the server as needed).
  */
-export function DataTable<T>({ rows, rowKey, columns, storageKey, exportName, toolbar, bulkActions, hasMore, loadingMore, onLoadMore, empty }: DataTableProps<T>) {
+export function DataTable<T>({ rows, rowKey: keyOf, rowClassName, onRowClick, totals, columns, storageKey, exportName, toolbar, bulkActions, hasMore, loadingMore, onLoadMore, empty }: DataTableProps<T>) {
   const [hidden, setHidden] = useState<string[]>(() => (typeof window === "undefined" ? [] : readHidden(storageKey)));
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -93,7 +107,11 @@ export function DataTable<T>({ rows, rowKey, columns, storageKey, exportName, to
   const [page, setPage] = useState(0);
   const [wantPage, setWantPage] = useState<number | null>(null);
 
-  const cols = columns.filter((c) => c.locked || !hidden.includes(c.key));
+  // Columns without a heading hold row actions: always shown, never exported.
+  const cols = columns.filter((c) => c.locked || !c.label || !hidden.includes(c.key));
+  const dataCols = cols.filter((c) => c.label);
+  const position = useMemo(() => new Map(rows.map((r, i) => [r, i])), [rows]);
+  const rowKey = (r: T) => keyOf(r, position.get(r) ?? 0);
   const cellValue = (c: Column<T>, r: T) => (c.value ? c.value(r) : nodeText(c.render(r)));
 
   const sorted = useMemo(() => {
@@ -129,8 +147,8 @@ export function DataTable<T>({ rows, rowKey, columns, storageKey, exportName, to
   const exportRows = (list: T[]) =>
     downloadCsv(
       exportName,
-      cols.map((c) => c.label),
-      list.map((r) => cols.map((c) => String(cellValue(c, r) ?? ""))),
+      dataCols.map((c) => c.label),
+      list.map((r) => dataCols.map((c) => String(cellValue(c, r) ?? ""))),
     );
 
   const next = () => {
@@ -211,7 +229,11 @@ export function DataTable<T>({ rows, rowKey, columns, storageKey, exportName, to
                 const id = rowKey(r);
                 const on = selected.has(id);
                 return (
-                  <tr key={id} className={cn("transition-colors", on ? "bg-primary-soft/50" : "hover:bg-surface-muted/60")}>
+                  <tr
+                    key={id}
+                    className={cn("transition-colors", on ? "bg-primary-soft/50" : "hover:bg-surface-muted/60", onRowClick && "cursor-pointer", rowClassName?.(r))}
+                    onClick={onRowClick ? (e) => !(e.target as HTMLElement).closest("a,button,input,select,label") && onRowClick(r) : undefined}
+                  >
                     {bulkActions && (
                       <td className="px-4 py-3">
                         <input
@@ -237,11 +259,23 @@ export function DataTable<T>({ rows, rowKey, columns, storageKey, exportName, to
                 );
               })}
             </tbody>
+            {totals && current === pages - 1 && (
+              <tfoot className="sticky bottom-0 bg-surface-muted font-semibold shadow-[inset_0_1px_0_var(--border)]">
+                <tr>
+                  {bulkActions && <td />}
+                  {cols.map((c, i) => (
+                    <td key={c.key} className={cn("px-4 py-2.5 whitespace-nowrap", c.align === "right" && "text-right tabular-nums")}>
+                      {totals[c.key] ?? (i === 0 ? "Total" : null)}
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       )}
 
-      {rows.length > 0 && (
+      {(rows.length > 25 || hasMore) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-2.5 text-sm text-muted">
           <span>
             {current * pageSize + 1}–{current * pageSize + shown.length} of {sorted.length}
@@ -294,7 +328,7 @@ function ColumnChooser<T>({ columns, hidden, onChange }: { columns: Column<T>[];
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
-  const optional = columns.filter((c) => !c.locked);
+  const optional = columns.filter((c) => !c.locked && c.label);
   if (!optional.length) return null;
   return (
     <div ref={ref} className="relative">

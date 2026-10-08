@@ -13,6 +13,7 @@ import { LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useItemGroups, useReference, useUoms, type ItemGroup, type Uom } from "@/lib/masters";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function MastersSetupPage() {
   const { can } = useAuth();
@@ -44,34 +45,24 @@ function UnitsCard({ canManage }: { canManage: boolean }) {
         }
       />
       {uoms.isLoading && <LoadingBlock />}
-      <div className="overflow-x-auto"><table className="w-full text-sm">
-        <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-          <tr>
-            <th className="px-4 py-2 font-medium">Code</th>
-            <th className="px-4 py-2 font-medium">Name</th>
-            <th className="px-4 py-2 font-medium">Decimals</th>
-            <th className="px-4 py-2 font-medium">GST UQC</th>
-            <th className="px-4 py-2" />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {uoms.data?.map((u) => (
-            <tr key={u.id} className={u.isActive ? undefined : "text-muted"}>
-              <td className="px-4 py-2 font-mono font-medium">{u.code}</td>
-              <td className="px-4 py-2">{u.name}</td>
-              <td className="px-4 py-2 tabular-nums">{u.decimals}</td>
-              <td className="px-4 py-2 font-mono text-xs">{u.uqc}</td>
-              <td className="px-4 py-2 text-right">
-                {canManage && (
-                  <Button variant="ghost" size="sm" onClick={() => setEditing(u)} aria-label={`Edit ${u.code}`}>
-                    <Pencil className="size-3.5" />
-                  </Button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table></div>
+      <DataTable
+        rows={uoms.data ?? []}
+        rowKey={(u) => String(u.id)}
+        rowClassName={(u) => u.isActive ? undefined : "text-muted"}
+        exportName="masters-setup"
+        storageKey="masters-setup-0"
+        columns={[
+          { key: "code", label: "Code", locked: true, className: "font-mono font-medium whitespace-normal", render: (u) => <>{u.code}</> },
+          { key: "name", label: "Name", className: "whitespace-normal", render: (u) => <>{u.name}</> },
+          { key: "decimals", label: "Decimals", className: "whitespace-normal", render: (u) => <>{u.decimals}</> },
+          { key: "gst-uqc", label: "GST UQC", className: "font-mono text-xs whitespace-normal", render: (u) => <>{u.uqc}</> },
+          { key: "col4", label: "", align: "right", noSort: true, render: (u) => <>{canManage && (
+                          <Button variant="ghost" size="sm" onClick={() => setEditing(u)} aria-label={`Edit ${u.code}`}>
+                            <Pencil className="size-3.5" />
+                          </Button>
+                        )}</> },
+        ]}
+      />
       {editing && <UomDialog uom={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </Card>
   );

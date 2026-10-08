@@ -3,10 +3,10 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Mail, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, formatDateTime } from "@/components/ui/page";
 import { api } from "@/lib/api";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Delivery {
   id: string;
@@ -42,46 +42,29 @@ export default function MessageLogPage() {
         {log.data && !items.length && <EmptyState title="No messages yet" />}
         {items.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">When</th>
-                  <th className="px-4 py-2.5 font-medium">To</th>
-                  <th className="px-4 py-2.5 font-medium">Message</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {items.map((d) => (
-                  <tr key={d.id} className="align-top">
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">{formatDateTime(d.createdAt)}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1.5">
-                        {d.channel === "email" ? <Mail className="size-3.5 text-muted" aria-label="Email" /> : <MessageCircle className="size-3.5 text-muted" aria-label="WhatsApp" />}
-                        {d.recipient}
-                      </span>
-                    </td>
-                    <td className="max-w-md px-4 py-3">
-                      <p className="truncate">{d.subject}</p>
-                      <p className="text-xs text-muted">
-                        {d.event} · via {d.provider === "file" ? "dev mailbox (.mail folder)" : d.provider}
-                      </p>
-                      {d.error && <p className="mt-1 text-xs text-danger">{d.error}</p>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={TONE[d.status]}>{d.status}</Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {log.hasNextPage && (
-          <div className="border-t border-border p-3 text-center">
-            <Button variant="secondary" size="sm" loading={log.isFetchingNextPage} onClick={() => log.fetchNextPage()}>
-              Load more
-            </Button>
+            <DataTable
+              rows={items}
+              hasMore={log.hasNextPage}
+              loadingMore={log.isFetchingNextPage}
+              onLoadMore={() => void log.fetchNextPage()}
+              rowKey={(d) => String(d.id)}
+              rowClassName={() => "align-top"}
+              exportName="settings-message-log"
+              storageKey="settings-message-log-0"
+              columns={[
+                { key: "when", label: "When", locked: true, className: "text-muted", render: (d) => <>{formatDateTime(d.createdAt)}</> },
+                { key: "to", label: "To", className: "whitespace-normal", render: (d) => <><span className="inline-flex items-center gap-1.5">
+                                      {d.channel === "email" ? <Mail className="size-3.5 text-muted" aria-label="Email" /> : <MessageCircle className="size-3.5 text-muted" aria-label="WhatsApp" />}
+                                      {d.recipient}
+                                    </span></> },
+                { key: "message", label: "Message", className: "max-w-md whitespace-normal", render: (d) => <><p className="truncate">{d.subject}</p>
+                                    <p className="text-xs text-muted">
+                                      {d.event} · via {d.provider === "file" ? "dev mailbox (.mail folder)" : d.provider}
+                                    </p>
+                                    {d.error && <p className="mt-1 text-xs text-danger">{d.error}</p>}</> },
+                { key: "status", label: "Status", className: "whitespace-normal", render: (d) => <><Badge tone={TONE[d.status]}>{d.status}</Badge></> },
+              ]}
+            />
           </div>
         )}
       </Card>

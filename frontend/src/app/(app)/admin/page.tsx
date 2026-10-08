@@ -13,6 +13,7 @@ import { ErrorBlock, LoadingBlock, PageHeader, timeAgo } from "@/components/ui/p
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface TenantRow {
   id: string;
@@ -71,54 +72,34 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">Workspace</th>
-                    <th className="px-4 py-2.5 font-medium">Plan</th>
-                    <th className="px-4 py-2.5 font-medium">Status</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Users</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Docs</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Storage</th>
-                    <th className="px-4 py-2.5 font-medium">Last sign-in</th>
-                    <th className="px-4 py-2.5" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {rows.map((t) => (
-                    <tr key={t.id}>
-                      <td className="px-4 py-3">
-                        <p className="font-medium">{t.name}</p>
-                        <p className="text-xs text-muted">
-                          {t.slug} · since {formatDate(t.created_at)}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="capitalize">{t.plan_code}</p>
-                        <p className="text-xs text-muted">
-                          {t.subscription_status === "trialing" && t.trial_ends_at
-                            ? `trial ends ${formatDate(t.trial_ends_at)}`
-                            : t.current_period_end
-                              ? `${t.subscription_status} · until ${formatDate(t.current_period_end)}`
-                              : t.subscription_status}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge tone={t.status === "suspended" ? "danger" : t.status === "active" ? "success" : "primary"}>{t.status}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">{t.active_users}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{t.documents}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{(Number(t.storage_bytes) / 1_048_576).toFixed(1)} MB</td>
-                      <td className="px-4 py-3 text-muted">{timeAgo(t.last_login_at)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(t)} aria-label={`Manage ${t.name}`}>
-                          <Pencil className="size-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable
+                rows={rows}
+                rowKey={(t) => String(t.id)}
+                exportName="admin"
+                storageKey="admin-0"
+                columns={[
+                  { key: "workspace", label: "Workspace", locked: true, className: "whitespace-normal", render: (t) => <><p className="font-medium">{t.name}</p>
+                                        <p className="text-xs text-muted">
+                                          {t.slug} · since {formatDate(t.created_at)}
+                                        </p></> },
+                  { key: "plan", label: "Plan", className: "whitespace-normal", render: (t) => <><p className="capitalize">{t.plan_code}</p>
+                                        <p className="text-xs text-muted">
+                                          {t.subscription_status === "trialing" && t.trial_ends_at
+                                            ? `trial ends ${formatDate(t.trial_ends_at)}`
+                                            : t.current_period_end
+                                              ? `${t.subscription_status} · until ${formatDate(t.current_period_end)}`
+                                              : t.subscription_status}
+                                        </p></> },
+                  { key: "status", label: "Status", className: "whitespace-normal", render: (t) => <><Badge tone={t.status === "suspended" ? "danger" : t.status === "active" ? "success" : "primary"}>{t.status}</Badge></> },
+                  { key: "users", label: "Users", align: "right", render: (t) => <>{t.active_users}</> },
+                  { key: "docs", label: "Docs", align: "right", render: (t) => <>{t.documents}</> },
+                  { key: "storage", label: "Storage", align: "right", render: (t) => <>{(Number(t.storage_bytes) / 1_048_576).toFixed(1)} MB</> },
+                  { key: "last-sign-in", label: "Last sign-in", className: "text-muted whitespace-normal", render: (t) => <>{timeAgo(t.last_login_at)}</> },
+                  { key: "col7", label: "", align: "right", noSort: true, render: (t) => <><Button variant="ghost" size="sm" onClick={() => setEditing(t)} aria-label={`Manage ${t.name}`}>
+                                          <Pencil className="size-4" />
+                                        </Button></> },
+                ]}
+              />
             </div>
           </Card>
         </>

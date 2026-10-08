@@ -16,6 +16,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { CONDITION_TONE, CONDITIONS, useWarehouseParam, WMS, type Bin, type Zone } from "@/lib/wms";
 import { askText } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function LayoutPage() {
   return (
@@ -78,27 +79,25 @@ function Layout() {
           <Select className="h-9 w-48" aria-label="Zone" value={zoneId} onChange={(e) => setZoneId(e.target.value)}><option value="">All zones</option>{zones.data?.map((z) => <option key={z.id} value={z.id}>{z.code}</option>)}</Select>
           <Input className="h-9 w-48" placeholder="Bin code" aria-label="Bin code" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Bin</th><th className="px-4 py-2 font-medium">Zone</th><th className="px-4 py-2 font-medium">Type</th><th className="px-4 py-2 font-medium">Capacity</th><th className="px-4 py-2 font-medium">Fixed item</th><th className="px-4 py-2 text-right font-medium">Walk</th><th className="px-4 py-2 font-medium" /></tr></thead>
-          <tbody className="divide-y divide-border">
-            {bins.data?.map((b) => (
-              <tr key={b.id} className={b.isActive ? "" : "text-muted"}>
-                <td className="px-4 py-2"><Link className="font-mono text-primary hover:underline" href={`${WMS}/scan?wh=${wh}&bin=${encodeURIComponent(b.code)}`}>{b.code}</Link>{b.items > 0 && <span className="ml-1 text-xs text-muted">{b.items} item(s)</span>}</td>
-                <td className="px-4 py-2">{b.zone} <Badge tone={CONDITION_TONE[b.condition]}>{b.condition}</Badge></td>
-                <td className="px-4 py-2">{b.binType}</td>
-                <td className="px-4 py-2 text-xs">{[b.maxWeightKg && `${Number(b.maxWeightKg)} kg`, b.maxVolumeM3 && `${Number(b.maxVolumeM3)} m³`, b.maxQty && `${Number(b.maxQty)} units`].filter(Boolean).join(" · ") || "–"}</td>
-                <td className="px-4 py-2">{b.fixedItem ?? "–"}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{b.pickSequence}</td>
-                <td className="px-4 py-2 text-right">
-                  {b.isBlocked && <Badge tone="danger">blocked{b.blockReason ? `: ${b.blockReason}` : ""}</Badge>}
-                  {can("wms.tasks.execute") && <Button size="sm" variant="ghost" aria-label={b.isBlocked ? "Unblock" : "Block"} onClick={() => toggle(b)}>{b.isBlocked ? <Unlock className="size-3.5" aria-hidden /> : <Lock className="size-3.5" aria-hidden />}</Button>}
-                  {manage && <Button size="sm" variant="ghost" onClick={() => setDialog({ kind: "bin", bin: b })}>Edit</Button>}
-                </td>
-              </tr>
-            ))}
-            {bins.data && !bins.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No bins.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={bins.data ?? []}
+          rowKey={(b) => String(b.id)}
+          rowClassName={(b) => b.isActive ? "" : "text-muted"}
+          exportName="wms-bins"
+          storageKey="wms-bins-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No bins.</p>}
+          columns={[
+            { key: "bin", label: "Bin", locked: true, className: "whitespace-normal", render: (b) => <><Link className="font-mono text-primary hover:underline" href={`${WMS}/scan?wh=${wh}&bin=${encodeURIComponent(b.code)}`}>{b.code}</Link>{b.items > 0 && <span className="ml-1 text-xs text-muted">{b.items} item(s)</span>}</> },
+            { key: "zone", label: "Zone", className: "whitespace-normal", render: (b) => <>{b.zone} <Badge tone={CONDITION_TONE[b.condition]}>{b.condition}</Badge></> },
+            { key: "type", label: "Type", className: "whitespace-normal", render: (b) => <>{b.binType}</> },
+            { key: "capacity", label: "Capacity", className: "text-xs whitespace-normal", render: (b) => <>{[b.maxWeightKg && `${Number(b.maxWeightKg)} kg`, b.maxVolumeM3 && `${Number(b.maxVolumeM3)} m³`, b.maxQty && `${Number(b.maxQty)} units`].filter(Boolean).join(" · ") || "–"}</> },
+            { key: "fixed-item", label: "Fixed item", className: "whitespace-normal", render: (b) => <>{b.fixedItem ?? "–"}</> },
+            { key: "walk", label: "Walk", align: "right", render: (b) => <>{b.pickSequence}</> },
+            { key: "col6", label: "", align: "right", noSort: true, render: (b) => <>{b.isBlocked && <Badge tone="danger">blocked{b.blockReason ? `: ${b.blockReason}` : ""}</Badge>}
+                            {can("wms.tasks.execute") && <Button size="sm" variant="ghost" aria-label={b.isBlocked ? "Unblock" : "Block"} onClick={() => toggle(b)}>{b.isBlocked ? <Unlock className="size-3.5" aria-hidden /> : <Lock className="size-3.5" aria-hidden />}</Button>}
+                            {manage && <Button size="sm" variant="ghost" onClick={() => setDialog({ kind: "bin", bin: b })}>Edit</Button>}</> },
+          ]}
+        />
       </Card>
       {dialog?.kind === "zone" && <ZoneDialog wh={wh} zone={dialog.zone} onClose={() => { setDialog(null); refresh(); }} />}
       {dialog?.kind === "generate" && <GenerateDialog zones={zones.data ?? []} onClose={() => { setDialog(null); refresh(); }} />}

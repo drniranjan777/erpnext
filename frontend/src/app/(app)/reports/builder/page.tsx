@@ -197,7 +197,7 @@ function Editor({ datasets, initial, saved }: { datasets: Dataset[]; initial: Sp
           {result ? (
             <>
               {result.truncated && <Alert tone="warning">Showing the first {spec.limit.toLocaleString("en-IN")} rows. Raise the limit or narrow the filters.</Alert>}
-              <ReportTable data={result} />
+              <ReportTable data={result} name="custom-report" />
             </>
           ) : (
             <Card className="p-8 text-center text-sm text-muted">Choose the columns and press Run.</Card>

@@ -13,6 +13,7 @@ import { PageHeader, timeAgo } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { fmtValue, PROTOCOLS, PURPOSES, type Gateway, type Signal, type SignalSource } from "@/lib/iot";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Machine { id: string; code: string; name: string }
 interface Warehouse { id: string; code: string; name: string }
@@ -67,23 +68,21 @@ export default function SignalsPage() {
     <div className="mx-auto max-w-6xl space-y-4">
       <PageHeader title="Signals" description="Each signal is one value from a machine or sensor: a counter, a running state, a temperature, an energy meter. The edge agent downloads this list and reads each signal as set here." actions={manage && <Button onClick={() => open()}><Plus className="size-4" aria-hidden /> Add signal</Button>} />
       <Card>
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-            <tr><th className="px-4 py-2 font-medium">Signal</th><th className="px-4 py-2 font-medium">Machine / place</th><th className="px-4 py-2 font-medium">Read by</th><th className="px-4 py-2 text-right font-medium">Last value</th><th className="px-4 py-2" /></tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {list.data?.map((s) => (
-              <tr key={s.id} className={s.isActive ? "" : "opacity-60"}>
-                <td className="px-4 py-2"><Link className="font-mono text-xs text-primary hover:underline" href={`/iot/signals/${s.id}`}>{s.code}</Link><p>{s.name} <span className="text-xs text-muted">· {PURPOSES[s.purpose] ?? s.purpose}</span></p></td>
-                <td className="px-4 py-2 text-xs">{s.machineCode ? `${s.machineCode} ${s.machineName}` : s.warehouseName ?? s.vehicleNo ?? "–"}</td>
-                <td className="px-4 py-2 text-xs">{PROTOCOLS[s.source.protocol] ?? s.source.protocol}{s.source.address ? ` · ${s.source.address}` : ""}{s.gatewayCode ? <span className="block text-muted">{s.gatewayCode}</span> : null}</td>
-                <td className="px-4 py-2 text-right"><span className={`tabular-nums ${s.stale ? "text-muted" : ""}`}>{fmtValue(s.lastValue, s.unit)}</span>{s.lastAt && <span className="block text-[11px] text-muted">{timeAgo(s.lastAt)}</span>}{s.openAlarms > 0 && <Badge tone="danger">alarm</Badge>}</td>
-                <td className="px-4 py-2 text-right">{manage && <Button size="sm" variant="ghost" onClick={() => open(s)}>Edit</Button>}</td>
-              </tr>
-            ))}
-            {list.data && !list.data.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">No signals yet.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={list.data ?? []}
+          rowKey={(s) => String(s.id)}
+          rowClassName={(s) => s.isActive ? "" : "opacity-60"}
+          exportName="iot-signals"
+          storageKey="iot-signals-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No signals yet.</p>}
+          columns={[
+            { key: "signal", label: "Signal", locked: true, className: "whitespace-normal", render: (s) => <><Link className="font-mono text-xs text-primary hover:underline" href={`/iot/signals/${s.id}`}>{s.code}</Link><p>{s.name} <span className="text-xs text-muted">· {PURPOSES[s.purpose] ?? s.purpose}</span></p></> },
+            { key: "machine-place", label: "Machine / place", className: "text-xs whitespace-normal", render: (s) => <>{s.machineCode ? `${s.machineCode} ${s.machineName}` : s.warehouseName ?? s.vehicleNo ?? "–"}</> },
+            { key: "read-by", label: "Read by", className: "text-xs whitespace-normal", render: (s) => <>{PROTOCOLS[s.source.protocol] ?? s.source.protocol}{s.source.address ? ` · ${s.source.address}` : ""}{s.gatewayCode ? <span className="block text-muted">{s.gatewayCode}</span> : null}</> },
+            { key: "last-value", label: "Last value", align: "right", render: (s) => <><span className={`tabular-nums ${s.stale ? "text-muted" : ""}`}>{fmtValue(s.lastValue, s.unit)}</span>{s.lastAt && <span className="block text-[11px] text-muted">{timeAgo(s.lastAt)}</span>}{s.openAlarms > 0 && <Badge tone="danger">alarm</Badge>}</> },
+            { key: "col4", label: "", align: "right", noSort: true, render: (s) => <>{manage && <Button size="sm" variant="ghost" onClick={() => open(s)}>Edit</Button>}</> },
+          ]}
+        />
       </Card>
       <Dialog open={!!edit} onClose={() => setEdit(null)} size="lg" title={edit?.id ? "Edit signal" : "Add a signal"} footer={<Button loading={busy} disabled={!f?.code || (f?.name.length ?? 0) < 2} onClick={save}>Save</Button>}>
         {f && (

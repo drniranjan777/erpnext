@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, formatQty } from "@/lib/documents";
 import { INVENTORY_KEY, SE_ROUTE, type ExpiringBatch, type StockLevel } from "@/lib/inventory";
 import { useItemGroups, useWarehouses } from "@/lib/masters";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function StockLevelsPage() {
   const { can } = useAuth();
@@ -148,46 +149,29 @@ export default function StockLevelsPage() {
                 <AlertTriangle className="size-4 text-warning" aria-hidden /> {reorderCount} item{reorderCount === 1 ? " is" : "s are"} at or below reorder level.
               </p>
             )}
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Item</th>
-                  <th className="px-4 py-2.5 font-medium">Group</th>
-                  <th className="px-4 py-2.5 text-right font-medium">On hand</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Available</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Reorder at</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Avg rate</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Value</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {rows.map((r) => (
-                  <tr key={r.itemId} className="hover:bg-surface-muted/60">
-                    <td className="px-4 py-2.5">
-                      <Link href={`/inventory/stock/${r.itemId}`} className="font-medium text-primary hover:underline">
-                        {r.name}
-                      </Link>
-                      <p className="font-mono text-xs text-muted">{r.code}</p>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted">{r.group ?? "—"}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
-                      {formatQty(r.qty)} <span className="text-xs text-muted">{r.uom}</span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">
-                      {formatQty(r.available)}
-                      {r.belowReorder && (
-                        <Badge tone="warning" className="ml-2">
-                          Reorder{r.suggestedOrderQty ? ` ${formatQty(r.suggestedOrderQty)}` : ""}
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-muted">{r.reorderLevel ? formatQty(r.reorderLevel) : "—"}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-muted">{r.valuationRate ? formatMoney(r.valuationRate) : "—"}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums">{formatMoney(r.value)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              rows={rows}
+              rowKey={(r) => String(r.itemId)}
+              exportName="inventory-stock"
+              storageKey="inventory-stock-1"
+              columns={[
+                { key: "item", label: "Item", locked: true, className: "whitespace-normal", render: (r) => <><Link href={`/inventory/stock/${r.itemId}`} className="font-medium text-primary hover:underline">
+                                      {r.name}
+                                    </Link>
+                                    <p className="font-mono text-xs text-muted">{r.code}</p></> },
+                { key: "group", label: "Group", className: "text-muted whitespace-normal", render: (r) => <>{r.group ?? "—"}</> },
+                { key: "on-hand", label: "On hand", align: "right", render: (r) => <>{formatQty(r.qty)} <span className="text-xs text-muted">{r.uom}</span></> },
+                { key: "available", label: "Available", align: "right", render: (r) => <>{formatQty(r.available)}
+                                    {r.belowReorder && (
+                                      <Badge tone="warning" className="ml-2">
+                                        Reorder{r.suggestedOrderQty ? ` ${formatQty(r.suggestedOrderQty)}` : ""}
+                                      </Badge>
+                                    )}</> },
+                { key: "reorder-at", label: "Reorder at", align: "right", className: "text-muted", render: (r) => <>{r.reorderLevel ? formatQty(r.reorderLevel) : "—"}</> },
+                { key: "avg-rate", label: "Avg rate", align: "right", className: "text-muted", render: (r) => <>{r.valuationRate ? formatMoney(r.valuationRate) : "—"}</> },
+                { key: "value", label: "Value", align: "right", render: (r) => <>{formatMoney(r.value)}</> },
+              ]}
+            />
           </div>
         )}
       </Card>

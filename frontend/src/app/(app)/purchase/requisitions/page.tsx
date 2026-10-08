@@ -17,6 +17,7 @@ import { Alert } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, type DocumentStatus } from "@/lib/documents";
 import { PR_API, PR_ROUTE, PRIORITY_META, prKeys, type RequisitionListItem } from "@/lib/purchase";
+import { DataTable } from "@/components/ui/data-table";
 
 type Tab = "all" | "mine" | DocumentStatus;
 
@@ -112,53 +113,30 @@ export default function RequisitionsPage() {
         )}
         {items.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Number</th>
-                  <th className="px-4 py-2.5 font-medium">Date</th>
-                  <th className="px-4 py-2.5 font-medium">Title</th>
-                  <th className="px-4 py-2.5 font-medium">Priority</th>
-                  <th className="px-4 py-2.5 font-medium">Required by</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Est. value</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {items.map((r) => (
-                  <tr key={r.id} className="hover:bg-surface-muted/60">
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Link href={`${PR_ROUTE}/${r.id}`} className="font-medium text-primary hover:underline">
-                        {r.number ? `${r.number}${r.revision ? ` (Rev ${r.revision})` : ""}` : "Draft"}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">{formatDate(r.docDate)}</td>
-                    <td className="max-w-xs px-4 py-3">
-                      <p className="truncate">{r.title}</p>
-                      <p className="truncate text-xs text-muted">
-                        {r.createdBy}
-                        {r.department && ` · ${r.department}`}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={PRIORITY_META[r.priority].tone}>{PRIORITY_META[r.priority].label}</Badge>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">{formatDate(r.requiredBy)}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{formatMoney(r.amount)}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={r.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {list.hasNextPage && (
-          <div className="border-t border-border p-3 text-center">
-            <Button variant="secondary" size="sm" loading={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
-              Load more
-            </Button>
+            <DataTable
+              rows={items}
+              hasMore={list.hasNextPage}
+              loadingMore={list.isFetchingNextPage}
+              onLoadMore={() => void list.fetchNextPage()}
+              rowKey={(r) => String(r.id)}
+              exportName="purchase-requisitions"
+              storageKey="purchase-requisitions-0"
+              columns={[
+                { key: "number", label: "Number", locked: true, render: (r) => <><Link href={`${PR_ROUTE}/${r.id}`} className="font-medium text-primary hover:underline">
+                                      {r.number ? `${r.number}${r.revision ? ` (Rev ${r.revision})` : ""}` : "Draft"}
+                                    </Link></> },
+                { key: "date", label: "Date", className: "text-muted", render: (r) => <>{formatDate(r.docDate)}</> },
+                { key: "title", label: "Title", className: "max-w-xs whitespace-normal", render: (r) => <><p className="truncate">{r.title}</p>
+                                    <p className="truncate text-xs text-muted">
+                                      {r.createdBy}
+                                      {r.department && ` · ${r.department}`}
+                                    </p></> },
+                { key: "priority", label: "Priority", className: "whitespace-normal", render: (r) => <><Badge tone={PRIORITY_META[r.priority].tone}>{PRIORITY_META[r.priority].label}</Badge></> },
+                { key: "required-by", label: "Required by", className: "text-muted", render: (r) => <>{formatDate(r.requiredBy)}</> },
+                { key: "est-value", label: "Est. value", align: "right", render: (r) => <>{formatMoney(r.amount)}</> },
+                { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <><StatusBadge status={r.status} /></> },
+              ]}
+            />
           </div>
         )}
       </Card>

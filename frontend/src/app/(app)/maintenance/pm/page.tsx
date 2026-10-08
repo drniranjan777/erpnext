@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate, formatQty } from "@/lib/documents";
 import { MT, type Asset } from "@/lib/maintenance";
 import { textarea } from "@/lib/qms";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Schedule { id: string; title: string; trigger: "time" | "meter"; intervalDays: number | null; intervalMeter: string | null; lastDoneOn: string | null; nextDue: string | null; nextMeter: string | null; checklist: string[]; isActive: boolean; assetId: string | null; assetCode: string | null; assetName: string | null; meterReading: string | null; meterUnit: string | null; toolCode: string | null; state: "overdue" | "due" | "ok" | null; openOrder: string | null }
 const STATE = { overdue: { label: "Overdue", tone: "danger" }, due: { label: "Due", tone: "warning" }, ok: { label: "Scheduled", tone: "success" } } as const;
@@ -50,21 +51,21 @@ export default function PmPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Schedule</th><th className="px-4 py-2 font-medium">Every</th><th className="px-4 py-2 font-medium">Last done</th><th className="px-4 py-2 font-medium">Next</th><th className="px-4 py-2 font-medium">State</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((s) => (
-                <tr key={s.id} className={s.isActive ? undefined : "opacity-60"}>
-                  <td className="px-4 py-2">{s.title}<span className="block text-xs text-muted">{s.assetCode ? <Link className="hover:underline" href={`${MT}/assets/${s.assetId}`}>{s.assetCode} {s.assetName}</Link> : s.toolCode}{s.checklist.length > 0 && ` · ${s.checklist.length} checks`}</span></td>
-                  <td className="px-4 py-2">{s.trigger === "time" ? `${s.intervalDays} days` : `${formatQty(s.intervalMeter)} ${s.meterUnit ?? ""}`}</td>
-                  <td className="px-4 py-2">{s.lastDoneOn ? formatDate(s.lastDoneOn) : "–"}</td>
-                  <td className="px-4 py-2">{s.trigger === "time" ? (s.nextDue ? formatDate(s.nextDue) : "–") : `at ${formatQty(s.nextMeter)} (now ${s.meterReading ? formatQty(s.meterReading) : "–"})`}</td>
-                  <td className="px-4 py-2">{s.openOrder ? <Badge tone="primary">Open: {s.openOrder}</Badge> : s.state ? <Badge tone={STATE[s.state].tone}>{STATE[s.state].label}</Badge> : <Badge>Paused</Badge>}</td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No PM schedules.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(s) => String(s.id)}
+            rowClassName={(s) => s.isActive ? undefined : "opacity-60"}
+            exportName="maintenance-pm"
+            storageKey="maintenance-pm-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No PM schedules.</p>}
+            columns={[
+              { key: "schedule", label: "Schedule", locked: true, className: "whitespace-normal", render: (s) => <>{s.title}<span className="block text-xs text-muted">{s.assetCode ? <Link className="hover:underline" href={`${MT}/assets/${s.assetId}`}>{s.assetCode} {s.assetName}</Link> : s.toolCode}{s.checklist.length > 0 && ` · ${s.checklist.length} checks`}</span></> },
+              { key: "every", label: "Every", className: "whitespace-normal", render: (s) => <>{s.trigger === "time" ? `${s.intervalDays} days` : `${formatQty(s.intervalMeter)} ${s.meterUnit ?? ""}`}</> },
+              { key: "last-done", label: "Last done", className: "whitespace-normal", render: (s) => <>{s.lastDoneOn ? formatDate(s.lastDoneOn) : "–"}</> },
+              { key: "next", label: "Next", className: "whitespace-normal", render: (s) => <>{s.trigger === "time" ? (s.nextDue ? formatDate(s.nextDue) : "–") : `at ${formatQty(s.nextMeter)} (now ${s.meterReading ? formatQty(s.meterReading) : "–"})`}</> },
+              { key: "state", label: "State", className: "whitespace-normal", render: (s) => <>{s.openOrder ? <Badge tone="primary">Open: {s.openOrder}</Badge> : s.state ? <Badge tone={STATE[s.state].tone}>{STATE[s.state].label}</Badge> : <Badge>Paused</Badge>}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

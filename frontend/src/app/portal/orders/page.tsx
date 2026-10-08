@@ -14,6 +14,7 @@ import { ApiError } from "@/lib/api";
 import { formatDate, formatMoney, STATUS_META, type DocumentStatus } from "@/lib/documents";
 import { portalApi } from "@/lib/portal";
 import { askConfirm } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Order { id: string; number: string; docDate: string; status: DocumentStatus; grandTotal: string; customerPoNo: string | null; expectedDate: string | null; closedAt: string | null; deliveredPct: number }
 interface Request { id: string; number: string; status: string; customerPoNo: string | null; createdAt: string; lines: { itemId: string; qty: string }[]; rejectReason: string | null; salesOrderId: string | null; salesOrderNumber: string | null }
@@ -54,22 +55,21 @@ export default function PortalOrders() {
       {orders.error && <ErrorBlock error={orders.error} />}
       {orders.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Order</th><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Your PO</th><th className="px-4 py-2 text-right font-medium">Value</th><th className="px-4 py-2 font-medium">Delivered</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {orders.data.map((o) => (
-                <tr key={o.id}>
-                  <td className="px-4 py-2"><Link className="text-primary hover:underline" href={`/portal/orders/${o.id}`}>{o.number}</Link></td>
-                  <td className="px-4 py-2">{formatDate(o.docDate)}</td>
-                  <td className="px-4 py-2">{o.customerPoNo ?? "–"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formatMoney(o.grandTotal)}</td>
-                  <td className="px-4 py-2"><div className="h-1.5 w-24 rounded bg-surface-muted"><div className="h-1.5 rounded bg-primary" style={{ width: `${Math.min(100, o.deliveredPct)}%` }} /></div><span className="text-xs text-muted">{o.deliveredPct} %</span></td>
-                  <td className="px-4 py-2"><Badge tone={o.closedAt ? "neutral" : STATUS_META[o.status]?.tone}>{o.closedAt ? "closed" : STATUS_META[o.status]?.label ?? o.status}</Badge></td>
-                </tr>
-              ))}
-              {!orders.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No orders yet.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={orders.data}
+            rowKey={(o) => String(o.id)}
+            exportName="app-portal-orders"
+            storageKey="app-portal-orders-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No orders yet.</p>}
+            columns={[
+              { key: "order", label: "Order", locked: true, className: "whitespace-normal", render: (o) => <><Link className="text-primary hover:underline" href={`/portal/orders/${o.id}`}>{o.number}</Link></> },
+              { key: "date", label: "Date", className: "whitespace-normal", render: (o) => <>{formatDate(o.docDate)}</> },
+              { key: "your-po", label: "Your PO", className: "whitespace-normal", render: (o) => <>{o.customerPoNo ?? "–"}</> },
+              { key: "value", label: "Value", align: "right", render: (o) => <>{formatMoney(o.grandTotal)}</> },
+              { key: "delivered", label: "Delivered", className: "whitespace-normal", render: (o) => <><div className="h-1.5 w-24 rounded bg-surface-muted"><div className="h-1.5 rounded bg-primary" style={{ width: `${Math.min(100, o.deliveredPct)}%` }} /></div><span className="text-xs text-muted">{o.deliveredPct} %</span></> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (o) => <><Badge tone={o.closedAt ? "neutral" : STATUS_META[o.status]?.tone}>{o.closedAt ? "closed" : STATUS_META[o.status]?.label ?? o.status}</Badge></> },
+            ]}
+          />
         </Card>
       )}
       {placing && <NewOrder onClose={() => setPlacing(false)} />}

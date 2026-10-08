@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/field";
 import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api } from "@/lib/api";
 import { duration, LOSS_LABEL, pct, type OeeRow } from "@/lib/mes";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Oee { from: string; to: string; by: string; total: OeeRow; rows: OeeRow[] }
 
@@ -70,26 +71,23 @@ export default function OeePage() {
       )}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-              <tr><th className="px-4 py-2 font-medium">{by === "machine" ? "Machine" : by === "workCenter" ? "Line" : by === "shift" ? "Shift" : "Day"}</th><th className="px-4 py-2 text-right font-medium">OEE</th><th className="px-4 py-2 text-right font-medium">Avail.</th><th className="px-4 py-2 text-right font-medium">Perf.</th><th className="px-4 py-2 text-right font-medium">Quality</th><th className="px-4 py-2 text-right font-medium">Good / rej.</th><th className="px-4 py-2 text-right font-medium">Downtime</th><th className="px-4 py-2 text-right font-medium">Stops</th></tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {q.data.rows.map((r) => (
-                <tr key={r.key}>
-                  <td className="px-4 py-2">{r.label}{r.noDataSeconds > r.windowSeconds / 2 && <span className="block text-xs text-muted">no data for {duration(r.noDataSeconds)}</span>}</td>
-                  <td className={`px-4 py-2 text-right font-semibold tabular-nums ${r.targetOeePct && r.oee !== null && r.oee * 100 < r.targetOeePct ? "text-danger" : ""}`}>{pct(r.oee)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{pct(r.availability)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{pct(r.performance)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{pct(r.quality)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{Math.round(r.good)} / {Math.round(r.reject)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{duration(r.downtimeSeconds)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{r.stops}</td>
-                </tr>
-              ))}
-              {!q.data.rows.length && <tr><td colSpan={8} className="px-4 py-8 text-center text-muted">No monitored machines in this period.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data.rows}
+            rowKey={(r) => String(r.key)}
+            exportName="mes-oee"
+            storageKey="mes-oee-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No monitored machines in this period.</p>}
+            columns={[
+              { key: "group", label: by === "machine" ? "Machine" : by === "workCenter" ? "Line" : by === "shift" ? "Shift" : "Day", locked: true, className: "whitespace-normal", render: (r) => <>{r.label}{r.noDataSeconds > r.windowSeconds / 2 && <span className="block text-xs text-muted">no data for {duration(r.noDataSeconds)}</span>}</> },
+              { key: "oee", label: "OEE", align: "right", render: (r) => <><span className={`font-semibold ${r.targetOeePct && r.oee !== null && r.oee * 100 < r.targetOeePct ? "text-danger" : ""}`}>{pct(r.oee)}</span></> },
+              { key: "avail", label: "Avail.", align: "right", render: (r) => <>{pct(r.availability)}</> },
+              { key: "perf", label: "Perf.", align: "right", render: (r) => <>{pct(r.performance)}</> },
+              { key: "quality", label: "Quality", align: "right", render: (r) => <>{pct(r.quality)}</> },
+              { key: "good-rej", label: "Good / rej.", align: "right", render: (r) => <>{Math.round(r.good)} / {Math.round(r.reject)}</> },
+              { key: "downtime", label: "Downtime", align: "right", render: (r) => <>{duration(r.downtimeSeconds)}</> },
+              { key: "stops", label: "Stops", align: "right", render: (r) => <>{r.stops}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

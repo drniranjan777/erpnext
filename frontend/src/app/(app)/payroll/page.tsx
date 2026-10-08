@@ -14,6 +14,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { todayIST } from "@/lib/documents";
 import { inr, monthLabel, PAY, RUN_TONE, type Run } from "@/lib/payroll";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function PayrollRunsPage() {
   const { can } = useAuth();
@@ -55,22 +56,21 @@ export default function PayrollRunsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Month</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2 text-right font-medium">Employees</th><th className="px-4 py-2 text-right font-medium">Gross</th><th className="px-4 py-2 text-right font-medium">Net pay</th><th className="px-4 py-2 text-right font-medium">Employer cost</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-2"><Link className="font-medium text-primary hover:underline" href={`${PAY}/runs/${r.id}`}>{monthLabel(r.month)}</Link></td>
-                  <td className="px-4 py-2"><Badge tone={RUN_TONE[r.status]}>{r.status}</Badge>{r.warnings.length > 0 && <span className="ml-2 text-xs text-warning">{r.warnings.length} warning(s)</span>}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{r.totals.employees ?? 0}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{inr(r.totals.gross)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{inr(r.totals.net)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{inr(r.totals.employer)}</td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No payroll yet.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(r) => String(r.id)}
+            exportName="payroll"
+            storageKey="payroll-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No payroll yet.</p>}
+            columns={[
+              { key: "month", label: "Month", locked: true, className: "whitespace-normal", render: (r) => <><Link className="font-medium text-primary hover:underline" href={`${PAY}/runs/${r.id}`}>{monthLabel(r.month)}</Link></> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (r) => <><Badge tone={RUN_TONE[r.status]}>{r.status}</Badge>{r.warnings.length > 0 && <span className="ml-2 text-xs text-warning">{r.warnings.length} warning(s)</span>}</> },
+              { key: "employees", label: "Employees", align: "right", render: (r) => <>{r.totals.employees ?? 0}</> },
+              { key: "gross", label: "Gross", align: "right", render: (r) => <>{inr(r.totals.gross)}</> },
+              { key: "net-pay", label: "Net pay", align: "right", render: (r) => <>{inr(r.totals.net)}</> },
+              { key: "employer-cost", label: "Employer cost", align: "right", render: (r) => <>{inr(r.totals.employer)}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

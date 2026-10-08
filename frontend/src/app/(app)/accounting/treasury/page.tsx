@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { no: number; date: string; opening: number; interest: number; principal: number; payment: number; closing: number }
 interface Item { id: string; companyId: string; kind: string; number: string; bank: string; principal: number; ratePct: number; startDate: string; endDate: string; method: string | null; facilityId: string | null; marginPct: number; beneficiary: string | null; status: string; outstanding?: number; next?: Row | null; value?: number; maturityValue?: number; use?: { used: number; available: number; pct: number | null; margin: number; expiring: { number: string; endDate: string; overdue: boolean }[] }; margin?: number; daysToExpiry?: number }
@@ -72,10 +73,21 @@ export default function TreasuryPage() {
                 {i.status !== "active" && <Badge>{i.status}</Badge>}
               </button>
               {open === i.id && sched.data && (
-                <div className="overflow-x-auto"><table className="mx-4 mb-3 w-[calc(100%-2rem)] text-xs">
-                  <thead className="text-muted"><tr><th className="text-left">#</th><th className="text-left">Date</th><th className="text-right">Opening</th><th className="text-right">Interest</th><th className="text-right">Principal</th><th className="text-right">Payment</th><th className="text-right">Closing</th></tr></thead>
-                  <tbody>{sched.data.map((r) => <tr key={r.no}><td>{r.no}</td><td>{formatDate(r.date)}</td><td className="text-right tabular-nums">{inr(r.opening)}</td><td className="text-right tabular-nums">{inr(r.interest)}</td><td className="text-right tabular-nums">{inr(r.principal)}</td><td className="text-right tabular-nums">{inr(r.payment)}</td><td className="text-right tabular-nums">{inr(r.closing)}</td></tr>)}</tbody>
-                </table></div>
+                <DataTable
+                  rows={sched.data}
+                  rowKey={(r) => String(r.no)}
+                  exportName="accounting-treasury"
+                  storageKey="accounting-treasury-0"
+                  columns={[
+                    { key: "col0", label: "#", locked: true, className: "whitespace-normal", render: (r) => <>{r.no}</> },
+                    { key: "date", label: "Date", className: "whitespace-normal", render: (r) => <>{formatDate(r.date)}</> },
+                    { key: "opening", label: "Opening", align: "right", render: (r) => <>{inr(r.opening)}</> },
+                    { key: "interest", label: "Interest", align: "right", render: (r) => <>{inr(r.interest)}</> },
+                    { key: "principal", label: "Principal", align: "right", render: (r) => <>{inr(r.principal)}</> },
+                    { key: "payment", label: "Payment", align: "right", render: (r) => <>{inr(r.payment)}</> },
+                    { key: "closing", label: "Closing", align: "right", render: (r) => <>{inr(r.closing)}</> },
+                  ]}
+                />
               )}
             </li>
           ))}

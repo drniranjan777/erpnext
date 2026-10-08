@@ -7,6 +7,7 @@ import { EmptyState, ErrorBlock, LoadingBlock, PageHeader } from "@/components/u
 import { api } from "@/lib/api";
 import { formatMoney, formatQty } from "@/lib/documents";
 import { PeriodBar, thisMonth } from "../_components/period";
+import { DataTable } from "@/components/ui/data-table";
 
 interface HsnRow { section: "b2b" | "b2c"; hsn: string; description: string; uqc: string; uqcName: string; gstRate: string; qty: string; totalValue: string; taxable: string; igst: string; cgst: string; sgst: string; cess: string }
 type Totals = { lines: number; taxable: string; igst: string; cgst: string; sgst: string; cess: string; totalValue: string };
@@ -83,30 +84,20 @@ export default function GstReturnsPage() {
         <CardHeader title="Documents issued" />
         {docs.data && !docs.data.rows.length && <EmptyState title="No documents" />}
         {!!docs.data?.rows.length && (
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-              <tr>
-                <th className="px-4 py-2 font-medium">Nature of document</th>
-                <th className="px-4 py-2 font-medium">From</th>
-                <th className="px-4 py-2 font-medium">To</th>
-                <th className="px-4 py-2 text-right font-medium">Total</th>
-                <th className="px-4 py-2 text-right font-medium">Cancelled</th>
-                <th className="px-4 py-2 text-right font-medium">Net issued</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {docs.data.rows.map((r) => (
-                <tr key={`${r.docType}${r.from}`}>
-                  <td className="px-4 py-2">{r.nature}</td>
-                  <td className="px-4 py-2 font-mono">{r.from}</td>
-                  <td className="px-4 py-2 font-mono">{r.to}</td>
-                  <td className="px-4 py-2 text-right">{r.total}</td>
-                  <td className="px-4 py-2 text-right">{r.cancelled}</td>
-                  <td className="px-4 py-2 text-right">{r.netIssued}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={docs.data.rows}
+            rowKey={(r) => String(`${r.docType}${r.from}`)}
+            exportName="gst-returns"
+            storageKey="gst-returns-1"
+            columns={[
+              { key: "nature-of-document", label: "Nature of document", locked: true, className: "whitespace-normal", render: (r) => <>{r.nature}</> },
+              { key: "from", label: "From", className: "font-mono whitespace-normal", render: (r) => <>{r.from}</> },
+              { key: "to", label: "To", className: "font-mono whitespace-normal", render: (r) => <>{r.to}</> },
+              { key: "total", label: "Total", align: "right", render: (r) => <>{r.total}</> },
+              { key: "cancelled", label: "Cancelled", align: "right", render: (r) => <>{r.cancelled}</> },
+              { key: "net-issued", label: "Net issued", align: "right", render: (r) => <>{r.netIssued}</> },
+            ]}
+          />
         )}
       </Card>
     </div>

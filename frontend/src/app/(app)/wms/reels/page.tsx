@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/documents";
 import { WMS } from "@/lib/wms";
 import { askText } from "@/components/ui/ask";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Reel { id: string; openedAt: string | null; code: string; itemCode: string; itemName: string; batchNo: string | null; warehouse: string | null; bin: string | null; qty: string; mslLevel: string | null; status: string; bakeCount: number; usedMinutes: number; remainingMinutes: number | null; expired: boolean }
 const TONE = { sealed: "neutral", open: "warning", expired: "danger", empty: "neutral" } as const;
@@ -60,29 +61,26 @@ export default function ReelsPage() {
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Select className="h-9 w-40" aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">In use</option><option value="open">Open</option><option value="sealed">Sealed</option><option value="expired">Expired</option><option value="empty">Empty</option></Select>
       <Card>
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-3 py-2 font-medium">Reel</th><th className="px-3 py-2 font-medium">Part</th><th className="px-3 py-2 font-medium">Where</th><th className="px-3 py-2 text-right font-medium">Qty</th><th className="px-3 py-2 font-medium">MSL</th><th className="px-3 py-2 font-medium">Floor life left</th><th className="px-3 py-2 font-medium" /></tr></thead>
-          <tbody className="divide-y divide-border">
-            {q.data?.map((r) => (
-              <tr key={r.id}>
-                <td className="px-3 py-2 font-mono">{r.code}</td>
-                <td className="px-3 py-2">{r.itemCode}{r.batchNo && <span className="block text-xs text-muted">{r.batchNo}</span>}</td>
-                <td className="px-3 py-2 text-xs">{[r.warehouse, r.bin].filter(Boolean).join(" · ") || "–"}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatQty(r.qty)}</td>
-                <td className="px-3 py-2">{r.mslLevel ?? "–"}</td>
-                <td className="px-3 py-2">{r.remainingMinutes === null ? "no limit" : hm(r.remainingMinutes)}{r.bakeCount > 0 && <span className="block text-xs text-muted">baked {r.bakeCount}×</span>}</td>
-                <td className="px-3 py-2 text-right">
-                  <Badge tone={TONE[r.status as keyof typeof TONE]}>{r.status}</Badge>
-                  {exec && r.openedAt && !r.expired && <Button size="sm" variant="ghost" onClick={() => event(r, "use")}>Use</Button>}
-                  {exec && r.openedAt && <Button size="sm" variant="ghost" onClick={() => event(r, "seal")}>Seal</Button>}
-                  {exec && !r.openedAt && r.status === "sealed" && !r.expired && <Button size="sm" variant="ghost" onClick={() => event(r, "open")}>Open</Button>}
-                  {exec && !r.openedAt && r.status !== "empty" && r.expired && <Button size="sm" variant="ghost" onClick={() => event(r, "bake")}>Baked</Button>}
-                </td>
-              </tr>
-            ))}
-            {q.data && !q.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No reels.</td></tr>}
-          </tbody>
-        </table></div>
+        <DataTable
+          rows={q.data ?? []}
+          rowKey={(r) => String(r.id)}
+          exportName="wms-reels"
+          storageKey="wms-reels-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No reels.</p>}
+          columns={[
+            { key: "reel", label: "Reel", locked: true, className: "font-mono whitespace-normal", render: (r) => <>{r.code}</> },
+            { key: "part", label: "Part", className: "whitespace-normal", render: (r) => <>{r.itemCode}{r.batchNo && <span className="block text-xs text-muted">{r.batchNo}</span>}</> },
+            { key: "where", label: "Where", className: "text-xs whitespace-normal", render: (r) => <>{[r.warehouse, r.bin].filter(Boolean).join(" · ") || "–"}</> },
+            { key: "qty", label: "Qty", align: "right", render: (r) => <>{formatQty(r.qty)}</> },
+            { key: "msl", label: "MSL", className: "whitespace-normal", render: (r) => <>{r.mslLevel ?? "–"}</> },
+            { key: "floor-life-left", label: "Floor life left", className: "whitespace-normal", render: (r) => <>{r.remainingMinutes === null ? "no limit" : hm(r.remainingMinutes)}{r.bakeCount > 0 && <span className="block text-xs text-muted">baked {r.bakeCount}×</span>}</> },
+            { key: "col6", label: "", align: "right", noSort: true, render: (r) => <><Badge tone={TONE[r.status as keyof typeof TONE]}>{r.status}</Badge>
+                            {exec && r.openedAt && !r.expired && <Button size="sm" variant="ghost" onClick={() => event(r, "use")}>Use</Button>}
+                            {exec && r.openedAt && <Button size="sm" variant="ghost" onClick={() => event(r, "seal")}>Seal</Button>}
+                            {exec && !r.openedAt && r.status === "sealed" && !r.expired && <Button size="sm" variant="ghost" onClick={() => event(r, "open")}>Open</Button>}
+                            {exec && !r.openedAt && r.status !== "empty" && r.expired && <Button size="sm" variant="ghost" onClick={() => event(r, "bake")}>Baked</Button>}</> },
+          ]}
+        />
       </Card>
       {exec && (
         <Card>

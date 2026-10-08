@@ -15,6 +15,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, todayIST } from "@/lib/documents";
 import { QA } from "@/lib/quality";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Score { vendor: { id: string; name: string }; lots: number; acceptancePct: number | null; ppm: number | null; ncrs: number; copq: string; deliveries: number; onTimePct: number | null; openScars: number; lastAudit: { date: string; score: string | null; result: string } | null; score: number | null; grade: string | null }
 interface Audit { id: string; vendor: string; auditDate: string; kind: string; auditor: string; score: string | null; result: string; findings: string | null; nextDue: string | null; overdue: boolean }
@@ -44,24 +45,23 @@ function Scorecard() {
     <Card>
       <CardHeader title="This financial year" description="Score = 50% lot acceptance + 30% on-time delivery + 20% last audit (over the parts known). A ≥ 90, B ≥ 75, C ≥ 60." />
       <div className="overflow-x-auto border-t border-border">
-        <table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Vendor</th><th className="px-4 py-2 text-right font-medium">Lots</th><th className="px-4 py-2 text-right font-medium">Accepted</th><th className="px-4 py-2 text-right font-medium">PPM</th><th className="px-4 py-2 text-right font-medium">On time</th><th className="px-4 py-2 text-right font-medium">NCRs · COPQ</th><th className="px-4 py-2 font-medium">Audit</th><th className="px-4 py-2 text-right font-medium">Score</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {q.data!.map((r) => (
-              <tr key={r.vendor.id}>
-                <td className="px-4 py-2">{r.vendor.name}{r.openScars > 0 && <Badge tone="warning" className="ml-2">{r.openScars} open SCAR</Badge>}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{r.lots}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{pct(r.acceptancePct)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{r.ppm ?? "–"}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{pct(r.onTimePct)}<span className="block text-xs text-muted">{r.deliveries} receipts</span></td>
-                <td className="px-4 py-2 text-right tabular-nums">{r.ncrs} · {formatMoney(r.copq)}</td>
-                <td className="px-4 py-2">{r.lastAudit ? <>{r.lastAudit.score ?? "–"} <span className="text-xs text-muted">{r.lastAudit.result} {formatDate(r.lastAudit.date)}</span></> : "–"}</td>
-                <td className="px-4 py-2 text-right">{r.score ?? "–"} {r.grade && <Badge tone={GRADE[r.grade as keyof typeof GRADE]}>{r.grade}</Badge>}</td>
-              </tr>
-            ))}
-            {!q.data!.length && <tr><td colSpan={8} className="px-4 py-6 text-center text-muted">No supplier activity this year.</td></tr>}
-          </tbody>
-        </table>
+        <DataTable
+          rows={q.data!}
+          rowKey={(r) => String(r.vendor.id)}
+          exportName="quality-suppliers"
+          storageKey="quality-suppliers-0"
+          empty={<p className="px-4 py-6 text-center text-sm text-muted">No supplier activity this year.</p>}
+          columns={[
+            { key: "vendor", label: "Vendor", locked: true, className: "whitespace-normal", render: (r) => <>{r.vendor.name}{r.openScars > 0 && <Badge tone="warning" className="ml-2">{r.openScars} open SCAR</Badge>}</> },
+            { key: "lots", label: "Lots", align: "right", render: (r) => <>{r.lots}</> },
+            { key: "accepted", label: "Accepted", align: "right", render: (r) => <>{pct(r.acceptancePct)}</> },
+            { key: "ppm", label: "PPM", align: "right", render: (r) => <>{r.ppm ?? "–"}</> },
+            { key: "on-time", label: "On time", align: "right", render: (r) => <>{pct(r.onTimePct)}<span className="block text-xs text-muted">{r.deliveries} receipts</span></> },
+            { key: "ncrs-copq", label: "NCRs · COPQ", align: "right", render: (r) => <>{r.ncrs} · {formatMoney(r.copq)}</> },
+            { key: "audit", label: "Audit", className: "whitespace-normal", render: (r) => <>{r.lastAudit ? <>{r.lastAudit.score ?? "–"} <span className="text-xs text-muted">{r.lastAudit.result} {formatDate(r.lastAudit.date)}</span></> : "–"}</> },
+            { key: "score", label: "Score", align: "right", render: (r) => <>{r.score ?? "–"} {r.grade && <Badge tone={GRADE[r.grade as keyof typeof GRADE]}>{r.grade}</Badge>}</> },
+          ]}
+        />
       </div>
     </Card>
   );
@@ -107,21 +107,20 @@ function Audits() {
       {q.isLoading && <LoadingBlock />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Vendor</th><th className="px-4 py-2 font-medium">Audit</th><th className="px-4 py-2 font-medium">Result</th><th className="px-4 py-2 font-medium">Findings</th><th className="px-4 py-2 font-medium">Next due</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((a) => (
-                <tr key={a.id}>
-                  <td className="px-4 py-2">{a.vendor}</td>
-                  <td className="px-4 py-2">{formatDate(a.auditDate)} · {a.kind}<span className="block text-xs text-muted">{a.auditor}</span></td>
-                  <td className="px-4 py-2"><Badge tone={a.result === "approved" ? "success" : a.result === "conditional" ? "warning" : "danger"}>{a.result}</Badge> {a.score && <span className="tabular-nums">{a.score}</span>}</td>
-                  <td className="px-4 py-2 text-muted">{a.findings ?? ""}</td>
-                  <td className="px-4 py-2">{a.nextDue ? formatDate(a.nextDue) : "–"}{a.overdue && <Badge tone="danger" className="ml-2">Overdue</Badge>}</td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No audits recorded.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(a) => String(a.id)}
+            exportName="quality-suppliers"
+            storageKey="quality-suppliers-1"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No audits recorded.</p>}
+            columns={[
+              { key: "vendor", label: "Vendor", locked: true, className: "whitespace-normal", render: (a) => <>{a.vendor}</> },
+              { key: "audit", label: "Audit", className: "whitespace-normal", render: (a) => <>{formatDate(a.auditDate)} · {a.kind}<span className="block text-xs text-muted">{a.auditor}</span></> },
+              { key: "result", label: "Result", className: "whitespace-normal", render: (a) => <><Badge tone={a.result === "approved" ? "success" : a.result === "conditional" ? "warning" : "danger"}>{a.result}</Badge> {a.score && <span className="tabular-nums">{a.score}</span>}</> },
+              { key: "findings", label: "Findings", className: "text-muted whitespace-normal", render: (a) => <>{a.findings ?? ""}</> },
+              { key: "next-due", label: "Next due", className: "whitespace-normal", render: (a) => <>{a.nextDue ? formatDate(a.nextDue) : "–"}{a.overdue && <Badge tone="danger" className="ml-2">Overdue</Badge>}</> },
+            ]}
+          />
         </Card>
       )}
     </div>
@@ -166,21 +165,20 @@ function AmlList() {
       {q.isLoading && <LoadingBlock />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 font-medium">Manufacturer · MPN</th><th className="px-4 py-2 font-medium">Through</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2" /></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((m) => (
-                <tr key={m.id}>
-                  <td className="px-4 py-2"><span className="font-mono text-xs text-muted">{m.code}</span> {m.name}</td>
-                  <td className="px-4 py-2">{m.manufacturer}{m.mpn && <span className="font-mono"> · {m.mpn}</span>}</td>
-                  <td className="px-4 py-2">{m.supplier ?? "–"}</td>
-                  <td className="px-4 py-2"><Badge tone={m.status === "approved" ? "success" : m.status === "conditional" ? "warning" : "danger"}>{m.status}</Badge></td>
-                  <td className="px-4 py-2 text-right">{manage && <Button size="sm" variant="ghost" aria-label="Remove" onClick={async () => { await api(`${QA}/suppliers/aml/${m.id}`, { method: "DELETE" }); qc.invalidateQueries({ queryKey: [QA, "aml"] }); }}><Trash2 className="size-4" aria-hidden /></Button>}</td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No manufacturer parts approved yet.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(m) => String(m.id)}
+            exportName="quality-suppliers"
+            storageKey="quality-suppliers-2"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No manufacturer parts approved yet.</p>}
+            columns={[
+              { key: "item", label: "Item", locked: true, className: "whitespace-normal", render: (m) => <><span className="font-mono text-xs text-muted">{m.code}</span> {m.name}</> },
+              { key: "manufacturer-mpn", label: "Manufacturer · MPN", className: "whitespace-normal", render: (m) => <>{m.manufacturer}{m.mpn && <span className="font-mono"> · {m.mpn}</span>}</> },
+              { key: "through", label: "Through", className: "whitespace-normal", render: (m) => <>{m.supplier ?? "–"}</> },
+              { key: "status", label: "Status", className: "whitespace-normal", render: (m) => <><Badge tone={m.status === "approved" ? "success" : m.status === "conditional" ? "warning" : "danger"}>{m.status}</Badge></> },
+              { key: "col4", label: "", align: "right", noSort: true, render: (m) => <>{manage && <Button size="sm" variant="ghost" aria-label="Remove" onClick={async () => { await api(`${QA}/suppliers/aml/${m.id}`, { method: "DELETE" }); qc.invalidateQueries({ queryKey: [QA, "aml"] }); }}><Trash2 className="size-4" aria-hidden /></Button>}</> },
+            ]}
+          />
         </Card>
       )}
     </div>

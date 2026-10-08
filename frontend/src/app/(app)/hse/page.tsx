@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatQty, todayIST } from "@/lib/documents";
 import { QMS } from "@/lib/qms";
+import { DataTable } from "@/components/ui/data-table";
 
 type Tab = "incidents" | "waste" | "epr" | "licences";
 interface Incident { id: string; occurredAt: string; kind: string; severity: string; location: string; description: string; personInvolved: string | null; lostDays: number; rootCause: string | null; status: "open" | "closed" }
@@ -131,20 +132,19 @@ function WasteTab() {
         <>
           {q.data.stored.length > 0 && <p className="text-sm text-muted">In store: {q.data.stored.map((s) => `${s.category} ${formatQty(s.qty)} ${s.unit}`).join(" · ")}</p>}
           <Card>
-            <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Waste</th><th className="px-4 py-2 text-right font-medium">Qty</th><th className="px-4 py-2 font-medium">Generated</th><th className="px-4 py-2 font-medium">Disposal</th></tr></thead>
-              <tbody className="divide-y divide-border">
-                {q.data.entries.map((w) => (
-                  <tr key={w.id}>
-                    <td className="px-4 py-2">{w.category}{w.storedTooLong && <Badge tone="danger" className="ml-2">Over 90 days</Badge>}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatQty(w.qty)} {w.unit}</td>
-                    <td className="px-4 py-2">{formatDate(w.generatedOn)}</td>
-                    <td className="px-4 py-2">{w.disposedOn ? <>{formatDate(w.disposedOn)} · {w.disposalAgency}{w.manifestNo && <span className="text-xs text-muted"> · manifest {w.manifestNo}</span>}</> : manage && <Button size="sm" variant="ghost" onClick={() => setDispose({ id: w.id, disposedOn: todayIST(), disposalAgency: "", manifestNo: "" })}>Record disposal</Button>}</td>
-                  </tr>
-                ))}
-                {!q.data.entries.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Nothing recorded.</td></tr>}
-              </tbody>
-            </table></div>
+            <DataTable
+              rows={q.data.entries}
+              rowKey={(w) => String(w.id)}
+              exportName="hse"
+              storageKey="hse-0"
+              empty={<p className="px-4 py-6 text-center text-sm text-muted">Nothing recorded.</p>}
+              columns={[
+                { key: "waste", label: "Waste", locked: true, className: "whitespace-normal", render: (w) => <>{w.category}{w.storedTooLong && <Badge tone="danger" className="ml-2">Over 90 days</Badge>}</> },
+                { key: "qty", label: "Qty", align: "right", render: (w) => <>{formatQty(w.qty)} {w.unit}</> },
+                { key: "generated", label: "Generated", className: "whitespace-normal", render: (w) => <>{formatDate(w.generatedOn)}</> },
+                { key: "disposal", label: "Disposal", className: "whitespace-normal", render: (w) => <>{w.disposedOn ? <>{formatDate(w.disposedOn)} · {w.disposalAgency}{w.manifestNo && <span className="text-xs text-muted"> · manifest {w.manifestNo}</span>}</> : manage && <Button size="sm" variant="ghost" onClick={() => setDispose({ id: w.id, disposedOn: todayIST(), disposalAgency: "", manifestNo: "" })}>Record disposal</Button>}</> },
+              ]}
+            />
           </Card>
         </>
       )}
@@ -214,20 +214,19 @@ function Licences() {
       )}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Licence</th><th className="px-4 py-2 font-medium">Authority</th><th className="px-4 py-2 font-medium">Valid until</th><th className="px-4 py-2 font-medium">State</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.map((l) => (
-                <tr key={l.id}>
-                  <td className="px-4 py-2">{l.name}{l.number && <span className="block text-xs text-muted">{l.number}</span>}</td>
-                  <td className="px-4 py-2">{l.authority}</td>
-                  <td className="px-4 py-2">{l.validUntil ? formatDate(l.validUntil) : "–"}{l.daysLeft !== null && l.daysLeft >= 0 && <span className="block text-xs text-muted">{l.daysLeft} days left</span>}</td>
-                  <td className="px-4 py-2"><Badge tone={LIC[l.state].tone}>{LIC[l.state].label}</Badge></td>
-                </tr>
-              ))}
-              {!q.data.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No licences recorded.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data}
+            rowKey={(l) => String(l.id)}
+            exportName="hse"
+            storageKey="hse-1"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">No licences recorded.</p>}
+            columns={[
+              { key: "licence", label: "Licence", locked: true, className: "whitespace-normal", render: (l) => <>{l.name}{l.number && <span className="block text-xs text-muted">{l.number}</span>}</> },
+              { key: "authority", label: "Authority", className: "whitespace-normal", render: (l) => <>{l.authority}</> },
+              { key: "valid-until", label: "Valid until", className: "whitespace-normal", render: (l) => <>{l.validUntil ? formatDate(l.validUntil) : "–"}{l.daysLeft !== null && l.daysLeft >= 0 && <span className="block text-xs text-muted">{l.daysLeft} days left</span>}</> },
+              { key: "state", label: "State", className: "whitespace-normal", render: (l) => <><Badge tone={LIC[l.state].tone}>{LIC[l.state].label}</Badge></> },
+            ]}
+          />
         </Card>
       )}
     </div>

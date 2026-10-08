@@ -14,6 +14,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatMoney, type DocumentStatus } from "@/lib/documents";
 import { KIND, MT, STAGE, hours } from "@/lib/maintenance";
+import { DataTable } from "@/components/ui/data-table";
 
 interface Row { id: string; number: string | null; status: DocumentStatus; kind: keyof typeof KIND; problem: string; priority: string; stage: keyof typeof STAGE; machineDown: boolean; reportedAt: string; plannedDate: string | null; assignedTo: string | null; downtimeMinutes: number | null; totalCost: string; asset: { id: string; code: string; name: string } | null; tool: { id: string; code: string; name: string } | null }
 
@@ -39,21 +40,21 @@ export default function MaintenanceOrdersPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Order</th><th className="px-4 py-2 font-medium">Asset</th><th className="px-4 py-2 font-medium">Problem</th><th className="px-4 py-2 font-medium">Downtime · cost</th><th className="px-4 py-2 font-medium">Stage</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {q.data.items.map((r) => (
-                <tr key={r.id} className={r.machineDown && r.status === "draft" ? "bg-danger-soft/40" : undefined}>
-                  <td className="px-4 py-2"><Link href={`${MT}/orders/${r.id}`} className="font-medium hover:underline">{r.number ?? "Request"}</Link><span className="block text-xs text-muted">{KIND[r.kind]} · {formatDateTime(r.reportedAt)}</span></td>
-                  <td className="px-4 py-2">{r.asset ? <><span className="font-mono text-xs">{r.asset.code}</span> {r.asset.name}</> : r.tool ? <><span className="font-mono text-xs">{r.tool.code}</span> {r.tool.name}</> : "–"}</td>
-                  <td className="px-4 py-2">{r.problem}{r.priority === "urgent" || r.priority === "high" ? <Badge tone="danger" className="ml-2">{r.priority}</Badge> : null}{r.assignedTo && <span className="block text-xs text-muted">{r.assignedTo}</span>}</td>
-                  <td className="px-4 py-2">{hours(r.downtimeMinutes)}{Number(r.totalCost) > 0 && <span className="block text-xs text-muted">{formatMoney(r.totalCost)}</span>}</td>
-                  <td className="px-4 py-2">{r.status === "draft" ? <Badge tone={STAGE[r.stage].tone}>{STAGE[r.stage].label}</Badge> : <StatusBadge status={r.status} />}{r.machineDown && r.status === "draft" && <Badge tone="danger" className="ml-1">Machine down</Badge>}</td>
-                </tr>
-              ))}
-              {!q.data.items.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">Nothing here.</td></tr>}
-            </tbody>
-          </table></div>
+          <DataTable
+            rows={q.data.items}
+            rowKey={(r) => String(r.id)}
+            rowClassName={(r) => r.machineDown && r.status === "draft" ? "bg-danger-soft/40" : undefined}
+            exportName="maintenance-orders"
+            storageKey="maintenance-orders-0"
+            empty={<p className="px-4 py-6 text-center text-sm text-muted">Nothing here.</p>}
+            columns={[
+              { key: "order", label: "Order", locked: true, className: "whitespace-normal", render: (r) => <><Link href={`${MT}/orders/${r.id}`} className="font-medium hover:underline">{r.number ?? "Request"}</Link><span className="block text-xs text-muted">{KIND[r.kind]} · {formatDateTime(r.reportedAt)}</span></> },
+              { key: "asset", label: "Asset", className: "whitespace-normal", render: (r) => <>{r.asset ? <><span className="font-mono text-xs">{r.asset.code}</span> {r.asset.name}</> : r.tool ? <><span className="font-mono text-xs">{r.tool.code}</span> {r.tool.name}</> : "–"}</> },
+              { key: "problem", label: "Problem", className: "whitespace-normal", render: (r) => <>{r.problem}{r.priority === "urgent" || r.priority === "high" ? <Badge tone="danger" className="ml-2">{r.priority}</Badge> : null}{r.assignedTo && <span className="block text-xs text-muted">{r.assignedTo}</span>}</> },
+              { key: "downtime-cost", label: "Downtime · cost", className: "whitespace-normal", render: (r) => <>{hours(r.downtimeMinutes)}{Number(r.totalCost) > 0 && <span className="block text-xs text-muted">{formatMoney(r.totalCost)}</span>}</> },
+              { key: "stage", label: "Stage", className: "whitespace-normal", render: (r) => <>{r.status === "draft" ? <Badge tone={STAGE[r.stage].tone}>{STAGE[r.stage].label}</Badge> : <StatusBadge status={r.status} />}{r.machineDown && r.status === "draft" && <Badge tone="danger" className="ml-1">Machine down</Badge>}</> },
+            ]}
+          />
         </Card>
       )}
     </div>
