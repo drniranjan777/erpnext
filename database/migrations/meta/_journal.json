@@ -498,6 +498,13 @@
       "when": 1791430366905,
       "tag": "0070_enterprise_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1791433154867,
+      "tag": "0071_point_of_sale",
+      "breakpoints": true
     }
   ]
 }

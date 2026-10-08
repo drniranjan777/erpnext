@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 15.1–15.6 done |
+| **Status** | Done (15.1–15.7); business exit items open (see Phase 15 status) |
 | **Plan** | `docs/PHASE_PLAN.md`, Phase 15 |
 
 Phase 15 brings larger customers, partners and an ecosystem. Most of it is software built and tested here. Some parts are not code and stay with the business: the SOC 2 Type II report, ISO 27001 certification, partner certification, the first enterprise tenant, and store listings of native apps. The sprints below also say where an outside service needs credentials that do not exist in development; the integration is then built against a local sandbox adapter, the same way the GST network was in Phase 3.
@@ -106,3 +106,15 @@ Migration 0070 adds `sso_settings` and `scim_tokens` (schema `sso.ts`); `rls.sql
 **Read replicas.** With `DATABASE_REPLICA_URL` set, `runRead` sends read-only work (the report catalogue) to the replica with the same tenant context, so row-level security still applies; without it, reads use the primary.
 
 **Deployment kit** (`deploy/`). Multi-stage, non-root images for the API / worker (which also runs migrations) and the web app; Docker Compose for a single server or on-premise; a Helm chart for Kubernetes with backend and frontend deployments, services, autoscalers, a pod-disruption budget, the file-storage volume, an ingress that sends `/api/v1` to the API, and a pre-install / pre-upgrade migration job; all secrets come from one existing Secret. A dedicated (single-tenant) customer is a separate release with its own database and region. The images and chart have not been built or installed in this environment (no Docker or Kubernetes here). Table partitioning is not done yet (see `deploy/README.md`).
+
+## 15.7 POS and mobile (done)
+
+Migration 0071 adds `pos_terminals`, `pos_sessions` and `pos_sales` (schema `pos.ts`). Code: `backend/src/modules/pos/` (`pos-rules.ts` is pure and unit tested). The approvals inbox now includes each document's version, so it can be approved in one tap. Permissions: `pos.sales.use`, `pos.terminals.manage`. Pages: `/pos` (the till), `/pos/shifts`, `/print/pos-receipt/:id`, `/m` (owner's phone); the installable app's shortcuts open the owner view, the till and the kiosk.
+
+**Point of sale.** A till sells from one warehouse and bills its own walk-in (consumer) customer. A cashier opens a shift with the opening cash, scans a barcode or searches by code or name (price with GST, GST rate and stock at the till's warehouse), adjusts quantities and line discounts, and takes payment in cash, card and UPI in any mix; card and UPI cannot exceed the bill, and any excess cash is given back as change. Shelf prices include GST, so tax is taken out of the price and the bill is rounded to the rupee. Each sale becomes a submitted sales invoice (stock leaves the warehouse and the books are posted the usual way) and prints as an 80 mm tax-invoice receipt with CGST / SGST by rate. A sale carries the till's own reference: when the network is down it waits on the till and is sent when the connection returns, and a sale sent twice is recorded once. Returns are made against a sale (never more than was sold, net of earlier returns) as a submitted credit note, refunded in one tender. Closing the shift takes the counted cash and keeps the day-close (Z) report: sales and returns, money in and out by tender, GST by rate, expected cash and the difference.
+
+**Owner's phone.** `/m` is a phone-sized home screen in the installable app: sales today (with the counter's share) and this month, money to collect (and overdue), payables due in seven days, cash and bank, and the approvals waiting, each with Approve / Reject. Native React Native apps for the other roles (sales and distribution, warehouse scanner, shop floor, service technician, employee self-service) are not built: those roles use the installable web app, which already has offline queues for the scanner and the kiosk.
+
+## Phase 15 status
+
+All seven sprints are built and tested. Not done by code, and left to the business: the first enterprise tenant with 1,000 users and five companies, the SOC 2 Type II report and ISO 27001 certification, ten connectors running live (they run in sandbox here because there is no network access to the outside services), and certifying five implementation partners. Not built yet: SAML sign-in (OIDC is supported), native mobile apps, table partitioning, unrealised profit and other currencies in consolidation, publishing the SDK to npm.

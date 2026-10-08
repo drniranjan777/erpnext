@@ -10,6 +10,10 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#ffffff",
     theme_color: "#1d4ed8",
     icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }],
-    shortcuts: [{ name: "Shop-floor kiosk", short_name: "Kiosk", url: "/manufacturing/kiosk" }],
+    shortcuts: [
+      { name: "Owner's summary and approvals", short_name: "Today", url: "/m" },
+      { name: "Point of sale", short_name: "POS", url: "/pos" },
+      { name: "Shop-floor kiosk", short_name: "Kiosk", url: "/manufacturing/kiosk" },
+    ],
   };
 }

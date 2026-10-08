@@ -62,6 +62,7 @@ import { PlmModule } from './modules/plm/plm.module';
 import { WhiteLabelModule } from './modules/whitelabel/whitelabel.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { EnterprisePlatformModule } from './modules/enterprise-platform/enterprise-platform.module';
+import { PosModule } from './modules/pos/pos.module';
 import { PredictModule } from './modules/predict/predict.module';
 import { VoiceModule } from './modules/voice/voice.module';
 import { TmsModule } from './modules/tms/tms.module';
@@ -146,6 +147,7 @@ import { ProcessModule } from './modules/process/process.module';
     WhiteLabelModule,
     MarketplaceModule,
     EnterprisePlatformModule,
+    PosModule,
     AdminModule,
     PrivacyModule,
   ],

@@ -216,6 +216,7 @@ export class ApprovalsService {
       const rows = await tx
         .select({
           documentId: documents.id,
+          version: documents.version,
           docType: documents.docType,
           number: documents.number,
           title: documents.title,

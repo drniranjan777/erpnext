@@ -101,6 +101,8 @@ export const PERMISSIONS = {
   'automation.rules.manage': 'Create and change workflow automations',
   'platform.sso.manage': 'Set up single sign-on and SCIM provisioning for the workspace',
   'platform.data.export': 'Export the workspace, import exports and create sandbox copies',
+  'pos.sales.use': 'Sell and take returns at a point-of-sale till, open and close shifts',
+  'pos.terminals.manage': 'Set up point-of-sale tills and see shift reports',
   'compliance.certificates.manage': 'Keep supplier, product and company certificates with their expiry',
   'ai.governance.manage': 'Set the AI policy (features, consent, PII masking, budget, models) and see AI usage and evaluations',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',

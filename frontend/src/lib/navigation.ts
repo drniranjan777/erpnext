@@ -8,6 +8,7 @@ import {
   HardHat,
   ShieldAlert,
   BadgeCheck,
+  Smartphone,
   DatabaseBackup,
   KeyRound,
   Palette,
@@ -469,6 +470,7 @@ export const NAVIGATION: NavSection[] = [
       { label: "Credit notes", href: "/sales/credit-notes", icon: FileMinus, permissions: ["sales.invoices.read"] },
       { label: "Receivables", href: "/sales/receivables", icon: HandCoins, permissions: ["sales.invoices.read"] },
       { label: "Customer portal", href: "/sales/portal", icon: Globe, permissions: ["portal.orders.manage", "portal.users.manage"] },
+      { label: "Point of sale", href: "/pos", icon: ReceiptText, permissions: ["pos.sales.use"] },
     ],
   },
   {
@@ -521,6 +523,7 @@ export const NAVIGATION: NavSection[] = [
     title: "Insights",
     items: [
       { label: "Reports", href: "/reports", icon: BarChart3 },
+      { label: "Owner's phone", href: "/m", icon: Smartphone },
       { label: "AI Inbox", href: "/ai/inbox", icon: Inbox, permissions: ["ai.inbox.use"] },
       { label: "AI agents", href: "/ai/agents", icon: Bot, permissions: ["ai.inbox.use"] },
       { label: "Voice commands", href: "/ai/voice", icon: Mic },
