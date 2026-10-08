@@ -484,6 +484,13 @@
       "when": 1791426518375,
       "tag": "0068_white_label_partners",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1791428195802,
+      "tag": "0069_marketplace_automation",
+      "breakpoints": true
     }
   ]
 }

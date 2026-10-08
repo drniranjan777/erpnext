@@ -50,3 +50,4 @@ export * from './enterprise';
 export * from './projects';
 export * from './plm';
 export * from './partners';
+export * from './marketplace';

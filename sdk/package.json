@@ -1,0 +1,14 @@
+{
+  "name": "@nextgen/sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for the NextGen ERP public API: API-key client with retries and pagination, and webhook signature checks",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "UNLICENSED"
+}

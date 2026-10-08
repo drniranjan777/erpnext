@@ -22,6 +22,8 @@ export const WEBHOOK_EVENTS = {
   'document.rejected': 'A document was rejected',
   'document.cancelled': 'A document was cancelled',
   'member.joined': 'A user joined the workspace',
+  'connector.orders_imported': 'A connector imported an online order',
+  'connector.leads_imported': 'A connector imported a lead',
 } as const;
 export type WebhookEvent = keyof typeof WEBHOOK_EVENTS;
 
@@ -72,7 +74,15 @@ export class WebhooksService implements OnModuleInit {
   }
 
   /** Queues the event for every subscribed active endpoint. Call inside the business transaction. */
+  private readonly subscribers: ((tx: Transaction, tenantId: string, event: WebhookEvent, data: Record<string, unknown>) => Promise<void>)[] = [];
+
+  /** In-process listeners (workflow automations) called for every event, in the same transaction. */
+  subscribe(fn: (tx: Transaction, tenantId: string, event: WebhookEvent, data: Record<string, unknown>) => Promise<void>) {
+    this.subscribers.push(fn);
+  }
+
   async emit(tx: Transaction, tenantId: string, event: WebhookEvent, data: Record<string, unknown>) {
+    for (const s of this.subscribers) await s(tx, tenantId, event, data);
     const endpoints = await tx.select().from(webhookEndpoints).where(eq(webhookEndpoints.isActive, true));
     const targets = endpoints.filter((e) => e.events.includes('*') || e.events.includes(event));
     if (!targets.length) return;

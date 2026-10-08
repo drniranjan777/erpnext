@@ -544,6 +544,8 @@ export const NAVIGATION: NavSection[] = [
       { label: "Data protection", href: "/settings/privacy", icon: Lock, permissions: ["platform.privacy.manage"] },
       { label: "Billing & plan", href: "/settings/billing", icon: CreditCard, permissions: ["platform.billing.manage"] },
       { label: "Branding", href: "/settings/branding", icon: Palette, permissions: ["settings.branding.manage"] },
+      { label: "App marketplace", href: "/settings/apps", icon: Store, permissions: ["apps.connectors.read"] },
+      { label: "Automations", href: "/settings/automations", icon: Workflow, permissions: ["automation.rules.manage"] },
       { label: "Partner portal", href: "/partner", icon: Handshake },
     ],
   },

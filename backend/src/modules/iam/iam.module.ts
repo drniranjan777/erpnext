@@ -10,5 +10,6 @@ import { UsersService } from './users.service';
   imports: [AuthModule],
   controllers: [IamController, PublicInvitationsController],
   providers: [UsersService, InvitationsService, RolesService],
+  exports: [InvitationsService],
 })
 export class IamModule {}

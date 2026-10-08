@@ -81,9 +81,11 @@ describe('machine states and counts from signals', () => {
     // Running 30–600 s and 1530–1800 s, stopped 600–1530 s; 29 shots × 2 cavities at 12 s ideal in the window
     // (the shot at 1800 s counts in the next minute); 4 rejects.
     expect(row).toMatchObject({ label: 'IMM-01 · 250T moulder', targetOeePct: 70, noDataSeconds: 30, runSeconds: 840, operatingSeconds: 840, good: 54, reject: 4, idealSeconds: 696, stops: 1 });
-    expect(row.losses).toMatchObject({ unexplained: 817.5, speed: 144, defects: 48 });
-    expect(row.plannedStopSeconds).toBe(112.5);
-    expect([row.availability, row.performance, row.quality]).toEqual([0.5068, 0.8286, 0.931]);
+    // Shift breaks inside the stop count as planned; how much overlaps depends on the time of day the test runs.
+    const planned = row.plannedStopSeconds;
+    expect(row.losses).toMatchObject({ speed: 144, defects: 48 });
+    expect(row.losses.unexplained + planned).toBe(930);
+    expect([row.availability, row.performance, row.quality]).toEqual([Math.round((840 / (1770 - planned)) * 1e4) / 1e4, 0.8286, 0.931]);
     expect(o.total.oee).toBe(row.oee);
   });
 

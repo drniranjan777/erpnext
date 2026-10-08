@@ -272,6 +272,13 @@ Kindly reply by ${d.dueDate}, quoting ${d.number}. ${d.contact}`,
     defaults: { in_app: true, email: true, whatsapp: false },
     render: (d: { title: string; body: string; link: string }) => ({ title: d.title, body: d.body, link: d.link, action: 'Open condition monitoring' }),
   },
+  'automation.message': {
+    label: 'Workflow automation message',
+    description: 'A message sent by a workflow automation set up in this workspace',
+    group: 'Documents',
+    defaults: { in_app: true, email: true, whatsapp: false },
+    render: (d: { title: string; body: string; link: string | null }) => ({ title: d.title, body: d.body, link: d.link ?? undefined }),
+  },
   'agent.message': {
     label: 'Message from an AI agent',
     description: 'A follow-up an agent drafted and someone approved, such as asking a vendor for a delivery date',

@@ -552,3 +552,20 @@ BEGIN
     EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO nextgen_app', f);
   END LOOP;
 END $$;
+
+-- -----------------------------------------------------------------------------
+-- Connector inbound webhooks arrive without a session: find the installation
+-- (and so the workspace) by its id. The secret stays encrypted; the app checks
+-- the signature before doing anything in that workspace.
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION connector_installation(p_id uuid)
+  RETURNS TABLE (id uuid, tenant_id uuid, connector text, enabled boolean, webhook_secret_encrypted text)
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+    SELECT i.id, i.tenant_id, i.connector, i.enabled, i.webhook_secret_encrypted
+    FROM app_installations i JOIN tenants t ON t.id = i.tenant_id
+    WHERE i.id = p_id AND t.status IN ('trial', 'active')
+  $$;
+REVOKE ALL ON FUNCTION connector_installation(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION connector_installation(uuid) TO nextgen_app;

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 15.1–15.4 done |
+| **Status** | In progress: 15.1–15.5 done |
 | **Plan** | `docs/PHASE_PLAN.md`, Phase 15 |
 
 Phase 15 brings larger customers, partners and an ecosystem. Most of it is software built and tested here. Some parts are not code and stay with the business: the SOC 2 Type II report, ISO 27001 certification, partner certification, the first enterprise tenant, and store listings of native apps. The sprints below also say where an outside service needs credentials that do not exist in development; the integration is then built against a local sandbox adapter, the same way the GST network was in Phase 3.
@@ -70,3 +70,25 @@ Migration 0068 adds `tenant_branding` (per workspace), `partners`, `partner_memb
 **Sender identities and domain.** An email sender name and address: the address is used only once its domain is proven by a DNS TXT record (`_nextgen-verify.<domain>` = `nextgen-verify=<token>`); until then mail goes from our address with the sender name. The TRAI DLT SMS header (6 letters) and principal entity id are kept for the SMS provider. A custom web address (not one of our domains, used by one workspace only) is proven the same way plus a CNAME; changing it needs a new proof. The login page of a verified domain can look up its brand without a session (`GET /public/branding?host=`).
 
 **Partners.** Platform administrators keep partners (code, kind reseller / implementer / both, commission %, certified, active or suspended), add members by the email of an existing user, accrue commissions and record payouts. A partner member sees, in the partner portal, the partner's client workspaces (plan, subscription, users — not their data) and commissions, and creates client workspaces that they own and the partner manages. A workspace owner can also name a partner by its code, or remove it. Commission is the partner's rate on the taxable value of each paid subscription invoice of a client workspace, accrued once per invoice; payouts mark the accrued commissions paid with the transfer reference.
+
+## 15.5 Marketplace, SDK and workflow automation (done)
+
+Migration 0069 adds `app_installations`, `connector_runs`, `connector_records`, `automations` and `automation_runs` (schema `marketplace.ts`); `rls.sql` adds `connector_installation(uuid)` so an inbound webhook, which has no session, can find its workspace. Code: `backend/src/modules/marketplace/` (`connectors.ts` and `automation-rules.ts` are pure and unit tested). The SDK is in `sdk/`. Permissions: `apps.connectors.manage`, `apps.connectors.read`, `automation.rules.manage`. Pages: `/settings/apps`, `/settings/automations`.
+
+**Connectors.** Ten connectors, installed per workspace with their settings and AES-GCM-encrypted credentials, switched on or off, every run logged with counts and messages:
+
+| Connector | What it does |
+|---|---|
+| Tally Prime | Exports customers and vendors as ledgers (Sundry Debtors / Creditors with GSTIN and state) and items as stock items (unit, HSN, GST rate) in Tally's XML import format. Works on our own data, so it is always live. |
+| Shopify | Orders become draft sales orders for the "Shopify customers" party, items matched by SKU = item code; also accepts order webhooks verified by Shopify's HMAC-SHA256 header. |
+| Amazon Seller, Flipkart Seller | Orders become draft sales orders the same way. |
+| IndiaMART Lead Manager | Buy-leads and enquiries become CRM leads (source IndiaMART); pull, or push to the webhook signed with HMAC-SHA256. |
+| Shiprocket, Delhivery | Book a shipment for a submitted delivery note and write the courier and AWB number on it. |
+| Razorpay Payment Links | A payment link for the balance due on a submitted sales invoice. |
+| Google Workspace, Microsoft 365 | Invite directory users who are not yet users, with a chosen role. |
+
+Each external record is remembered against ours, so orders and leads are never imported twice; SKUs we do not have are reported, not imported. Imports raise `connector.orders_imported` and `connector.leads_imported`, which webhooks and automations can subscribe to. In this environment there is no network access to the outside services and no credentials, so connectors other than Tally run in sandbox mode with sample data (fixed per day); live mode records a failed run explaining why. Inbound webhooks are real: they verify the signature against the installation's secret, shown once at install.
+
+**Workflow automation.** An automation starts on an event (document submitted / approved / rejected / cancelled, member joined, connector imports), checks conditions on the event data (is, is not, >, ≥, <, ≤, is one of, contains, is filled — all must hold), and queues its actions in the same transaction as the business change: notify users or everyone with a role (in-app and email, linked to the document), send an email, call a webhook (HMAC-signed body, 10 s timeout, private addresses refused in production), or run a connector action for the document (book a shipment for an approved delivery note, make a payment link for an invoice). Texts take `{{placeholders}}` from the event. Runs are logged with each action's result; a test endpoint shows whether a sample payload would match and what the texts would say.
+
+**Public SDK** (`sdk/`, `@nextgen/sdk`). A TypeScript client for API keys: typed items, parties, sales orders (list, get, create, submit), sales invoices and purchase orders, and `request()` for any endpoint the key's scopes allow; retries on 429 and 5xx honouring Retry-After; `paginate()` over cursor pages; errors carry the API's problem details; `verifyWebhook()` checks our webhook signature and refuses replays older than five minutes. It uses only fetch and Web Crypto, so it runs in Node 18+ and browsers. Not done yet: publishing to npm, and SDKs for other languages.
