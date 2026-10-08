@@ -46,3 +46,4 @@ export * from './ai';
 export * from './hse';
 export * from './textile';
 export * from './esg';
+export * from './enterprise';

@@ -56,6 +56,7 @@ import { FoodModule } from './modules/food/food.module';
 import { HsePackModule } from './modules/hse/hse.module';
 import { TextileModule } from './modules/textile/textile.module';
 import { EsgModule } from './modules/esg/esg.module';
+import { EnterpriseModule } from './modules/enterprise/enterprise.module';
 import { PredictModule } from './modules/predict/predict.module';
 import { VoiceModule } from './modules/voice/voice.module';
 import { TmsModule } from './modules/tms/tms.module';
@@ -134,6 +135,7 @@ import { ProcessModule } from './modules/process/process.module';
     HsePackModule,
     TextileModule,
     EsgModule,
+    EnterpriseModule,
     AdminModule,
     PrivacyModule,
   ],

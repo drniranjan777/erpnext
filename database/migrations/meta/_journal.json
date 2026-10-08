@@ -456,6 +456,13 @@
       "when": 1791417339706,
       "tag": "0064_industry_packs",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1791419570359,
+      "tag": "0065_enterprise_finance",
+      "breakpoints": true
     }
   ]
 }

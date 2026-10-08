@@ -30,7 +30,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
       a('1220', 'Opening balance difference', 'equity', 'opening_balance'),
     ]),
   ]),
-  g('2000', 'Non-current liabilities', 'liability', 'bs.ncl', [a('2100', 'Long-term borrowings', 'liability', undefined, { reportLine: 'bs.ncl.borrowings' })]),
+  g('2000', 'Non-current liabilities', 'liability', 'bs.ncl', [a('2100', 'Long-term borrowings', 'liability', undefined, { reportLine: 'bs.ncl.borrowings' }), a('2110', 'Term loans from banks', 'liability', 'term_loans', { reportLine: 'bs.ncl.borrowings' })]),
   g('3000', 'Current liabilities', 'liability', 'bs.cl', [
     a('3100', 'Short-term borrowings', 'liability', undefined, { reportLine: 'bs.cl.borrowings' }),
     g('3200', 'Trade payables', 'liability', 'bs.cl.trade_payables', [a('3210', 'Sundry creditors', 'liability', 'payable', { control: true })]),
@@ -45,6 +45,8 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
       a('3362', 'ESI payable', 'liability', 'esi_payable'),
       a('3363', 'Professional tax payable', 'liability', 'pt_payable'),
       a('3364', 'Labour welfare fund payable', 'liability', 'lwf_payable'),
+      a('3370', 'Inter-company payables', 'liability', 'intercompany_payable', { control: true }),
+      a('3380', 'Interest accrued on borrowings', 'liability', 'interest_payable'),
     ]),
     g('3400', 'Duties and taxes', 'liability', 'bs.cl.other', [
       a('3410', 'Output CGST', 'liability', 'gst_out_cgst'),
@@ -70,6 +72,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
       a('4190', 'Accumulated depreciation', 'asset', 'accumulated_depreciation'),
     ]),
     a('4200', 'Capital work in progress', 'asset', 'cwip', { reportLine: 'bs.nca.cwip' }),
+    a('4300', 'Investments in subsidiaries', 'asset', 'investments_subsidiaries', { reportLine: 'bs.nca.investments' }),
   ]),
   g('5000', 'Current assets', 'asset', 'bs.ca', [
     g('5100', 'Inventories', 'asset', 'bs.ca.inventories', [a('5110', 'Stock in hand', 'asset', 'stock', { manual: false }), a('5120', 'Work in progress', 'asset', 'wip', { manual: false })]),
@@ -82,12 +85,16 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
       a('5410', 'Advances to suppliers', 'asset', 'vendor_advance'),
       a('5420', 'TDS receivable', 'asset', 'tds_receivable'),
       a('5430', 'Loans and advances to employees', 'asset', 'employee_loans'),
+      a('5440', 'Inter-company receivables', 'asset', 'intercompany_receivable', { control: true }),
     ]),
     g('5500', 'Other current assets', 'asset', 'bs.ca.other', [
       a('5510', 'Input CGST', 'asset', 'gst_in_cgst'),
       a('5511', 'Input SGST / UTGST', 'asset', 'gst_in_sgst'),
       a('5512', 'Input IGST', 'asset', 'gst_in_igst'),
       a('5513', 'Input cess', 'asset', 'gst_in_cess'),
+      a('5520', 'Fixed deposits with banks', 'asset', 'fixed_deposits'),
+      a('5530', 'Interest accrued on deposits', 'asset', 'interest_accrued'),
+      a('5540', 'Margin money (LC / BG)', 'asset', 'margin_money'),
     ]),
   ]),
   g('6000', 'Revenue from operations', 'income', 'pl.revenue', [
@@ -101,6 +108,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     a('6520', 'Interest income', 'income', 'interest_income'),
     a('6530', 'Foreign exchange gain / loss', 'income', 'fx_gain_loss'),
     a('6540', 'Profit / loss on sale of assets', 'income', 'asset_disposal'),
+    a('6550', 'Inter-company income', 'income', 'intercompany_income'),
     a('6590', 'Rounding off', 'income', 'round_off'),
   ]),
   g('7000', 'Cost of materials and goods', 'expense', 'pl.materials', [
@@ -117,7 +125,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     a('8120', 'Contribution to PF, ESI and welfare funds', 'expense', 'payroll_contributions'),
     a('8130', 'Gratuity and leave encashment', 'expense', 'gratuity_expense'),
   ]),
-  g('8500', 'Finance costs', 'expense', 'pl.finance', [a('8510', 'Interest expense', 'expense'), a('8520', 'Bank charges', 'expense', 'bank_charges')]),
+  g('8500', 'Finance costs', 'expense', 'pl.finance', [a('8510', 'Interest expense', 'expense'), a('8520', 'Bank charges', 'expense', 'bank_charges'), a('8530', 'Interest on term loans', 'expense', 'interest_expense')]),
   g('9000', 'Depreciation and amortisation', 'expense', 'pl.depreciation', [a('9010', 'Depreciation', 'expense', 'depreciation')]),
   g('9500', 'Other expenses', 'expense', 'pl.other_expenses', [
     a('9510', 'Purchased services', 'expense', 'purchase_services'),
@@ -130,6 +138,7 @@ export const CHART_TEMPLATE: TemplateAccount[] = [
     a('9580', 'Repairs and maintenance', 'expense'),
     a('9585', 'Maintenance spares consumed', 'expense', 'maintenance_consumed'),
     a('9590', 'Trade schemes and distributor claims', 'expense', 'trade_schemes'),
+    a('9596', 'Inter-company charges', 'expense', 'intercompany_expense'),
   ]),
 ];
 
@@ -142,5 +151,6 @@ export const REQUIRED_KEYS = [
   'bank_charges', 'tds_receivable', 'bad_debts', 'cash', 'customer_advance', 'vendor_advance', 'interest_income', 'depreciation', 'accumulated_depreciation',
   'gst_payable', 'asset_disposal', 'cwip', 'ppe_plant', 'wip', 'production_variance', 'production_absorbed', 'maintenance_consumed',
   'salary_payable', 'pf_payable', 'esi_payable', 'pt_payable', 'lwf_payable', 'employee_loans', 'payroll_salaries', 'payroll_contributions', 'gratuity_expense', 'trade_schemes',
+  'intercompany_receivable', 'intercompany_payable', 'intercompany_income', 'intercompany_expense', 'term_loans', 'interest_payable', 'interest_expense', 'fixed_deposits', 'interest_accrued', 'margin_money', 'investments_subsidiaries',
 ] as const;
 export type SystemKey = (typeof REQUIRED_KEYS)[number];
