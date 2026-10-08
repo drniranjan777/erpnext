@@ -1,6 +1,6 @@
 "use client";
 
-import { Factory, Loader2, LogOut, Menu, Search, Shield, X } from "lucide-react";
+import { Loader2, Menu, Search, Shield, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -8,12 +8,16 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { documentKeys, type InboxItem } from "@/lib/documents";
 import { CommandPalette } from "@/components/command-palette";
-import { Copilot, openCopilot } from "@/components/copilot";
+import { Copilot } from "@/components/copilot";
 import { NotificationsBell } from "@/components/notifications-bell";
+import { Breadcrumbs, CreateMenu, UserMenu } from "@/components/shell/header-parts";
+import { Sidebar } from "@/components/shell/sidebar";
 import { VoiceButton } from "@/components/voice-button";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/auth";
-import { NAVIGATION } from "@/lib/navigation";
+import { industryLabel } from "@/lib/industries";
+
+const COLLAPSED_KEY = "nav-collapsed";
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
   const { status, me, logout, can } = useAuth();
@@ -21,6 +25,23 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return typeof window !== "undefined" && localStorage.getItem(COLLAPSED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem(COLLAPSED_KEY, c ? "0" : "1");
+      } catch {
+        // Storage unavailable: the choice lasts until the page reloads.
+      }
+      return !c;
+    });
+  };
   const inbox = useQuery({
     queryKey: documentKeys.inbox,
     queryFn: () => api<InboxItem[]>("/documents/approvals/inbox"),
@@ -60,85 +81,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
     );
   }
 
-  const initials = me.user.fullName
-    .split(/\s+/)
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  const sidebar = (
-    <nav className="flex h-full flex-col gap-6 overflow-y-auto px-3 py-4" aria-label="Main">
-      {NAVIGATION.map((section, i) => {
-        const items = section.items.filter((item) => !item.permissions || item.permissions.some(can));
-        if (!items.length) return null;
-        return (
-          <div key={section.title ?? i}>
-            {section.title && (
-              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted">{section.title}</p>
-            )}
-            <ul className="space-y-0.5">
-              {items.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                const Icon = item.icon;
-                const content = (
-                  <>
-                    <Icon className="size-4 shrink-0" aria-hidden />
-                    <span className="flex-1 truncate">{item.label}</span>
-                    {item.badge && badges[item.badge] > 0 && (
-                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                        {badges[item.badge]}
-                      </span>
-                    )}
-                    {item.comingInPhase && (
-                      <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] font-medium text-muted">
-                        Soon
-                      </span>
-                    )}
-                  </>
-                );
-                return (
-                  <li key={item.href}>
-                    {item.comingInPhase ? (
-                      <span
-                        className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted/70"
-                        title={`Arrives in Phase ${item.comingInPhase}`}
-                      >
-                        {content}
-                      </span>
-                    ) : item.opensCopilot ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMenuOpen(false);
-                          openCopilot();
-                        }}
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-surface-muted"
-                        title="Ask the copilot (Ctrl+J)"
-                      >
-                        {content}
-                      </button>
-                    ) : (
-                      <Link
-                        href={item.href}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                          active ? "bg-primary-soft font-medium text-primary" : "text-foreground hover:bg-surface-muted",
-                        )}
-                      >
-                        {content}
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        );
-      })}
-    </nav>
-  );
+  const sidebarProps = { pathname, can, badges };
 
   return (
     <div className="flex min-h-screen">
@@ -146,48 +89,55 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         Skip to content
       </a>
       {/* Desktop sidebar */}
-      <aside data-tour="nav" className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-surface lg:flex">
-        <Brand />
-        {sidebar}
+      <aside data-tour="nav" className="sticky top-0 hidden h-screen shrink-0 lg:block">
+        <Sidebar {...sidebarProps} collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
       </aside>
 
-      {/* Mobile drawer */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} aria-hidden />
-          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-surface shadow-xl">
-            <div className="flex items-center justify-between pr-3">
-              <Brand />
-              <button className="rounded-lg p-2 hover:bg-surface-muted" onClick={() => setMenuOpen(false)} aria-label="Close menu">
+      {/* Mobile and tablet drawer */}
+      <div className={cn("fixed inset-0 z-40 lg:hidden", !menuOpen && "pointer-events-none")} aria-hidden={!menuOpen}>
+        <div className={cn("absolute inset-0 bg-black/50 transition-opacity duration-200", menuOpen ? "opacity-100" : "opacity-0")} onClick={() => setMenuOpen(false)} />
+        <aside className={cn("absolute inset-y-0 left-0 shadow-2xl transition-transform duration-200", menuOpen ? "translate-x-0" : "-translate-x-full")} inert={!menuOpen}>
+          <Sidebar
+            {...sidebarProps}
+            onNavigate={() => setMenuOpen(false)}
+            closeButton={
+              <button className="rounded-lg p-2 text-sidebar-muted hover:bg-sidebar-hover hover:text-white" onClick={() => setMenuOpen(false)} aria-label="Close menu">
                 <X className="size-5" />
               </button>
-            </div>
-            {sidebar}
-          </aside>
-        </div>
-      )}
+            }
+          />
+        </aside>
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-surface/90 px-4 backdrop-blur sm:px-6">
-          <button className="-ml-2 rounded-lg p-2 hover:bg-surface-muted lg:hidden" onClick={() => setMenuOpen(true)} aria-label="Open menu">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-surface/95 px-3 backdrop-blur sm:gap-3 sm:px-6">
+          <button className="rounded-lg p-2 hover:bg-surface-muted lg:hidden" onClick={() => setMenuOpen(true)} aria-label="Open menu">
             <Menu className="size-5" />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{me.tenant.name}</p>
+            {pathname === "/dashboard" ? (
+              <p className="truncate text-sm">
+                <span className="font-medium">{me.tenant.name}</span>
+                {me.tenant.industry && <span className="hidden text-muted sm:inline"> · {industryLabel(me.tenant.industry)}</span>}
+              </p>
+            ) : (
+              <Breadcrumbs pathname={pathname} />
+            )}
           </div>
           <button
             onClick={() => setPaletteOpen(true)}
-            className="hidden h-9 items-center gap-2 rounded-lg border border-border bg-surface-muted px-3 text-sm text-muted hover:text-foreground md:flex"
+            className="hidden h-9 w-64 items-center gap-2 rounded-lg border border-border bg-surface-muted px-3 text-sm text-muted hover:border-primary/40 hover:text-foreground md:flex xl:w-80"
             aria-label="Search (Ctrl+K)"
             data-tour="search"
           >
             <Search className="size-4" aria-hidden />
-            <span>Search…</span>
-            <kbd className="ml-4 rounded border border-border bg-surface px-1.5 text-[10px]">Ctrl K</kbd>
+            <span className="flex-1 truncate text-left">Search items, parties, documents…</span>
+            <kbd className="rounded border border-border bg-surface px-1.5 text-[10px]">Ctrl K</kbd>
           </button>
           <button onClick={() => setPaletteOpen(true)} className="rounded-lg p-2 text-muted hover:bg-surface-muted md:hidden" aria-label="Search">
             <Search className="size-5" />
           </button>
+          <CreateMenu can={can} />
           {me.isPlatformAdmin && (
             <Link href="/admin" className="hidden rounded-lg p-2 text-muted hover:bg-surface-muted hover:text-foreground sm:block" title="Platform admin" aria-label="Platform admin">
               <Shield className="size-5" />
@@ -196,30 +146,13 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           {me.plan.state === "trialing" && me.plan.trialEndsAt && (
             <Link
               href={can("platform.billing.manage") ? "/settings/billing" : "#"}
-              className="hidden rounded-full bg-warning-soft px-2.5 py-1 text-xs font-medium text-warning sm:inline"
+              className="hidden rounded-full bg-warning-soft px-2.5 py-1 text-xs font-medium whitespace-nowrap text-warning 2xl:inline"
             >
               Trial · {daysLeft(me.plan.trialEndsAt)} days left
             </Link>
           )}
-          <div className="flex items-center gap-1">
-            <NotificationsBell />
-            <Link
-              href="/account"
-              className="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary hover:ring-2 hover:ring-ring"
-              title={`${me.user.fullName} (${me.user.email}) · My account`}
-              aria-label="My account"
-            >
-              {initials}
-            </Link>
-            <button
-              onClick={() => logout().then(() => router.replace("/login"))}
-              className="rounded-lg p-2 text-muted hover:bg-surface-muted hover:text-foreground"
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOut className="size-4" />
-            </button>
-          </div>
+          <NotificationsBell />
+          <UserMenu name={me.user.fullName} email={me.user.email} tenant={me.tenant.name} onSignOut={() => logout().then(() => router.replace("/login"))} />
         </header>
         {me.plan.readOnly && (
           <div role="alert" className="border-b border-danger/30 bg-danger-soft px-4 py-2.5 text-sm text-danger sm:px-6 lg:px-8">
@@ -244,33 +177,6 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <VoiceButton />
       </div>
     </div>
-  );
-}
-
-/** The product name, logo and colour: the workspace's white-label brand when it has one. */
-function Brand() {
-  const b = useQuery({ queryKey: ["/branding"], queryFn: () => api<{ productName: string | null; logo: string | null; primaryColor: string | null }>("/branding"), staleTime: 300_000 });
-  const color = b.data?.primaryColor;
-  useEffect(() => {
-    if (!color) return;
-    const root = document.documentElement.style;
-    root.setProperty("--primary", color);
-    root.setProperty("--primary-hover", color);
-    return () => {
-      root.removeProperty("--primary");
-      root.removeProperty("--primary-hover");
-    };
-  }, [color]);
-  return (
-    <Link href="/dashboard" className="flex h-14 items-center gap-2 px-6 font-semibold">
-      {b.data?.logo ? (
-        // eslint-disable-next-line @next/next/no-img-element -- a small data: URL logo, nothing to optimise
-        <img src={b.data.logo} alt="" className="size-6 object-contain" />
-      ) : (
-        <Factory className="size-5 text-primary" aria-hidden />
-      )}
-      {b.data?.productName || "NextGen ERP"}
-    </Link>
   );
 }
 

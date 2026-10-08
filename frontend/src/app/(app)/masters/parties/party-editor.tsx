@@ -10,6 +10,7 @@ import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Select } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page";
+import { toast } from "@/components/ui/toast";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { GST_REG_TYPES, gstinProblem, useReference, type Party, type PartyAddress, type PartyBank, type PartyContact } from "@/lib/masters";
@@ -18,7 +19,8 @@ const emptyAddress = (): PartyAddress => ({ type: "both", label: null, line1: ""
 const emptyContact = (): PartyContact => ({ name: "", designation: null, email: null, phone: null, isPrimary: false });
 const emptyBank = (): PartyBank & { accountNumber: string } => ({ accountName: "", accountNumber: "", ifsc: "", bankName: null, branchName: null, isPrimary: false });
 
-export function PartyEditor({ party, defaultRole }: { party?: Party; defaultRole?: "customer" | "vendor" }) {
+/** `onCreateAnother` adds "Save & new": after a create the page starts a fresh form. */
+export function PartyEditor({ party, defaultRole, onCreateAnother }: { party?: Party; defaultRole?: "customer" | "vendor"; onCreateAnother?: () => void }) {
   const router = useRouter();
   const qc = useQueryClient();
   const { can } = useAuth();
@@ -59,7 +61,7 @@ export function PartyEditor({ party, defaultRole }: { party?: Party; defaultRole
   const liveGstin = f.gstin ? gstinProblem(f.gstin) : null;
   const err = (k: string) => errors[k];
 
-  async function save() {
+  async function save(another = false) {
     setSaving(true);
     setError(null);
     setErrors({});
@@ -90,7 +92,12 @@ export function PartyEditor({ party, defaultRole }: { party?: Party; defaultRole
       const saved = await api<Party>(party ? `/masters/parties/${party.id}` : "/masters/parties", { method: party ? "PUT" : "POST", body });
       qc.invalidateQueries({ queryKey: ["masters", "parties"] });
       if (party) qc.setQueryData(["masters", "party", party.id], saved);
-      else router.push(`/masters/parties/${saved.id}`);
+      else if (another && onCreateAnother) {
+        toast(`${saved.code} · ${saved.name} created.`);
+        window.scrollTo({ top: 0 });
+        onCreateAnother();
+        return;
+      } else router.push(`/masters/parties/${saved.id}`);
       setSaving(false);
     } catch (e) {
       if (e instanceof ApiError) {
@@ -113,7 +120,12 @@ export function PartyEditor({ party, defaultRole }: { party?: Party; defaultRole
               <Button variant="ghost" onClick={() => router.push("/masters/parties")}>
                 Cancel
               </Button>
-              <Button loading={saving} onClick={save}>
+              {!party && onCreateAnother && (
+                <Button variant="secondary" disabled={saving} onClick={() => save(true)}>
+                  Save &amp; new
+                </Button>
+              )}
+              <Button loading={saving} onClick={() => save()}>
                 {party ? "Save changes" : "Create"}
               </Button>
             </>

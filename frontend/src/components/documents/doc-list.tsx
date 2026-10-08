@@ -1,15 +1,18 @@
 "use client";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarRange, Plus, Search, Send } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StatusBadge, Tabs } from "@/components/documents/document-parts";
+import { askConfirm } from "@/components/ui/ask";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DataTable, type Column } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/field";
 import { EmptyState, ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
-import { api } from "@/lib/api";
+import { toast } from "@/components/ui/toast";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { DocumentStatus } from "@/lib/documents";
 
@@ -34,9 +37,12 @@ const DEFAULT_TABS: DocTab[] = [
   { value: "cancelled", label: "Cancelled", query: { status: "cancelled" } },
 ];
 
+const MAX_PAGES = 20;
+
 /**
- * Standard document list: header with a "new" button, tabs, optional search, a table whose
- * first column links to the document, the status badge last, and "load more" paging.
+ * Standard document list: header with a "new" button, search, a date range, tabs, and a data
+ * table (sort, columns, export, paging) whose first column links to the document and whose
+ * last shows the status. Users who can create the document can submit drafts in bulk.
  */
 export function DocList<T extends { id: string; number: string | null; status: DocumentStatus }>({
   title,
@@ -68,9 +74,12 @@ export function DocList<T extends { id: string; number: string | null; status: D
   actions?: React.ReactNode;
 }) {
   const { can } = useAuth();
+  const qc = useQueryClient();
   const [tab, setTab] = useState(tabs[0].value);
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const query = { ...tabs.find((t) => t.value === tab)!.query, q: search || undefined };
   const list = useInfiniteQuery({
     queryKey: [queryKey, "list", query],
@@ -78,7 +87,60 @@ export function DocList<T extends { id: string; number: string | null; status: D
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
-  const items = list.data?.pages.flatMap((p) => p.items) ?? [];
+  const loaded = list.data?.pages.flatMap((p) => p.items) ?? [];
+  const hasDates = loaded.some((r) => typeof (r as { docDate?: unknown }).docDate === "string");
+  const dated = hasDates && (from || to);
+  // The APIs page by recency, not by date: with a date filter, read on (up to 1,000 rows) so it covers the range.
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = list;
+  const pagesLoaded = list.data?.pages.length ?? 0;
+  useEffect(() => {
+    if (dated && hasNextPage && !isFetchingNextPage && pagesLoaded < MAX_PAGES) void fetchNextPage();
+  }, [dated, hasNextPage, isFetchingNextPage, pagesLoaded, fetchNextPage]);
+  const items = dated
+    ? loaded.filter((r) => {
+        const d = String((r as { docDate?: string }).docDate ?? "").slice(0, 10);
+        return (!from || d >= from) && (!to || d <= to);
+      })
+    : loaded;
+  const capped = dated && hasNextPage && pagesLoaded >= MAX_PAGES;
+  const canBulk = !!newPermission && can(newPermission);
+
+  async function submitDrafts(rows: T[], clear: () => void) {
+    const drafts = rows.filter((r) => r.status === "draft");
+    if (!(await askConfirm(`Submit ${drafts.length} draft${drafts.length === 1 ? "" : "s"} for approval?`))) return;
+    let ok = 0;
+    const failed: string[] = [];
+    for (const r of drafts) {
+      try {
+        const doc = await api<{ version: number; can?: { submit?: boolean } }>(`${apiPath}/${r.id}`);
+        if (doc.can && !doc.can.submit) throw new Error("not allowed");
+        await api(`${apiPath}/${r.id}/submit`, { body: { version: doc.version } });
+        ok++;
+      } catch (err) {
+        failed.push(`${r.number ?? "Draft"}${err instanceof ApiError ? `: ${err.message}` : ""}`);
+      }
+    }
+    clear();
+    void qc.invalidateQueries({ queryKey: [queryKey] });
+    if (ok) toast(`${ok} submitted.`);
+    if (failed.length) toast(`Could not submit ${failed.length}: ${failed.slice(0, 3).join("; ")}${failed.length > 3 ? "…" : ""}`, "danger");
+  }
+
+  const tableColumns: Column<T>[] = [
+    {
+      key: "number",
+      label: "Number",
+      locked: true,
+      value: (r) => r.number ?? "Draft",
+      render: (r) => (
+        <Link href={`${route}/${r.id}`} className="font-medium whitespace-nowrap text-primary hover:underline">
+          {r.number ?? "Draft"}
+        </Link>
+      ),
+    },
+    ...columns.map((c) => ({ key: c.label, label: c.label, align: c.align, render: c.render })),
+    { key: "status", label: "Status", value: (r) => r.status, render: (r) => <StatusBadge status={r.status} /> },
+  ];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -98,23 +160,40 @@ export function DocList<T extends { id: string; number: string | null; status: D
           </>
         }
       />
-      <Card>
-        <div className="flex flex-wrap items-end gap-3 px-4 pt-3">
-          <div className="min-w-0 flex-1">
-            <Tabs tabs={tabs.map((t) => ({ value: t.value, label: t.label }))} value={tab} onChange={setTab} />
-          </div>
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
           {searchPlaceholder && (
             <form
-              className="relative mb-2 w-full sm:w-72"
+              className="relative w-full sm:w-72"
               onSubmit={(e) => {
                 e.preventDefault();
                 setSearch(q.trim());
               }}
             >
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden />
-              <Input className="pl-9" placeholder={searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} aria-label={`Search ${title.toLowerCase()}`} />
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden />
+              <Input className="h-9 pl-9" placeholder={searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} aria-label={`Search ${title.toLowerCase()}`} />
             </form>
           )}
+          {hasDates && (
+            <div className="flex items-center gap-1.5 text-sm text-muted">
+              <CalendarRange className="size-4" aria-hidden />
+              <Input type="date" className="h-9 w-[9.5rem]" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} aria-label="From date" />
+              <span>to</span>
+              <Input type="date" className="h-9 w-[9.5rem]" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} aria-label="To date" />
+              {(from || to) && (
+                <button
+                  onClick={() => {
+                    setFrom("");
+                    setTo("");
+                  }}
+                  className="ml-1 text-sm text-primary hover:underline"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
+          {(search || dated) && <span className="text-xs text-muted">{dated && list.isFetchingNextPage ? "Reading more rows…" : capped ? "Showing matches in the latest 1,000" : "Filtered"}</span>}
         </div>
         {list.isLoading && <LoadingBlock />}
         {list.error && (
@@ -122,49 +201,30 @@ export function DocList<T extends { id: string; number: string | null; status: D
             <ErrorBlock error={list.error} />
           </div>
         )}
-        {list.data && items.length === 0 && <EmptyState title={search ? "Nothing matches" : empty.title} description={search ? "Try another search." : empty.description} />}
-        {items.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Number</th>
-                  {columns.map((c) => (
-                    <th key={c.label} className={`px-4 py-2.5 font-medium ${c.align === "right" ? "text-right" : ""}`}>
-                      {c.label}
-                    </th>
-                  ))}
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {items.map((r) => (
-                  <tr key={r.id} className="hover:bg-surface-muted/60">
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Link href={`${route}/${r.id}`} className="font-medium text-primary hover:underline">
-                        {r.number ?? "Draft"}
-                      </Link>
-                    </td>
-                    {columns.map((c) => (
-                      <td key={c.label} className={`px-4 py-3 ${c.align === "right" ? "whitespace-nowrap text-right tabular-nums" : ""}`}>
-                        {c.render(r)}
-                      </td>
-                    ))}
-                    <td className="px-4 py-3">
-                      <StatusBadge status={r.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {list.hasNextPage && (
-          <div className="border-t border-border p-3 text-center">
-            <Button variant="secondary" size="sm" loading={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
-              Load more
-            </Button>
-          </div>
+        {list.data && (
+          <DataTable<T>
+            key={`${tab}|${search}|${from}|${to}`}
+            rows={items}
+            rowKey={(r) => r.id}
+            columns={tableColumns}
+            storageKey={queryKey}
+            exportName={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+            toolbar={<Tabs tabs={tabs.map((t) => ({ value: t.value, label: t.label }))} value={tab} onChange={setTab} />}
+            bulkActions={
+              canBulk
+                ? (sel, clear) =>
+                    sel.some((r) => r.status === "draft") ? (
+                      <Button size="sm" onClick={() => void submitDrafts(sel, clear)}>
+                        <Send className="size-4" aria-hidden /> Submit drafts
+                      </Button>
+                    ) : null
+                : () => null
+            }
+            hasMore={!dated && list.hasNextPage}
+            loadingMore={list.isFetchingNextPage}
+            onLoadMore={() => void list.fetchNextPage()}
+            empty={<EmptyState title={search || dated ? "Nothing matches" : empty.title} description={search || dated ? "Try another search or date range." : empty.description} />}
+          />
         )}
       </Card>
     </div>

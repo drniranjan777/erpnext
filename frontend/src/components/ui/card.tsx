@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("rounded-xl border border-border bg-surface", className)} {...props} />;
+  return <div className={cn("rounded-xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,24,40,0.04)]", className)} {...props} />;
 }
 
 export function CardHeader({ title, description, action }: { title: string; description?: string; action?: React.ReactNode }) {
@@ -26,5 +26,19 @@ export function Alert({ tone = "danger", children }: { tone?: "danger" | "warnin
     <div role="alert" className={cn("rounded-lg px-3 py-2.5 text-sm", tones[tone])}>
       {children}
     </div>
+  );
+}
+
+/**
+ * A titled block of form fields laid out on a responsive grid. Use one per logical group
+ * (basics, tax, inventory …) so long forms read as sections rather than one wall of inputs.
+ */
+export function FormSection({ title, description, action, columns = 2, className, children }: { title: string; description?: string; action?: React.ReactNode; columns?: 1 | 2 | 3 | 4; className?: string; children: React.ReactNode }) {
+  const grid = { 1: "", 2: "sm:grid-cols-2", 3: "sm:grid-cols-2 lg:grid-cols-3", 4: "sm:grid-cols-2 lg:grid-cols-4" }[columns];
+  return (
+    <Card className={className}>
+      <CardHeader title={title} description={description} action={action} />
+      <div className={cn("grid gap-4 px-5 py-4", grid)}>{children}</div>
+    </Card>
   );
 }

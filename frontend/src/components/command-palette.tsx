@@ -10,7 +10,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import type { DocumentStatus } from "@/lib/documents";
-import { NAVIGATION } from "@/lib/navigation";
+import { NAV_ITEMS } from "@/lib/navigation";
 
 interface DocHit {
   id: string;
@@ -51,12 +51,10 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
 
   const items = useMemo<Item[]>(() => {
     const term = q.trim().toLowerCase();
-    const pages: Item[] = NAVIGATION.flatMap((s) => s.items)
-      .filter((i) => !i.comingInPhase && (!i.permissions || i.permissions.some(can)))
-      .map((i) => {
-        const Icon = i.icon;
-        return { id: `nav:${i.href}`, label: i.label, hint: i.opensCopilot ? "Open" : "Go to", href: i.href, icon: <Icon className="size-4" /> };
-      });
+    const pages: Item[] = NAV_ITEMS.filter(({ item: i }) => !i.comingInPhase && (!i.permissions || i.permissions.some(can))).map(({ item: i, group }) => {
+      const Icon = i.icon;
+      return { id: `nav:${i.href}`, label: i.label, hint: i.opensCopilot ? "Open" : group ?? "Go to", href: i.href, icon: <Icon className="size-4" /> };
+    });
     pages.push({ id: "nav:/account", label: "My account", hint: "Go to", href: "/account", icon: <Search className="size-4" /> });
     if (me?.isPlatformAdmin) pages.push({ id: "nav:/admin", label: "Platform admin", hint: "Go to", href: "/admin", icon: <Search className="size-4" /> });
     const actions: Item[] = can("purchase.requisitions.manage")

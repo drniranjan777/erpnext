@@ -24,6 +24,12 @@
   --danger: #b91c1c;
   --danger-soft: #fdecec;
   --ring: #93b4ff;
+  /* Navigation rail: a deep navy that works under any brand colour. */
+  --sidebar: #0f1a2b;
+  --sidebar-foreground: #c9d2df;
+  --sidebar-muted: #7f8ba0;
+  --sidebar-hover: #18263b;
+  --sidebar-border: #1e2c42;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -45,6 +51,11 @@
     --danger: #f87171;
     --danger-soft: #2f1616;
     --ring: #3b5bb5;
+    --sidebar: #0a111b;
+    --sidebar-foreground: #c9d2df;
+    --sidebar-muted: #7a869a;
+    --sidebar-hover: #142033;
+    --sidebar-border: #1a2638;
   }
 }
 
@@ -66,6 +77,11 @@
   --danger: #f87171;
   --danger-soft: #2f1616;
   --ring: #3b5bb5;
+  --sidebar: #0a111b;
+  --sidebar-foreground: #c9d2df;
+  --sidebar-muted: #7a869a;
+  --sidebar-hover: #142033;
+  --sidebar-border: #1a2638;
 }
 
 @theme inline {
@@ -86,6 +102,11 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-border: var(--sidebar-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -93,4 +114,10 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Thin, unobtrusive scrollbars for the navigation rail. */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sidebar-border) transparent;
 }

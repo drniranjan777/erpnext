@@ -12,6 +12,7 @@ import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Select } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page";
+import { toast } from "@/components/ui/toast";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
@@ -122,7 +123,8 @@ function initial(item?: Item, defaultUom?: string): Form {
 const n = (v: string) => (v.trim() === "" ? null : v.trim());
 const int = (v: string) => (v.trim() === "" ? null : Number(v));
 
-export function ItemEditor({ item }: { item?: Item }) {
+/** `onCreateAnother` adds "Save & new": after a create the page starts a fresh form. */
+export function ItemEditor({ item, onCreateAnother }: { item?: Item; onCreateAnother?: () => void }) {
   const router = useRouter();
   const qc = useQueryClient();
   const { can } = useAuth();
@@ -149,7 +151,7 @@ export function ItemEditor({ item }: { item?: Item }) {
     Boolean,
   );
 
-  async function save() {
+  async function save(another = false) {
     setSaving(true);
     setError(null);
     setErrors({});
@@ -208,6 +210,12 @@ export function ItemEditor({ item }: { item?: Item }) {
         { method: item ? "PUT" : "POST", body },
       );
       qc.invalidateQueries({ queryKey: ["masters", "items"] });
+      if (!item && another && onCreateAnother) {
+        toast(`${saved.code} · ${saved.name} created.`);
+        window.scrollTo({ top: 0 });
+        onCreateAnother();
+        return;
+      }
       router.push(`/masters/items/${saved.id}`);
       if (item) {
         qc.setQueryData(["masters", "item", item.id], saved);
@@ -253,7 +261,12 @@ export function ItemEditor({ item }: { item?: Item }) {
                 >
                   Cancel
                 </Button>
-                <Button loading={saving} onClick={save}>
+                {!item && onCreateAnother && (
+                  <Button variant="secondary" disabled={saving} onClick={() => save(true)}>
+                    Save &amp; new
+                  </Button>
+                )}
+                <Button loading={saving} onClick={() => save()}>
                   {item ? "Save changes" : "Create item"}
                 </Button>
               </>
