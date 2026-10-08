@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { documentKeys, type InboxItem } from "@/lib/documents";
 import { CommandPalette } from "@/components/command-palette";
-import { Copilot } from "@/components/copilot";
+import { Copilot, openCopilot } from "@/components/copilot";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { VoiceButton } from "@/components/voice-button";
 import { cn } from "@/lib/cn";
@@ -106,6 +106,18 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
                       >
                         {content}
                       </span>
+                    ) : item.opensCopilot ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          openCopilot();
+                        }}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-surface-muted"
+                        title="Ask the copilot (Ctrl+J)"
+                      >
+                        {content}
+                      </button>
                     ) : (
                       <Link
                         href={item.href}

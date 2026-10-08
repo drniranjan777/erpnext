@@ -28,6 +28,10 @@ const SUGGESTIONS = { en: ["Sales this month", "Overdue invoices", "Late work or
 const TONE = { good: "text-success", bad: "text-danger", neutral: "text-muted" } as const;
 
 /** Copilot panel on every screen: ask about your data, jump to screens, prepare drafts. */
+const OPEN_EVENT = "copilot:open";
+/** Opens the copilot panel from anywhere (menu, command palette). */
+export const openCopilot = () => window.dispatchEvent(new Event(OPEN_EVENT));
+
 export function Copilot() {
   const pathname = usePathname();
   const router = useRouter();
@@ -56,8 +60,13 @@ export function Copilot() {
         setOpen((o) => !o);
       }
     };
+    const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_EVENT, onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_EVENT, onOpen);
+    };
   }, []);
 
   async function send(content: string) {

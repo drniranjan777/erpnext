@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CornerDownLeft, FileText, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { openCopilot } from "@/components/copilot";
 import { StatusBadge } from "@/components/documents/document-parts";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -54,7 +55,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       .filter((i) => !i.comingInPhase && (!i.permissions || i.permissions.some(can)))
       .map((i) => {
         const Icon = i.icon;
-        return { id: `nav:${i.href}`, label: i.label, hint: "Go to", href: i.href, icon: <Icon className="size-4" /> };
+        return { id: `nav:${i.href}`, label: i.label, hint: i.opensCopilot ? "Open" : "Go to", href: i.href, icon: <Icon className="size-4" /> };
       });
     pages.push({ id: "nav:/account", label: "My account", hint: "Go to", href: "/account", icon: <Search className="size-4" /> });
     if (me?.isPlatformAdmin) pages.push({ id: "nav:/admin", label: "Platform admin", hint: "Go to", href: "/admin", icon: <Search className="size-4" /> });
@@ -78,7 +79,8 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const go = (item: Item | undefined) => {
     if (!item) return;
     onClose();
-    router.push(item.href);
+    if (item.href === "#copilot") openCopilot();
+    else router.push(item.href);
   };
 
   return (

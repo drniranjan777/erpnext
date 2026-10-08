@@ -184,6 +184,8 @@ export interface NavItem {
   permissions?: string[];
   /** Roadmap phase that delivers the module (docs/PHASE_PLAN.md). Shown as "coming soon". */
   comingInPhase?: number;
+  /** Opens the copilot panel instead of navigating. */
+  opensCopilot?: boolean;
   /** Live counter shown next to the label. */
   badge?: "approvals";
 }
@@ -530,7 +532,7 @@ export const NAVIGATION: NavSection[] = [
       { label: "Predictions & why", href: "/ai/insights", icon: LineChart, permissions: ["ai.insights.read"] },
       { label: "Document AI", href: "/ai/documents", icon: ScanText, permissions: ["ai.documents.use"] },
       { label: "AI governance", href: "/ai/governance", icon: Scale, permissions: ["ai.governance.manage"] },
-      { label: "AI Copilot", href: "/copilot", icon: Sparkles, comingInPhase: 6 },
+      { label: "AI Copilot", href: "#copilot", icon: Sparkles, opensCopilot: true },
     ],
   },
   {
