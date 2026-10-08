@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { hash, verify } from '@node-rs/argon2';
 import { memberships, provisionTenant, tenants, users } from '@nextgen/database';
 import { and, eq, sql } from 'drizzle-orm';
+import { AccessCacheService } from '../../common/access-cache.service';
 import { loadPermissions } from '../../common/guards';
 import type { AuthContext } from '../../common/auth-context';
 import type { Env } from '../../config/env';
@@ -59,6 +60,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly mfa: MfaService,
     private readonly entitlements: EntitlementsService,
+    private readonly accessCache: AccessCacheService,
     config: ConfigService<Env, true>,
   ) {
     this.platformAdmins = config.get('PLATFORM_ADMIN_EMAILS', { infer: true });
@@ -228,7 +230,7 @@ export class AuthService {
       return { user, tenant };
     });
     if (!user || !tenant) throw new UnauthorizedException();
-    const permissions = await loadPermissions(this.database, auth.tenantId, auth.userId, auth.membershipId);
+    const permissions = auth.permissions ?? (await loadPermissions(this.database, auth.tenantId, auth.userId, auth.membershipId, this.accessCache));
     const e = await this.entitlements.get(auth.tenantId);
     return {
       user,
