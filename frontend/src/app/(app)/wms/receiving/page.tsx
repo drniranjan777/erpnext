@@ -85,7 +85,7 @@ function Receiving() {
         <>
           <form className="flex gap-2" onSubmit={scan}>
             <Input className="h-11 flex-1 font-mono" autoFocus placeholder="Scan a barcode" aria-label="Barcode" value={code} onChange={(e) => setCode(e.target.value)} />
-            <Button type="submit" size="lg"><ScanLine className="size-5" aria-hidden /></Button>
+            <Button type="submit" size="lg" aria-label="Look up"><ScanLine className="size-5" aria-hidden /></Button>
           </form>
           <Card>
             <CardHeader title="Counted" />

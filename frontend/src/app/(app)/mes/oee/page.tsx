@@ -70,7 +70,7 @@ export default function OeePage() {
       )}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
               <tr><th className="px-4 py-2 font-medium">{by === "machine" ? "Machine" : by === "workCenter" ? "Line" : by === "shift" ? "Shift" : "Day"}</th><th className="px-4 py-2 text-right font-medium">OEE</th><th className="px-4 py-2 text-right font-medium">Avail.</th><th className="px-4 py-2 text-right font-medium">Perf.</th><th className="px-4 py-2 text-right font-medium">Quality</th><th className="px-4 py-2 text-right font-medium">Good / rej.</th><th className="px-4 py-2 text-right font-medium">Downtime</th><th className="px-4 py-2 text-right font-medium">Stops</th></tr>
             </thead>
@@ -89,7 +89,7 @@ export default function OeePage() {
               ))}
               {!q.data.rows.length && <tr><td colSpan={8} className="px-4 py-8 text-center text-muted">No monitored machines in this period.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, todayIST } from "@/lib/documents";
 import { inr, PAY, type Component } from "@/lib/payroll";
+import { askConfirm } from "@/components/ui/ask";
 
 interface InputRow { id: string; employeeId: string; code: string; amount: string; remarks: string | null; empCode: string; fullName: string; name: string | null; kind: string | null }
 interface Loan { id: string; employeeId: string; code: string; fullName: string; kind: string; issuedOn: string; principal: string; emi: string; startMonth: string; recovered: string; outstanding: string; status: string }
@@ -84,7 +85,7 @@ export default function PayrollInputsPage() {
       {tab === "loans" && (
         <Card>
           {loans.isLoading && <LoadingBlock />}
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Employee</th><th className="px-4 py-2 font-medium">Given</th><th className="px-4 py-2 text-right font-medium">Amount</th><th className="px-4 py-2 text-right font-medium">Instalment</th><th className="px-4 py-2 text-right font-medium">Outstanding</th><th className="px-4 py-2 font-medium">Status</th><th /></tr></thead>
             <tbody className="divide-y divide-border">
               {loans.data?.map((l) => (
@@ -95,12 +96,12 @@ export default function PayrollInputsPage() {
                   <td className="px-4 py-2 text-right tabular-nums">{inr(l.emi)}</td>
                   <td className="px-4 py-2 text-right tabular-nums">{inr(l.outstanding)}</td>
                   <td className="px-4 py-2"><Badge tone={l.status === "active" ? "primary" : "neutral"}>{l.status}</Badge></td>
-                  <td className="px-4 py-2 text-right">{manage && l.status === "active" && <Button size="sm" variant="ghost" aria-label="Close loan" onClick={() => window.confirm("Stop recovering this loan?") && run(() => api(`${PAY}/loans/${l.id}/close`, { body: {} }))}><X className="size-3.5" aria-hidden /></Button>}</td>
+                  <td className="px-4 py-2 text-right">{manage && l.status === "active" && <Button size="sm" variant="ghost" aria-label="Close loan" onClick={async () => await askConfirm("Stop recovering this loan?") && run(() => api(`${PAY}/loans/${l.id}/close`, { body: {} }))}><X className="size-3.5" aria-hidden /></Button>}</td>
                 </tr>
               ))}
               {loans.data && !loans.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No loans or advances.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
           {manage && (
             <div className="flex flex-wrap items-end gap-2 border-t border-border p-4">
               {person("fl")}

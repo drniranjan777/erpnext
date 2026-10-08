@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page";
+import { PageHeader, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { fmtValue } from "@/lib/iot";
@@ -57,7 +57,7 @@ function LiveLayout({ id, onEdit }: { id: string; onEdit: (l: Layout) => void })
   const q = useQuery({ queryKey: ["/twin/layouts", id, "live"], queryFn: () => api<Layout>(`/twin/layouts/${id}/live`), refetchInterval: 10000 });
   const [sel, setSel] = useState<Node | null>(null);
   const l = q.data;
-  if (!l) return null;
+  if (!l) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   const now = q.dataUpdatedAt;
   const current = sel ? l.nodes.find((n) => n.machineId === sel.machineId && n.kind === "machine") ?? sel : null;
   return (

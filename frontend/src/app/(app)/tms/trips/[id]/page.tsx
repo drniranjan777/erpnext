@@ -17,6 +17,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, formatQty } from "@/lib/documents";
 import { mapLink, STOP_TONE, TMS, TRIP_TONE, type Stop, type Trip } from "@/lib/tms";
+import { askConfirm, askText } from "@/components/ui/ask";
 
 export default function TripPage() {
   const { id } = useParams<{ id: string }>();
@@ -39,12 +40,14 @@ export default function TripPage() {
       setMsg({ tone: "danger", text: err instanceof ApiError ? err.message : "Could not reach the server." });
     }
   }
-  function dispatch() {
-    const odo = window.prompt("Odometer at start (optional)");
+  async function dispatch() {
+    const odo = await askText("Odometer at start (optional)");
+    if (odo === null) return;
     act<{ driverUrl: string }>(`${TMS}/trips/${id}/dispatch`, { odometerStart: odo ? Number(odo) : null }, (r) => setLink(r.driverUrl));
   }
-  function complete() {
-    const odo = window.prompt("Odometer at the end (optional)");
+  async function complete() {
+    const odo = await askText("Odometer at the end (optional)");
+    if (odo === null) return;
     act(`${TMS}/trips/${id}/complete`, { odometerEnd: odo ? Number(odo) : null }, () => setMsg({ tone: "success", text: "Trip completed." }));
   }
   const wa = link && t.driverPhone ? `https://wa.me/91${t.driverPhone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(`Trip ${t.number}: open this link for your drops and to record delivery ${link}`)}` : null;
@@ -58,7 +61,7 @@ export default function TripPage() {
           <span className="flex flex-wrap gap-2">
             <Badge tone={TRIP_TONE[t.status]}>{t.status}</Badge>
             {manage && t.status === "planned" && <Button onClick={dispatch}><Send className="size-4" aria-hidden /> Dispatch</Button>}
-            {manage && t.status === "planned" && <Button variant="ghost" onClick={() => window.confirm("Cancel this trip?") && act(`${TMS}/trips/${id}/cancel`, {}, () => setMsg({ tone: "success", text: "Cancelled." }))}>Cancel</Button>}
+            {manage && t.status === "planned" && <Button variant="ghost" onClick={async () => await askConfirm("Cancel this trip?") && act(`${TMS}/trips/${id}/cancel`, {}, () => setMsg({ tone: "success", text: "Cancelled." }))}>Cancel</Button>}
             {manage && t.status === "dispatched" && <Button variant="secondary" onClick={() => act<{ driverUrl: string }>(`${TMS}/trips/${id}/relink`, {}, (r) => setLink(r.driverUrl))}>New driver link</Button>}
             {manage && t.status === "dispatched" && <Button onClick={complete}>Complete</Button>}
           </span>

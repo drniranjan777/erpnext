@@ -50,7 +50,7 @@ export default function PmPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Schedule</th><th className="px-4 py-2 font-medium">Every</th><th className="px-4 py-2 font-medium">Last done</th><th className="px-4 py-2 font-medium">Next</th><th className="px-4 py-2 font-medium">State</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((s) => (
@@ -64,7 +64,7 @@ export default function PmPage() {
               ))}
               {!q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No PM schedules.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

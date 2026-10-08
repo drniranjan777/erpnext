@@ -46,7 +46,7 @@ export default function LandedCostPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader title="Charges" />
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <tbody className="divide-y divide-border">
               {d.charges.map((c) => (
                 <tr key={c.id}>
@@ -59,11 +59,11 @@ export default function LandedCostPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </Card>
         <Card>
           <CardHeader title="Allocation" />
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-4 py-2 font-medium">Item</th>
@@ -87,7 +87,7 @@ export default function LandedCostPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       </div>
       <Card>

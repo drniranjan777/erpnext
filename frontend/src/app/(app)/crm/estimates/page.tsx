@@ -42,7 +42,7 @@ export default function EstimatesPage() {
         <Card>
           {q.isLoading && <LoadingBlock />}
           {q.error && <ErrorBlock error={q.error} />}
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Estimate</th><th className="px-4 py-2 font-medium">Customer</th><th className="px-4 py-2 text-right font-medium">Qty</th><th className="px-4 py-2 text-right font-medium">Cost</th><th className="px-4 py-2 text-right font-medium">Price</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data?.map((e) => (
@@ -57,7 +57,7 @@ export default function EstimatesPage() {
               ))}
               {q.data && !q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No estimates yet.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {tab === "templates" && <Templates manage={manage} />}

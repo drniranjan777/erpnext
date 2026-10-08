@@ -56,7 +56,7 @@ export default function AuditsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Audit</th><th className="px-4 py-2 font-medium">Standard · area</th><th className="px-4 py-2 font-medium">When</th><th className="px-4 py-2 font-medium">Findings</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((r) => (
@@ -70,7 +70,7 @@ export default function AuditsPage() {
               ))}
               {!q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No audits planned this year.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

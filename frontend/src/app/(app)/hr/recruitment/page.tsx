@@ -42,7 +42,7 @@ export default function RecruitmentPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Requisition</th><th className="px-4 py-2 font-medium">Where</th><th className="px-4 py-2 text-right font-medium">Openings</th><th className="px-4 py-2 text-right font-medium">Candidates</th><th className="px-4 py-2 text-right font-medium">Budget (CTC)</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((r) => (
@@ -65,7 +65,7 @@ export default function RecruitmentPage() {
               ))}
               {!q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No requisitions.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {raising && <RaiseDialog onClose={() => setRaising(false)} />}

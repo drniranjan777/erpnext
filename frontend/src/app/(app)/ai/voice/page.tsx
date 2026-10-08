@@ -39,13 +39,13 @@ export default function VoiceStatsPage() {
       )}
       <Card>
         <CardHeader title="Use in the last 30 days" description={`Speech recognition languages: ${s.languages.map((l) => l.name).join(", ")}. Commands in languages other than English and Hindi are understood when an AI key is set.`} />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="text-left text-xs text-muted"><tr><th className="px-4 py-2">Language</th><th className="px-4 py-2">Command</th><th className="px-4 py-2">Outcome</th><th className="px-4 py-2 text-right">Times</th></tr></thead>
           <tbody className="divide-y divide-border">
             {s.byOutcome.map((r, i) => <tr key={i}><td className="px-4 py-1.5">{r.lang}</td><td className="px-4 py-1.5">{r.command ?? "question"}</td><td className="px-4 py-1.5">{r.outcome}</td><td className="px-4 py-1.5 text-right tabular-nums">{r.n}</td></tr>)}
             {!s.byOutcome.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No voice commands yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
     </div>
   );

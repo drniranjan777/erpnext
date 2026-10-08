@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
-import { PageHeader, formatDateTime } from "@/components/ui/page";
+import { PageHeader, formatDateTime, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { formatDate } from "@/lib/documents";
 
@@ -27,7 +27,7 @@ export default function PartnerPortalPage() {
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   if (q.error) return <div className="mx-auto max-w-3xl"><PageHeader title="Partner portal" /><Alert tone="warning">{q.error instanceof ApiError ? q.error.message : "Not available."}</Alert></div>;
   const d = q.data;
-  if (!d) return null;
+  if (!d) return <LoadingBlock />;
   const partnerId = f.partnerId || d.partners[0]?.id || "";
   async function create() {
     setMsg(null);

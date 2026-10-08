@@ -54,7 +54,7 @@ export default function ReturnablesPage() {
       )}
       <Card>
         <CardHeader title="With parties now" />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Party</th><th className="px-4 py-2 font-medium">Type</th><th className="px-4 py-2 text-right font-medium">Holding</th><th className="px-4 py-2 text-right font-medium">Deposit value</th><th className="px-4 py-2 font-medium">Out since</th></tr></thead>
           <tbody className="divide-y divide-border">
             {balances.data?.map((b) => {
@@ -71,7 +71,7 @@ export default function ReturnablesPage() {
             })}
             {balances.data && !balances.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">Nothing is out.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Card>
         <CardHeader title="Types" />

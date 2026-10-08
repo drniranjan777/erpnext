@@ -119,7 +119,7 @@ export default function GovernancePage() {
 
       <Card>
         <CardHeader title="Usage, last 30 days" description={usage.data ? `${formatMoney(usage.data.monthCostInr)} this month.` : undefined} />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
             <tr><th className="px-4 py-2 font-medium">Feature</th><th className="px-4 py-2 text-right font-medium">Calls</th><th className="px-4 py-2 text-right font-medium">Not sent</th><th className="px-4 py-2 text-right font-medium">Tokens in / out</th><th className="px-4 py-2 text-right font-medium">Avg time</th><th className="px-4 py-2 text-right font-medium">Masked</th><th className="px-4 py-2 text-right font-medium">Cost</th></tr>
           </thead>
@@ -137,7 +137,7 @@ export default function GovernancePage() {
             ))}
             {usage.data && !usage.data.byFeature.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No model calls yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
         {usage.data && (usage.data.notSent.length > 0 || usage.data.byUser.length > 0) && (
           <div className="grid gap-4 border-t border-border p-4 text-xs md:grid-cols-2">
             {usage.data.notSent.length > 0 && <p><span className="text-muted">Not sent: </span>{usage.data.notSent.map((r) => `${REASON[r.reason] ?? r.reason.replace("http_", "HTTP ")} (${r.n})`).join(" · ")}</p>}

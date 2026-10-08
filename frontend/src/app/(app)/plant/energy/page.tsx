@@ -79,21 +79,21 @@ export default function EnergyPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader title="Machines" description="kWh per good part made in the period." />
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <tbody className="divide-y divide-border">
               {e.machines.map((m) => <tr key={m.machineId}><td className="px-4 py-2">{m.code} · {m.name}</td><td className="px-4 py-2 text-right tabular-nums">{n(m.kwh)} kWh</td><td className="px-4 py-2 text-right tabular-nums">{m.kwhPerUnit !== null ? `${m.kwhPerUnit} kWh/part` : "no parts counted"}</td></tr>)}
               {!e.machines.length && <tr><td className="px-4 py-6 text-center text-muted">No machine meters.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
         <Card>
           <CardHeader title="Products" description="Energy of the minutes each machine made the product, per good unit." />
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <tbody className="divide-y divide-border">
               {e.items.map((i) => <tr key={i.itemId}><td className="px-4 py-2">{i.code} · {i.name}</td><td className="px-4 py-2 text-right tabular-nums">{n(i.good, 0)} made</td><td className="px-4 py-2 text-right tabular-nums">{i.kwhPerUnit !== null ? `${i.kwhPerUnit} kWh/unit` : "–"}</td></tr>)}
               {!e.items.length && <tr><td className="px-4 py-6 text-center text-muted">Needs machine meters and counted job cards.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       </div>
       <Card>

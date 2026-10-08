@@ -76,7 +76,7 @@ export default function EnvironmentPage() {
       )}
       <Card>
         <CardHeader title="Results" action={<Select className="h-9 w-40" aria-label="Show" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All (30 days)</option><option value="alert">Alerts</option><option value="action">Action</option></Select>} />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <tbody className="divide-y divide-border">
             {samples.data?.map((s) => (
               <tr key={s.id}>
@@ -90,7 +90,7 @@ export default function EnvironmentPage() {
             ))}
             {samples.data && !samples.data.length && <tr><td className="px-4 py-6 text-center text-muted">No results.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       {newLoc && <LocationDialog onClose={() => { setNewLoc(false); qc.invalidateQueries({ queryKey: ["/gmp/em"] }); }} />}
     </div>

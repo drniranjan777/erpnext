@@ -40,7 +40,7 @@ export default function DebitNotePage() {
       </Card>
       <Card>
         <CardHeader title="Lines" />
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-4 py-2 font-medium">#</th>
@@ -71,7 +71,7 @@ export default function DebitNotePage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         <div className="border-t border-border px-5 py-4">
           <TaxSummary tax={d} stateTaxLabel={d.stateTaxLabel} totalLabel="Debit note total" />
         </div>

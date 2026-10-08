@@ -16,6 +16,7 @@ import { formatDate, todayIST } from "@/lib/documents";
 import { HR } from "@/lib/hr";
 import { inr } from "@/lib/payroll";
 import { SEP_TONE, type SettlementLine } from "@/lib/talent";
+import { askConfirm } from "@/components/ui/ask";
 
 interface Sep { id: string; kind: string; noticeDate: string; lastWorkingDay: string; reason: string; status: keyof typeof SEP_TONE; noticeShortfallDays: number; waiveShortfall: boolean; journalId: string | null; employeeId: string; code: string; fullName: string; department: string | null; pendingTasks: number }
 interface Settlement { serviceDays?: number; earnings: SettlementLine[]; deductions: SettlementLine[]; net: string; checks: string[]; note?: string | null }
@@ -31,7 +32,7 @@ export default function SeparationsPage() {
   const mine = useQuery({ queryKey: [HR, "separations", "mine"], queryFn: () => api<Sep[]>(`${HR}/separations/mine`), retry: false, enabled: can("hr.self.use") });
   const refresh = () => qc.invalidateQueries({ queryKey: [HR] });
   async function withdraw(id: string) {
-    if (!window.confirm("Withdraw this separation?")) return;
+    if (!await askConfirm("Withdraw this separation?")) return;
     setError(null);
     try {
       await api(`${HR}/separations/${id}/withdraw`, { body: {} });
@@ -58,7 +59,7 @@ export default function SeparationsPage() {
           {q.error && <ErrorBlock error={q.error} />}
           {q.data && (
             <Card>
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto"><table className="w-full text-sm">
                 <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Employee</th><th className="px-4 py-2 font-medium">Kind</th><th className="px-4 py-2 font-medium">Notice · last day</th><th className="px-4 py-2 font-medium">Short notice</th><th className="px-4 py-2 font-medium">Status</th><th /></tr></thead>
                 <tbody className="divide-y divide-border">
                   {q.data.map((s) => (
@@ -79,7 +80,7 @@ export default function SeparationsPage() {
                   ))}
                   {!q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No separations.</td></tr>}
                 </tbody>
-              </table>
+              </table></div>
             </Card>
           )}
         </>
@@ -147,7 +148,7 @@ function SettlementDialog({ s, canSettle, onClose, onDone }: { s: Sep; canSettle
   const [error, setError] = useState<string | null>(null);
   const [posted, setPosted] = useState(false);
   async function settle() {
-    if (!window.confirm("Post the full and final settlement? The employee is marked as left.")) return;
+    if (!await askConfirm("Post the full and final settlement? The employee is marked as left.")) return;
     setError(null);
     try {
       await api(`${HR}/separations/${s.id}/settle`, { body: {} });

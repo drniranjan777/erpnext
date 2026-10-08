@@ -92,7 +92,7 @@ export default function StatementsPage() {
       </Card>
       {tab === "pl" && (pl.isLoading ? <LoadingBlock /> : pl.error ? <ErrorBlock error={pl.error} /> : pl.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             {head("Statement of Profit and Loss")}
             <tbody>
               {pl.data.income.map((l) => <Row key={l.key} line={l} compare={compare} from={from} to={to} />)}
@@ -102,14 +102,14 @@ export default function StatementsPage() {
               {total("Total expenses", pl.data.totalExpenses.amount, pl.data.totalExpenses.previous, false)}
               {total("Profit before tax", pl.data.profitBeforeTax.amount, pl.data.profitBeforeTax.previous)}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       ))}
       {tab === "bs" && (bs.isLoading ? <LoadingBlock /> : bs.error ? <ErrorBlock error={bs.error} /> : bs.data && (
         <Card>
           <div className="flex justify-end px-5 pt-3">{bs.data.balanced ? <Badge tone="success">Balanced</Badge> : <Badge tone="danger">Out of balance</Badge>}</div>
           {([["Equity and liabilities", bs.data.equityAndLiabilities], ["Assets", bs.data.assets]] as const).map(([label, side]) => (
-            <table key={label} className="w-full text-sm">
+            <div key={label} className="overflow-x-auto"><table className="w-full text-sm">
               {head(label)}
               <tbody>
                 {side.groups.map((g) => (
@@ -121,13 +121,13 @@ export default function StatementsPage() {
                 ))}
                 {total(`Total ${label.toLowerCase()}`, side.total, side.previous)}
               </tbody>
-            </table>
+            </table></div>
           ))}
         </Card>
       ))}
       {tab === "cf" && (cf.isLoading ? <LoadingBlock /> : cf.error ? <ErrorBlock error={cf.error} /> : cf.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <tbody>
               {([["A. Cash flow from operating activities", cf.data.operating], ["B. Cash flow from investing activities", cf.data.investing], ["C. Cash flow from financing activities", cf.data.financing]] as const).map(([label, sec]) => (
                 <Fragment key={label}>
@@ -141,7 +141,7 @@ export default function StatementsPage() {
               <tr className="font-semibold"><td className="px-4 py-1.5">Cash and cash equivalents at the end</td><td className="px-4 py-1.5 text-right"><Amount v={cf.data.closingCash} /></td></tr>
               {Number(cf.data.difference) !== 0 && <tr><td className="px-4 py-2 text-danger" colSpan={2}>Unreconciled difference {formatMoney(cf.data.difference)}</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       ))}
       {tab === "ratios" && (ratios.isLoading ? <LoadingBlock /> : ratios.error ? <ErrorBlock error={ratios.error} /> : ratios.data && (

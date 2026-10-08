@@ -13,6 +13,7 @@ import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, formatDateTime, timeA
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { PermissionGroup } from "@/lib/iam";
+import { askConfirm } from "@/components/ui/ask";
 
 interface ApiKey {
   id: string;
@@ -142,7 +143,7 @@ function ApiKeysCard() {
               </p>
             </div>
             {!k.revokedAt && (
-              <Button variant="ghost" size="sm" onClick={() => confirm(`Revoke "${k.name}"? Integrations using it stop immediately.`) && revoke.mutate(k.id)} aria-label={`Revoke ${k.name}`}>
+              <Button variant="ghost" size="sm" onClick={async () => await askConfirm(`Revoke "${k.name}"? Integrations using it stop immediately.`) && revoke.mutate(k.id)} aria-label={`Revoke ${k.name}`}>
                 <Trash2 className="size-4 text-danger" />
               </Button>
             )}
@@ -269,10 +270,10 @@ function WebhooksCard() {
               <Button variant="ghost" size="sm" onClick={() => update.mutate(h)}>
                 {h.isActive ? "Pause" : "Resume"}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => confirm("Rotate the signing secret? Your receiver must be updated.") && rotate.mutate(h.id)} aria-label="Rotate secret">
+              <Button variant="ghost" size="sm" onClick={async () => await askConfirm("Rotate the signing secret? Your receiver must be updated.") && rotate.mutate(h.id)} aria-label="Rotate secret">
                 <RefreshCw className="size-3.5" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => confirm("Delete this webhook?") && remove.mutate(h.id)} aria-label="Delete webhook">
+              <Button variant="ghost" size="sm" onClick={async () => await askConfirm("Delete this webhook?") && remove.mutate(h.id)} aria-label="Delete webhook">
                 <Trash2 className="size-4 text-danger" />
               </Button>
             </div>

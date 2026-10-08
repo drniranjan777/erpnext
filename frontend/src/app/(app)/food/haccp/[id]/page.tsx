@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
-import { PageHeader, formatDateTime } from "@/components/ui/page";
+import { PageHeader, formatDateTime, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Signal } from "@/lib/iot";
@@ -24,7 +24,7 @@ const QUESTIONS = ["Q1 Control measures exist?", "Q2 Step designed to eliminate 
 export default function HaccpPlanPage() {
   const { id } = useParams<{ id: string }>();
   const q = useQuery({ queryKey: ["/food/haccp", id], queryFn: () => api<Plan>(`/food/haccp/${id}`) });
-  if (!q.data) return null;
+  if (!q.data) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   return <PlanEditor key={q.dataUpdatedAt} plan={q.data} />;
 }
 

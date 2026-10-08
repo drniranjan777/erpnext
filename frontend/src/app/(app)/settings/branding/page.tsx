@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
-import { PageHeader, formatDateTime } from "@/components/ui/page";
+import { PageHeader, formatDateTime, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 
 interface Dns { host: string; type: string; value: string; cname?: { host: string; value: string } }
@@ -17,7 +17,7 @@ interface Partner { code: string; name: string; kind: string; certified: boolean
 export default function BrandingPage() {
   const q = useQuery({ queryKey: ["/branding"], queryFn: () => api<Branding>("/branding") });
   const partner = useQuery({ queryKey: ["/branding/partner"], queryFn: () => api<Partner | null>("/branding/partner") });
-  if (!q.data) return null;
+  if (!q.data) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   return <Form key={q.dataUpdatedAt} b={q.data} partner={partner.data ?? null} />;
 }
 

@@ -31,7 +31,7 @@ export default function CalibrationPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Gauge</th><th className="px-4 py-2 font-medium">Range · LC</th><th className="px-4 py-2 font-medium">Where</th><th className="px-4 py-2 font-medium">Last calibrated</th><th className="px-4 py-2 font-medium">Next due</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((g) => (
@@ -45,7 +45,7 @@ export default function CalibrationPage() {
               ))}
               {!q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No gauges.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

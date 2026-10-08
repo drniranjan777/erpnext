@@ -11,6 +11,7 @@ import { ErrorBlock, LoadingBlock, PageHeader, timeAgo } from "@/components/ui/p
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { AI, type AgentRow } from "@/lib/ai";
+import { askText } from "@/components/ui/ask";
 
 interface Overview { killed: boolean; killReason: string | null; killedAt: string | null; agents: AgentRow[] }
 interface Eval { agentCode: string; kind: string; raised: number; accepted: number; dismissed: number; executed: number; failed: number; expired: number; open: number; auto: number; hoursToDecide: string | null; acceptancePct: number | null }
@@ -28,7 +29,7 @@ export default function AgentsPage() {
   if (q.error) return <ErrorBlock error={q.error} />;
   const o = q.data!;
   async function kill(killed: boolean) {
-    const reason = killed ? window.prompt("Why stop all agents?") : null;
+    const reason = killed ? await askText("Why stop all agents?") : null;
     if (killed && reason === null) return;
     await api(`${AI}/kill-switch`, { body: { killed, reason } }).catch(() => null);
     qc.invalidateQueries({ queryKey: [AI] });
@@ -43,7 +44,7 @@ export default function AgentsPage() {
       </div>
       <Card>
         <CardHeader title="How the agents are doing (90 days)" description="Acceptance = approved or executed out of those decided. The target at pilots is 60 % or more." />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Agent · finding</th><th className="px-4 py-2 text-right font-medium">Raised</th><th className="px-4 py-2 text-right font-medium">Done</th><th className="px-4 py-2 text-right font-medium">Dismissed</th><th className="px-4 py-2 text-right font-medium">Expired</th><th className="px-4 py-2 text-right font-medium">Accepted</th><th className="px-4 py-2 text-right font-medium">Hours to decide</th></tr></thead>
           <tbody className="divide-y divide-border">
             {ev.data?.map((e) => (
@@ -59,7 +60,7 @@ export default function AgentsPage() {
             ))}
             {ev.data && !ev.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No recommendations yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Card>
         <CardHeader title="Recent runs" />

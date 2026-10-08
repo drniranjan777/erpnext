@@ -10,6 +10,7 @@ import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
+import { askText } from "@/components/ui/ask";
 
 interface Rma { id: string; number: string; serialNo: string | null; reason: string; underWarranty: boolean; status: string; diagnosis: string | null; replacementSerial: string | null; dispatchRef: string | null; createdAt: string; customer: string; itemCode: string; itemName: string; ticketNumber: string | null }
 const NEXT: Record<string, { step: string; label: string; ask?: "diagnosis" | "replacementSerial" | "dispatchRef" }[]> = {
@@ -30,7 +31,7 @@ export default function RmaPage() {
   async function step(r: Rma, s: { step: string; ask?: keyof typeof ASK }) {
     const extra: Record<string, string> = {};
     if (s.ask) {
-      const v = window.prompt(ASK[s.ask]);
+      const v = await askText(ASK[s.ask]);
       if (!v) return;
       extra[s.ask] = v;
     }

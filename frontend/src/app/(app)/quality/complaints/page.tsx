@@ -53,7 +53,7 @@ export default function ComplaintsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Complaint</th><th className="px-4 py-2 font-medium">Customer</th><th className="px-4 py-2 font-medium">What</th><th className="px-4 py-2 font-medium">Respond by</th><th className="px-4 py-2 font-medium">Stage</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.items.map((r) => {
@@ -70,7 +70,7 @@ export default function ComplaintsPage() {
               })}
               {!q.data.items.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No complaints.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

@@ -67,7 +67,7 @@ export default function SignalsPage() {
     <div className="mx-auto max-w-6xl space-y-4">
       <PageHeader title="Signals" description="Each signal is one value from a machine or sensor: a counter, a running state, a temperature, an energy meter. The edge agent downloads this list and reads each signal as set here." actions={manage && <Button onClick={() => open()}><Plus className="size-4" aria-hidden /> Add signal</Button>} />
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
             <tr><th className="px-4 py-2 font-medium">Signal</th><th className="px-4 py-2 font-medium">Machine / place</th><th className="px-4 py-2 font-medium">Read by</th><th className="px-4 py-2 text-right font-medium">Last value</th><th className="px-4 py-2" /></tr>
           </thead>
@@ -83,7 +83,7 @@ export default function SignalsPage() {
             ))}
             {list.data && !list.data.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">No signals yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Dialog open={!!edit} onClose={() => setEdit(null)} size="lg" title={edit?.id ? "Edit signal" : "Add a signal"} footer={<Button loading={busy} disabled={!f?.code || (f?.name.length ?? 0) < 2} onClick={save}>Save</Button>}>
         {f && (

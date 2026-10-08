@@ -31,7 +31,7 @@ export default function TripsPage() {
       {planning && <Plan onDone={() => setPlanning(false)} />}
       <Input className="h-9 w-44" type="date" aria-label="From" value={from} onChange={(e) => setFrom(e.target.value)} />
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Trip</th><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Vehicle</th><th className="px-4 py-2 font-medium">Drops</th><th className="px-4 py-2 text-right font-medium">Weight</th><th className="px-4 py-2 text-right font-medium">Freight</th><th className="px-4 py-2 font-medium" /></tr></thead>
           <tbody className="divide-y divide-border">
             {q.data?.map((t) => (
@@ -47,7 +47,7 @@ export default function TripsPage() {
             ))}
             {q.data && !q.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No trips.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
     </div>
   );

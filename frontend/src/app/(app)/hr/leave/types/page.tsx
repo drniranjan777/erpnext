@@ -14,6 +14,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { todayIST } from "@/lib/documents";
 import { HR, type LeaveBalance, type LeaveType } from "@/lib/hr";
+import { askConfirm } from "@/components/ui/ask";
 
 const ACCRUAL: Record<string, string> = { none: "Not accrued", monthly: "Monthly (a twelfth)", yearly: "Yearly in January", per_days_worked: "One day per N days worked" };
 type Tab = "types" | "balances";
@@ -56,7 +57,7 @@ export default function LeaveTypesPage() {
           <Field label="Accrue for month">{(p) => <Input {...p} type="month" value={month} onChange={(e) => setMonth(e.target.value)} />}</Field>
           <Button variant="secondary" onClick={() => run(`${HR}/leave/accrue`, { month }, (r) => `${r.credited} credits posted${r.alreadyCredited ? `, ${r.alreadyCredited} were already there` : ""}.`)}><CalendarCheck className="size-4" aria-hidden /> Run accrual</Button>
           <Field label="Year">{(p) => <Input {...p} type="number" className="w-28" value={year} onChange={(e) => setYear(Number(e.target.value))} />}</Field>
-          <Button variant="secondary" onClick={() => window.confirm(`Close leave for ${year}? Balances above the carry-forward limit are encashed or lapse.`) && run(`${HR}/leave/year-end`, { year }, (r) => `${r.encashedDays} days encashed and ${r.lapsedDays} lapsed across ${r.balances} balances.`)}><CalendarX className="size-4" aria-hidden /> Year end</Button>
+          <Button variant="secondary" onClick={async () => await askConfirm(`Close leave for ${year}? Balances above the carry-forward limit are encashed or lapse.`) && run(`${HR}/leave/year-end`, { year }, (r) => `${r.encashedDays} days encashed and ${r.lapsedDays} lapsed across ${r.balances} balances.`)}><CalendarX className="size-4" aria-hidden /> Year end</Button>
           <Button variant="ghost" onClick={() => setAdjusting(true)}><SlidersHorizontal className="size-4" aria-hidden /> Opening / adjustment</Button>
         </Card>
       )}

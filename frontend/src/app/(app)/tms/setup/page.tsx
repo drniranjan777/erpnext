@@ -89,7 +89,7 @@ export default function TmsSetupPage() {
               <Field label="From">{(p) => <Input {...p} type="date" value={c.validFrom} onChange={(e) => setC({ ...c, validFrom: e.target.value })} />}</Field>
               <Field label="To">{(p) => <Input {...p} type="date" value={c.validTo} onChange={(e) => setC({ ...c, validTo: e.target.value })} />}</Field>
             </div>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="text-left text-xs text-muted"><tr><th>From city</th><th>To city</th><th>To state</th><th>Vehicle</th><th>Basis</th><th>Rate ₹</th><th>Minimum ₹</th><th>Per extra drop ₹</th><th /></tr></thead>
               <tbody>
                 {c.rates.map((r, i) => {
@@ -109,7 +109,7 @@ export default function TmsSetupPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
             <div className="flex justify-between">
               <Button size="sm" variant="ghost" onClick={() => setC({ ...c, rates: [...c.rates, { ...blank }] })}><Plus className="size-4" aria-hidden /> Lane</Button>
               <Button

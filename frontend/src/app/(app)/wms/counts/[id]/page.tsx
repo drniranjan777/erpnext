@@ -14,6 +14,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/documents";
 import { WMS } from "@/lib/wms";
+import { askConfirm } from "@/components/ui/ask";
 
 interface Line { id: string; binId: string; bin: string; itemId: string; itemCode: string; itemName: string; batchNo: string | null; systemQty: string | null; countedQty: string | null }
 interface CountView { id: string; number: string; status: string; blind: boolean; warehouseId: string; accuracyPct: string | null; lines: Line[] }
@@ -54,7 +55,7 @@ export default function CountPage() {
           <span className="flex gap-2">
             <Badge tone={c.status === "posted" ? "success" : "primary"}>{c.status}</Badge>
             {open && can("inventory.entries.manage") && <Button onClick={() => act(`${WMS}/counts/${id}/post`, "Posted.")}>Post differences</Button>}
-            {open && <Button variant="ghost" onClick={() => window.confirm("Cancel this count?") && act(`${WMS}/counts/${id}/cancel`, "Cancelled.")}>Cancel</Button>}
+            {open && <Button variant="ghost" onClick={async () => await askConfirm("Cancel this count?") && act(`${WMS}/counts/${id}/cancel`, "Cancelled.")}>Cancel</Button>}
           </span>
         }
       />
@@ -62,7 +63,7 @@ export default function CountPage() {
       {bins.map(([binId, code]) => (
         <Card key={binId}>
           <CardHeader title={`Bin ${code}`} />
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <tbody className="divide-y divide-border">
               {c.lines.filter((l) => l.binId === binId).map((l) => {
                 const diff = l.systemQty !== null && l.countedQty !== null ? Number(l.countedQty) - Number(l.systemQty) : null;
@@ -76,7 +77,7 @@ export default function CountPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       ))}
       {open && <Found countId={id} bins={bins} />}

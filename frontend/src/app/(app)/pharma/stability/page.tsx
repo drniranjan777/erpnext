@@ -35,7 +35,7 @@ export default function StabilityPage() {
     <div className="mx-auto max-w-6xl space-y-4">
       <PageHeader title="Stability studies" description="Each study is a batch at one storage condition with its time points and tests. Results outside specification raise an OOS deviation; the shelf life the data supports is worked out as ICH Q1E describes." actions={can("pharma.stability.manage") && <Button onClick={() => setCreating(true)}><Plus className="size-4" aria-hidden /> New study</Button>} />
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Study</th><th className="px-4 py-2 font-medium">Product · batch</th><th className="px-4 py-2 font-medium">Condition</th><th className="px-4 py-2 font-medium">Next pull</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
           <tbody className="divide-y divide-border">
             {list.data?.map((r) => (
@@ -49,7 +49,7 @@ export default function StabilityPage() {
             ))}
             {list.data && !list.data.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">No studies yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       {creating && <NewStudy onClose={() => setCreating(false)} />}
     </div>

@@ -64,10 +64,10 @@ export default function ThreePlPage() {
           <CardHeader title="Billing" action={<span className="flex gap-2"><Input className="h-9 w-40" type="date" aria-label="From" value={period.from} onChange={(e) => setPeriod({ ...period, from: e.target.value })} /><Input className="h-9 w-40" type="date" aria-label="To" value={period.to} onChange={(e) => setPeriod({ ...period, to: e.target.value })} /></span>} />
           {preview.data && (
             <div className="space-y-3 border-t border-border p-4 text-sm">
-              <table className="w-full">
+              <div className="overflow-x-auto"><table className="w-full">
                 <thead className="text-left text-xs text-muted"><tr><th>Item</th><th className="text-right">Pallet-days</th><th className="text-right">In</th><th className="text-right">Out</th></tr></thead>
                 <tbody>{preview.data.perItem.map((i) => <tr key={i.itemId}><td>{i.code} · {i.name}</td><td className="text-right tabular-nums">{formatQty(i.palletDays)}</td><td className="text-right tabular-nums">{formatQty(i.unitsIn)}</td><td className="text-right tabular-nums">{formatQty(i.unitsOut)}</td></tr>)}</tbody>
-              </table>
+              </table></div>
               <p className="text-right">Storage {formatMoney(preview.data.storage)} · handling {formatMoney(preview.data.handling)}{preview.data.topUp > 0 && ` · minimum top-up ${formatMoney(preview.data.topUp)}`} · <span className="font-semibold">total {formatMoney(preview.data.total)}</span></p>
               {can("wms.setup.manage") && can("sales.invoices.manage") && <div className="flex justify-end"><Button disabled={preview.data.total <= 0} onClick={() => run(() => api(`${WMS}/3pl/clients/${open}/bills`, { body: period }), "Bill saved and a draft invoice raised.")}>Bill this period</Button></div>}
             </div>

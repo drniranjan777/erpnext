@@ -8,6 +8,7 @@ import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
 import { ErrorBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
+import { askText } from "@/components/ui/ask";
 
 interface Partner { id: string; code: string; name: string; kind: string; email: string; gstin: string | null; commission_pct: number; certified: boolean; status: string; clients: number; members: number; accrued: number; paid: number }
 
@@ -51,7 +52,7 @@ export default function PartnersAdminPage() {
                 <span className="text-xs text-muted">{p.commission_pct} % · {p.clients} client(s) · {p.members} member(s) · accrued {inr(p.accrued)} · paid {inr(p.paid)}</span>
                 <span className="ml-auto flex gap-1">
                   <Button size="sm" variant="secondary" onClick={() => { setEditing(p.id); setF({ code: p.code, name: p.name, kind: p.kind, email: p.email, gstin: p.gstin ?? "", commissionPct: String(p.commission_pct), certified: p.certified, status: p.status }); }}>Edit</Button>
-                  {p.accrued > 0 && <Button size="sm" onClick={() => { const ref = window.prompt("Payout reference (UTR / NEFT)"); if (ref) run(() => api<{ paid: number }>(`/admin/partners/${p.id}/payout`, { body: { reference: ref } }), (r) => `${r.paid} commission(s) marked paid.`); }}>Pay {inr(p.accrued)}</Button>}
+                  {p.accrued > 0 && <Button size="sm" onClick={async () => { const ref = await askText("Payout reference (UTR / NEFT)"); if (ref) run(() => api<{ paid: number }>(`/admin/partners/${p.id}/payout`, { body: { reference: ref } }), (r) => `${r.paid} commission(s) marked paid.`); }}>Pay {inr(p.accrued)}</Button>}
                 </span>
               </p>
               <p className="flex gap-2">

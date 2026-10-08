@@ -57,7 +57,7 @@ export default function GatewaysPage() {
       )}
       <Card>
         <CardHeader title="Gateways" />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
             <tr><th className="px-4 py-2 font-medium">Gateway</th><th className="px-4 py-2 font-medium">Health</th><th className="px-4 py-2 text-right font-medium">Signals</th><th className="px-4 py-2 font-medium">Agent</th><th className="px-4 py-2" /></tr>
           </thead>
@@ -84,7 +84,7 @@ export default function GatewaysPage() {
             ))}
             {list.data && !list.data.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">No gateways yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Card>
         <CardHeader title="Running the agent" />

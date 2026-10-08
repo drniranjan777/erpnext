@@ -9,6 +9,7 @@ import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
 import { PageHeader, formatDateTime, timeAgo } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
+import { askConfirm } from "@/components/ui/ask";
 
 type Op = "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "contains" | "exists";
 interface Condition { field: string; op: Op; value?: string }
@@ -63,7 +64,7 @@ export default function AutomationsPage() {
                 <span className="ml-auto flex gap-1">
                   <Button size="sm" variant="secondary" onClick={() => setOpen(open === a.id ? null : a.id)}>Runs</Button>
                   <Button size="sm" variant="secondary" onClick={() => run(() => api(`/automations/${a.id}`, { method: "PUT", body: { name: a.name, event: a.event, conditions: a.conditions, actions: a.actions, enabled: !a.enabled } }), a.enabled ? "Switched off." : "Switched on.")}>{a.enabled ? "Switch off" : "Switch on"}</Button>
-                  <Button size="sm" variant="secondary" aria-label="Delete" onClick={() => window.confirm(`Delete ${a.name}?`) && run(() => api(`/automations/${a.id}`, { method: "DELETE" }), "Deleted.")}><Trash2 className="size-4" aria-hidden /></Button>
+                  <Button size="sm" variant="secondary" aria-label="Delete" onClick={async () => await askConfirm(`Delete ${a.name}?`) && run(() => api(`/automations/${a.id}`, { method: "DELETE" }), "Deleted.")}><Trash2 className="size-4" aria-hidden /></Button>
                 </span>
               </p>
               {open === a.id && runs.data?.map((r) => <p key={r.id} className="pl-6 text-xs"><Badge tone={r.status === "ok" ? "success" : r.status === "failed" ? "danger" : "neutral"}>{r.status}</Badge> {formatDateTime(r.createdAt)} · {r.results.map((x) => `${x.ok ? "✓" : "✗"} ${x.detail}`).join(" · ")}</p>)}

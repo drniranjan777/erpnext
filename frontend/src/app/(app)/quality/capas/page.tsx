@@ -42,7 +42,7 @@ export default function CapasPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">CAPA</th><th className="px-4 py-2 font-medium">Problem</th><th className="px-4 py-2 font-medium">Actions</th><th className="px-4 py-2 font-medium">Stage</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.items.map((r) => (
@@ -55,7 +55,7 @@ export default function CapasPage() {
               ))}
               {!q.data.items.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No CAPAs.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

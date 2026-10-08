@@ -99,7 +99,7 @@ function AdherenceView({ month }: { month: string }) {
   const tone = (p: number | null) => (p === null ? "neutral" : p >= 95 ? "success" : p >= 80 ? "warning" : "danger");
   return (
     <Card>
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto"><table className="w-full text-sm">
         <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Customer · item</th><th className="px-3 py-2 text-right font-medium">Month</th><th className="px-3 py-2 text-right font-medium">Due to date</th><th className="px-3 py-2 text-right font-medium">Dispatched</th><th className="px-3 py-2 text-right font-medium">Short</th><th className="px-3 py-2 font-medium">Quantity</th><th className="px-3 py-2 font-medium">On time</th></tr></thead>
         <tbody className="divide-y divide-border">
           {q.data!.map((r) => (
@@ -115,7 +115,7 @@ function AdherenceView({ month }: { month: string }) {
           ))}
           {!q.data!.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No schedules for this month.</td></tr>}
         </tbody>
-      </table>
+      </table></div>
       <p className="border-t border-border px-4 py-2 text-xs text-muted">Quantity: dispatched ÷ due so far. On time: schedule dates whose cumulative quantity had been dispatched by that date.</p>
     </Card>
   );

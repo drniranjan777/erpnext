@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
-import { PageHeader, formatDateTime } from "@/components/ui/page";
+import { PageHeader, formatDateTime, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError, apiDownload, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -37,7 +37,7 @@ export default function CadPage() {
     }
   }
   const c = q.data;
-  if (!c) return null;
+  if (!c) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   const manage = can("plm.cad.manage");
   const mine = !!c.checkedOutBy && c.checkedOutBy === me?.user.id;
   const refs = (title: string, list: Ref[]) => list.length > 0 && <p className="text-sm">{title}: {list.map((r) => <Link key={r.id} className="mr-2 text-primary hover:underline" href={`/plm/cad/${r.id}`}>{r.number} rev {r.revision} ({r.status.replace("_", " ")})</Link>)}</p>;

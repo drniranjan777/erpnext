@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
 import { timeAgo } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
+import { askText } from "@/components/ui/ask";
 
 interface Summary { date: string; today: number; month: number; receivable: number; overdue: number; payable7: number; cashBank: number; posToday: number; approvalsPending: number }
 interface Pending { documentId: string; stepNo: number; docType: string; docTypeLabel?: string; number: string | null; title: string | null; amount: string | null; version: number; submittedAt: string | null; submittedBy: string | null; path?: string | null }
@@ -22,7 +23,7 @@ export default function OwnerMobilePage() {
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   async function decide(p: Pending, approve: boolean) {
     setMsg(null);
-    const comment = approve ? null : window.prompt("Why are you rejecting it?");
+    const comment = approve ? null : await askText("Why are you rejecting it?");
     if (!approve && !comment) return;
     try {
       await api(`/documents/${p.documentId}/${approve ? "approve" : "reject"}`, { body: { version: p.version, ...(comment ? { comment } : {}) } });

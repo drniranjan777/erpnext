@@ -12,6 +12,7 @@ import { Input, Select } from "@/components/ui/field";
 import { PageHeader, formatDateTime } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { askText } from "@/components/ui/ask";
 
 interface Recall { id: string; code: string; kind: string; batchNo: string; reason: string; recallClass: string | null; startedAt: string; traceCompletedAt: string | null; status: string; conclusion: string | null; trace: { customers: { party: string; documents: string[]; qty: number }[]; lotsMadeFrom: { item: string; batchNo: string | null }[]; usedIn: { item: string; batchNo: string | null }[]; onHand: { warehouse: string; qty: number }[]; dispatchedQty: number } | null; recovered: { party: string; qty: number; note: string | null; at: string }[]; metrics: { traceMinutes: number | null; recoveredQty: number; recoveredPct: number | null } }
 
@@ -56,7 +57,7 @@ export default function RecallsPage() {
         </Card>
         {r && (
           <Card>
-            <CardHeader title={`${r.code}: ${r.reason}`} description={`${r.recallClass ? `Class ${r.recallClass} · ` : ""}${r.trace?.dispatchedQty ?? 0} dispatched · ${r.metrics.recoveredQty} recovered`} action={manage && r.status === "open" && <span className="flex gap-1">{!r.traceCompletedAt && <Button size="sm" variant="secondary" onClick={() => run(() => api(`/food/recalls/${r.id}/trace-done`, { body: {} }), "Trace confirmed.")}>All customers contacted</Button>}<Button size="sm" onClick={() => { const c = window.prompt("Conclusion"); if (c) run(() => api(`/food/recalls/${r.id}/close`, { body: { conclusion: c } }), "Closed."); }}>Close</Button></span>} />
+            <CardHeader title={`${r.code}: ${r.reason}`} description={`${r.recallClass ? `Class ${r.recallClass} · ` : ""}${r.trace?.dispatchedQty ?? 0} dispatched · ${r.metrics.recoveredQty} recovered`} action={manage && r.status === "open" && <span className="flex gap-1">{!r.traceCompletedAt && <Button size="sm" variant="secondary" onClick={() => run(() => api(`/food/recalls/${r.id}/trace-done`, { body: {} }), "Trace confirmed.")}>All customers contacted</Button>}<Button size="sm" onClick={async () => { const c = await askText("Conclusion"); if (c) run(() => api(`/food/recalls/${r.id}/close`, { body: { conclusion: c } }), "Closed."); }}>Close</Button></span>} />
             <div className="space-y-3 border-t border-border p-4 text-sm">
               <div><p className="font-medium">Customers</p>{r.trace?.customers.map((c) => <p key={c.party}>{c.party}: {c.qty} ({c.documents.join(", ")})</p>)}{!r.trace?.customers.length && <p className="text-muted">None: nothing left the company.</p>}</div>
               <div><p className="font-medium">Still in stock</p>{r.trace?.onHand.map((h, i) => <p key={i}>{h.warehouse}: {h.qty}</p>)}{!r.trace?.onHand.length && <p className="text-muted">None.</p>}</div>

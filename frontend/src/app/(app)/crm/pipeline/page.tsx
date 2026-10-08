@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { CRM, type Opportunity, type Stage } from "@/lib/crm";
 import { formatDate } from "@/lib/documents";
 import { inr, monthLabel } from "@/lib/payroll";
+import { askText } from "@/components/ui/ask";
 
 interface Forecast { byMonth: { month: string; count: number; total: number; weighted: number }[]; winRate: number | null }
 
@@ -30,7 +31,7 @@ export default function PipelinePage() {
   const [error, setError] = useState<string | null>(null);
   async function move(id: string, stage: Stage) {
     setError(null);
-    const lostReason = stage.kind === "lost" ? window.prompt("Why was it lost?") : null;
+    const lostReason = stage.kind === "lost" ? await askText("Why was it lost?") : null;
     if (stage.kind === "lost" && !lostReason) return;
     try {
       await api(`${CRM}/opportunities/${id}/move`, { body: { stageId: stage.id, lostReason } });
@@ -80,9 +81,9 @@ export default function PipelinePage() {
       {forecast.data && forecast.data.byMonth.length > 0 && (
         <Card>
           <CardHeader title="Forecast by expected close" />
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <tbody className="divide-y divide-border">{forecast.data.byMonth.map((m) => <tr key={m.month}><td className="px-5 py-2">{monthLabel(m.month)}</td><td className="px-5 py-2 text-right tabular-nums">{m.count} deals</td><td className="px-5 py-2 text-right tabular-nums">{inr(m.total)}</td><td className="px-5 py-2 text-right font-medium tabular-nums">{inr(m.weighted)} weighted</td></tr>)}</tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {adding && <NewOpportunity onClose={() => setAdding(false)} />}

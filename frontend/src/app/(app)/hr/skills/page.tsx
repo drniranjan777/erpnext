@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { todayIST } from "@/lib/documents";
 import { HR, type OrgRow } from "@/lib/hr";
 import { LEVEL_TONE, LEVELS } from "@/lib/talent";
+import { askConfirm } from "@/components/ui/ask";
 
 interface Skill { id: string; code: string; name: string; category: string | null; appliesTo: string | null; validityMonths: number | null }
 interface Matrix { skills: Skill[]; rows: { id: string; code: string; fullName: string; department: string | null; levels: Record<string, { level: number; assessedOn: string; expired: boolean }> }[]; cover: Record<string, number> }
@@ -232,7 +233,7 @@ function TrainingDialog({ id, manage, onClose }: { id: string; manage: boolean; 
             <div className="flex gap-2">
               <Select aria-label="Employee" className="flex-1" value={pick} onChange={(e) => setPick(e.target.value)}><option value="">Nominate…</option>{people.data?.filter((p) => !t.attendees.some((a) => a.employeeId === p.id)).map((p) => <option key={p.id} value={p.id}>{p.fullName} ({p.code})</option>)}</Select>
               <Button size="sm" disabled={!pick} onClick={async () => { await run(`${HR}/trainings/${id}/nominate`, { employeeIds: [pick] }); setPick(""); }}><Users className="size-4" aria-hidden /> Add</Button>
-              <Button size="sm" variant="ghost" onClick={() => window.confirm("Cancel this training?") && run(`${HR}/trainings/${id}/cancel`, {})}>Cancel training</Button>
+              <Button size="sm" variant="ghost" onClick={async () => await askConfirm("Cancel this training?") && run(`${HR}/trainings/${id}/cancel`, {})}>Cancel training</Button>
             </div>
           )}
         </div>

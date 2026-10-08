@@ -31,7 +31,7 @@ export default function PortalInvoice() {
         </Card>
       )}
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 font-medium">HSN</th><th className="px-4 py-2 text-right font-medium">Qty</th><th className="px-4 py-2 text-right font-medium">Rate</th><th className="px-4 py-2 text-right font-medium">GST</th><th className="px-4 py-2 text-right font-medium">Taxable</th><th className="px-4 py-2 text-right font-medium">Total</th></tr></thead>
           <tbody className="divide-y divide-border">
             {i.lines.map((l) => (
@@ -51,7 +51,7 @@ export default function PortalInvoice() {
             {tax.map(([k, v]) => <tr key={k}><td colSpan={6} className="px-4 py-1 text-right text-muted">{k}</td><td className="px-4 py-1 text-right tabular-nums">{formatMoney(v)}</td></tr>)}
             <tr><td colSpan={6} className="px-4 py-2 text-right font-medium">Invoice total</td><td className="px-4 py-2 text-right font-semibold tabular-nums">{formatMoney(i.grandTotal)}</td></tr>
           </tfoot>
-        </table>
+        </table></div>
       </Card>
     </div>
   );

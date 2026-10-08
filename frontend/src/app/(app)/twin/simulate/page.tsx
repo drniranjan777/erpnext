@@ -93,7 +93,7 @@ export default function SimulatePage() {
           </div>
           <Card>
             <CardHeader title="Work centres" />
-            <table className="w-full border-t border-border text-sm">
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
               <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Work centre</th><th className="px-4 py-2 font-medium">Capacity</th><th className="px-4 py-2 text-right font-medium">Busy hours</th><th className="px-4 py-2 text-right font-medium">Load</th></tr></thead>
               <tbody className="divide-y divide-border">
                 {result.scenario.load.map((s) => {
@@ -108,11 +108,11 @@ export default function SimulatePage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </Card>
           <Card>
             <CardHeader title="Orders" description="Biggest changes first." />
-            <table className="w-full border-t border-border text-sm">
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
               <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Order</th><th className="px-4 py-2 font-medium">Finishes now</th><th className="px-4 py-2 font-medium">Would finish</th><th className="px-4 py-2 text-right font-medium">Change</th></tr></thead>
               <tbody className="divide-y divide-border">
                 {result.orders.map((o) => (
@@ -124,7 +124,7 @@ export default function SimulatePage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </Card>
         </>
       )}

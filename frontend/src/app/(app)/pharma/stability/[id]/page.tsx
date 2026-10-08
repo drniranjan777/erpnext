@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page";
+import { PageHeader, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { formatDate } from "@/lib/documents";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -32,7 +32,7 @@ export default function StudyPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const s = q.data;
-  if (!s) return null;
+  if (!s) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   async function save() {
     setError(null);
     try {

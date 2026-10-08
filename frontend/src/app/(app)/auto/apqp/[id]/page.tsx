@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Select } from "@/components/ui/field";
-import { PageHeader, formatDateTime } from "@/components/ui/page";
+import { PageHeader, formatDateTime, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
@@ -28,7 +28,7 @@ export default function ApqpProjectPage() {
   const [gate, setGate] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const p = q.data;
-  if (!p) return null;
+  if (!p) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   async function set(code: string, status: string) {
     setError(null);
     try {

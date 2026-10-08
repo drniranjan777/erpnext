@@ -89,7 +89,7 @@ export default function NewChallanPage() {
         <CardHeader title="Material" description="Quantities in the item's base unit. Leave the value blank to use stock cost." />
         <div className="px-5 pb-3"><ItemPicker stockOnly onPick={(item) => setLines((ls) => [...ls, { key: `l${++n}`, item, qty: "", rate: "", goodsType: "inputs", batchNo: "" }])} /></div>
         {lines.length > 0 && (
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
               <tr><th className="px-4 py-2 font-medium">Item</th><th className="w-28 px-2 py-2 text-right font-medium">Qty</th><th className="w-32 px-2 py-2 text-right font-medium">Value / unit</th><th className="w-40 px-2 py-2 font-medium">Goods</th><th className="w-32 px-2 py-2 font-medium">Batch</th><th className="w-10" /></tr>
             </thead>
@@ -110,7 +110,7 @@ export default function NewChallanPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
       <div className="flex justify-end gap-2">

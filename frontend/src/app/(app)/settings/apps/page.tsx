@@ -10,6 +10,7 @@ import { Input, Select } from "@/components/ui/field";
 import { PageHeader, formatDateTime, timeAgo } from "@/components/ui/page";
 import { api, ApiError, apiDownload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { askText } from "@/components/ui/ask";
 
 interface App {
   key: string; name: string; category: string; description: string; webhook?: boolean; local?: boolean;
@@ -38,7 +39,7 @@ export default function AppsPage() {
     setMsg(null);
     let body: Record<string, string> = {};
     if (action.needs) {
-      const v = window.prompt(action.needs === "deliveryId" ? "Delivery note id" : action.needs === "invoiceId" ? "Sales invoice id" : "Role id for the invited users");
+      const v = await askText(action.needs === "deliveryId" ? "Delivery note id" : action.needs === "invoiceId" ? "Sales invoice id" : "Role id for the invited users");
       if (!v) return;
       body = { [action.needs]: v.trim() };
     }

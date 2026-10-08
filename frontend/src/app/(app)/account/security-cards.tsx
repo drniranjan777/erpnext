@@ -11,6 +11,7 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { formatDateTime } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { askConfirm } from "@/components/ui/ask";
 
 // ---------------------------------------------------------------------------
 // Two-step verification
@@ -135,7 +136,7 @@ export function MfaCard() {
               <Button variant="secondary" disabled={!password} loading={regen.isPending} onClick={() => regen.mutate()}>
                 New recovery codes
               </Button>
-              <Button variant="danger" disabled={!password} loading={disable.isPending} onClick={() => confirm("Turn off two-step verification?") && disable.mutate()}>
+              <Button variant="danger" disabled={!password} loading={disable.isPending} onClick={async () => await askConfirm("Turn off two-step verification?") && disable.mutate()}>
                 Turn off
               </Button>
             </div>

@@ -30,7 +30,7 @@ export default function ResourcesPage() {
       <PageHeader title="Work centres, machines and tools" description="Where operations run, what they cost per hour, and the moulds and dies they use." />
       <Card>
         <CardHeader title="Work centres" action={manage ? <Button size="sm" variant="secondary" onClick={() => setEdit({ kind: "wc" })}><Plus className="size-4" aria-hidden /> Add</Button> : undefined} />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Work centre</th><th className="px-4 py-2 font-medium">Kind</th><th className="px-4 py-2 text-right font-medium">Capacity / day</th><th className="px-4 py-2 text-right font-medium">Labour</th><th className="px-4 py-2 text-right font-medium">Machine</th><th className="px-4 py-2 text-right font-medium">Overhead</th><th className="px-4 py-2 text-right font-medium">Per hour</th></tr></thead>
           <tbody className="divide-y divide-border">
             {(wcs.data ?? []).map((w) => (
@@ -46,7 +46,7 @@ export default function ResourcesPage() {
             ))}
             {wcs.data && !wcs.data.length && <tr><td colSpan={7} className="px-4 py-3 text-muted">No work centres yet</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

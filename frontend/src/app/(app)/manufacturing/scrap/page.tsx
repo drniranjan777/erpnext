@@ -117,14 +117,14 @@ export default function ScrapPage() {
           {r.supplier.length > 0 && (
             <Card>
               <CardHeader title="Suppliers" description="Incoming inspection" />
-              <table className="w-full border-t border-border text-sm">
+              <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
                 <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Vendor</th><th className="px-4 py-2 text-right font-medium">Lots</th><th className="px-4 py-2 text-right font-medium">Inspected</th><th className="px-4 py-2 text-right font-medium">Rejected</th><th className="px-4 py-2 text-right font-medium">Rate</th></tr></thead>
                 <tbody className="divide-y divide-border">
                   {r.supplier.map((s) => (
                     <tr key={s.vendor}><td className="px-4 py-2">{s.vendor}</td><td className="px-4 py-2 text-right tabular-nums">{s.lots}</td><td className="px-4 py-2 text-right tabular-nums">{n(s.inspected)}</td><td className="px-4 py-2 text-right tabular-nums">{n(s.rejected)}</td><td className={`px-4 py-2 text-right tabular-nums ${s.rate > 5 ? "font-semibold text-danger" : ""}`}>{s.rate}%</td></tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </Card>
           )}
         </>

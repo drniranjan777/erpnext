@@ -87,10 +87,10 @@ export default function ConsolidationPage() {
           </div>
           <Card>
             <CardHeader title="Subsidiaries" />
-            <table className="w-full border-t border-border text-sm">
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
               <thead className="bg-surface-muted text-xs text-muted"><tr><th className="px-4 py-1.5 text-left">Company</th><th className="px-4 py-1.5 text-right">Held</th><th className="px-4 py-1.5 text-right">Goodwill / (capital reserve)</th><th className="px-4 py-1.5 text-right">Group share since acquisition</th><th className="px-4 py-1.5 text-right">NCI</th><th className="px-4 py-1.5 text-right">NCI in profit</th></tr></thead>
               <tbody className="divide-y divide-border">{r.subsidiaries.map((s) => <tr key={s.name}><td className="px-4 py-1.5">{s.name}</td><td className="px-4 py-1.5 text-right">{s.ownershipPct} %</td><td className="px-4 py-1.5 text-right tabular-nums">{inr(s.goodwill)}</td><td className="px-4 py-1.5 text-right tabular-nums">{inr(s.postAcquisitionShare)}</td><td className="px-4 py-1.5 text-right tabular-nums">{inr(s.nci)}</td><td className="px-4 py-1.5 text-right tabular-nums">{inr(s.nciProfit)}</td></tr>)}</tbody>
-            </table>
+            </table></div>
           </Card>
         </>
       )}

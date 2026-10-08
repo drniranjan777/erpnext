@@ -107,7 +107,7 @@ function Audits() {
       {q.isLoading && <LoadingBlock />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Vendor</th><th className="px-4 py-2 font-medium">Audit</th><th className="px-4 py-2 font-medium">Result</th><th className="px-4 py-2 font-medium">Findings</th><th className="px-4 py-2 font-medium">Next due</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((a) => (
@@ -121,7 +121,7 @@ function Audits() {
               ))}
               {!q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No audits recorded.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>
@@ -166,7 +166,7 @@ function AmlList() {
       {q.isLoading && <LoadingBlock />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 font-medium">Manufacturer · MPN</th><th className="px-4 py-2 font-medium">Through</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2" /></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((m) => (
@@ -180,7 +180,7 @@ function AmlList() {
               ))}
               {!q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No manufacturer parts approved yet.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

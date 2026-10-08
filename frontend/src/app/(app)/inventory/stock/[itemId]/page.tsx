@@ -56,7 +56,7 @@ export default function ItemStockPage() {
           {byWarehouse.length === 0 ? (
             <p className="px-5 py-4 text-sm text-muted">No stock in any warehouse.</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
                 <tr>
                   <th className="px-4 py-2 font-medium">Warehouse</th>
@@ -82,7 +82,7 @@ export default function ItemStockPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </Card>
 
@@ -92,7 +92,7 @@ export default function ItemStockPage() {
             {byBatch.length === 0 ? (
               <p className="px-5 py-4 text-sm text-muted">No batches in stock.</p>
             ) : (
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto"><table className="w-full text-sm">
                 <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
                   <tr>
                     <th className="px-4 py-2 font-medium">Batch</th>
@@ -118,7 +118,7 @@ export default function ItemStockPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </Card>
         )}

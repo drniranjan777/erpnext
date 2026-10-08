@@ -44,7 +44,7 @@ export default function StatementPage() {
           <Field label="From">{(f) => <Input {...f} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />}</Field>
           <Field label="To">{(f) => <Input {...f} type="date" value={to} onChange={(e) => setTo(e.target.value)} />}</Field>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
             <tr><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Particulars</th><th className="px-4 py-2 text-right font-medium">Debit</th><th className="px-4 py-2 text-right font-medium">Credit</th><th className="px-4 py-2 text-right font-medium">Balance</th></tr>
           </thead>
@@ -68,7 +68,7 @@ export default function StatementPage() {
           <tfoot className="border-t-2 border-border font-semibold">
             <tr><td className="px-4 py-2" colSpan={2}>Closing balance</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(d.ledger.debit)}</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(d.ledger.credit)}</td><td className="px-4 py-2 text-right tabular-nums">{drCr(d.ledger.closing)}</td></tr>
           </tfoot>
-        </table>
+        </table></div>
       </Card>
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

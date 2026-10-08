@@ -62,7 +62,7 @@ export default function RecipesPage() {
       <PageHeader title="Recipes" description="Set-points with their limits. Parameters with a PLC address are written by the edge gateway when the job starts; the batch record compares each with the signal that measures it." actions={manage && <Button onClick={() => setEdit({ id: null, itemId: "", itemLabel: "", machineId: "", notes: "", parameters: [emptyParam()] })}><Plus className="size-4" aria-hidden /> New recipe</Button>} />
       {error && !edit && <Alert>{error}</Alert>}
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 font-medium">Machine</th><th className="px-4 py-2 font-medium">Version</th><th className="px-4 py-2 font-medium">Set-points</th><th className="px-4 py-2" /></tr></thead>
           <tbody className="divide-y divide-border">
             {list.data?.map((r) => (
@@ -81,7 +81,7 @@ export default function RecipesPage() {
             ))}
             {list.data && !list.data.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">No recipes yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Dialog open={!!edit} onClose={() => setEdit(null)} size="xl" title={edit?.id ? "Edit recipe" : "New recipe"} footer={<Button disabled={!edit?.itemId || !edit?.parameters.every((p) => p.name && p.value !== "")} onClick={save}>Save draft</Button>}>
         {edit && (

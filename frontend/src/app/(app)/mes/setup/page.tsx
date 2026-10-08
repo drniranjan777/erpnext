@@ -82,7 +82,7 @@ function SetupForm({ data, msg, setMsg }: { data: Setup; msg: Msg; setMsg: (m: M
 
       <Card>
         <CardHeader title="Machines" description="Ideal cycle: seconds per part when no job card gives the routing time. No part for the stop limit means the machine has stopped; stops shorter than the minor-stop limit count as minor stops (performance), longer ones as downtime." />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
             <tr><th className="px-4 py-2 font-medium">Machine</th><th className="px-4 py-2 font-medium">Ideal cycle (s)</th><th className="px-4 py-2 font-medium">Stopped after (s)</th><th className="px-4 py-2 font-medium">Minor stop up to (s)</th><th className="px-4 py-2 font-medium">Target OEE %</th><th className="px-4 py-2" /></tr>
           </thead>
@@ -98,7 +98,7 @@ function SetupForm({ data, msg, setMsg }: { data: Setup; msg: Msg; setMsg: (m: M
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Card>
 
       <Card>

@@ -11,6 +11,7 @@ import { PageHeader, formatDateTime } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { fmtValue } from "@/lib/iot";
+import { askConfirm, askText } from "@/components/ui/ask";
 
 interface Model { signalId: string; code: string; name: string; purpose: string; unit: string | null; machineCode: string | null; lastValue: number | null; id: string | null; enabled: boolean; minSamples: number | null; zThreshold: number | null; consecutive: number | null; driftThreshold: number | null; createMaintenance: boolean | null; n: number | null; mean: number | null; std: number | null; lastScore: number | null; learned: boolean | null; openAnomalies: number }
 interface Anomaly { id: string; kind: string; raisedAt: string; value: number; score: number; baselineMean: number; baselineStd: number; clearedAt: string | null; maintenanceOrderId: string | null; feedback: string | null; feedbackNote: string | null; feedbackBy: string | null; signalId: string; signalCode: string; unit: string | null; machineCode: string | null; machineName: string | null }
@@ -66,7 +67,7 @@ export default function ConditionPage() {
                 <p className="text-xs text-muted">{a.feedback === "confirmed" ? "Confirmed" : "False alarm"} by {a.feedbackBy ?? "–"}{a.feedbackNote ? `: ${a.feedbackNote}` : ""}</p>
               ) : (
                 <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => run(() => api(`/plant/condition/anomalies/${a.id}/feedback`, { body: { feedback: "confirmed", note: window.prompt("What was found?") } }))}>Confirmed</Button>
+                  <Button size="sm" variant="secondary" onClick={async () => { const note = await askText("What was found? (optional)"); if (note !== null) run(() => api(`/plant/condition/anomalies/${a.id}/feedback`, { body: { feedback: "confirmed", note: note || null } })); }}>Confirmed</Button>
                   <Button size="sm" variant="ghost" onClick={() => run(() => api(`/plant/condition/anomalies/${a.id}/feedback`, { body: { feedback: "false_alarm" } }))}>False alarm</Button>
                 </div>
               )}
@@ -77,7 +78,7 @@ export default function ConditionPage() {
       </Card>
       <Card>
         <CardHeader title="Monitored signals" description="Vibration, temperature, current, pressure and speed signals. The baseline is fixed once learned: relearn it after maintenance or a change in the process." />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Signal</th><th className="px-4 py-2 font-medium">Normal</th><th className="px-4 py-2 text-right font-medium">Now</th><th className="px-4 py-2" /></tr></thead>
           <tbody className="divide-y divide-border">
             {models.data?.map((m) => (
@@ -89,7 +90,7 @@ export default function ConditionPage() {
                   {manage && (
                     <span className="flex justify-end gap-1">
                       <Button size="sm" variant="ghost" onClick={() => run(() => api(`/plant/condition/models/${m.signalId}`, { method: "PUT", body: { ...cfg(m), enabled: !m.enabled } }))}>{m.enabled ? "Stop" : "Monitor"}</Button>
-                      {m.enabled && m.id && <Button size="sm" variant="ghost" onClick={() => window.confirm("Forget the learned baseline and learn it again from the next readings?") && run(() => api(`/plant/condition/models/${m.signalId}/relearn`, { body: cfg(m) }))}>Relearn</Button>}
+                      {m.enabled && m.id && <Button size="sm" variant="ghost" onClick={async () => await askConfirm("Forget the learned baseline and learn it again from the next readings?") && run(() => api(`/plant/condition/models/${m.signalId}/relearn`, { body: cfg(m) }))}>Relearn</Button>}
                     </span>
                   )}
                 </td>
@@ -97,7 +98,7 @@ export default function ConditionPage() {
             ))}
             {models.data && !models.data.length && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted">No measured signals yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
     </div>
   );

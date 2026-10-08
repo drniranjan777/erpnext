@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
-import { PageHeader, formatDateTime } from "@/components/ui/page";
+import { PageHeader, formatDateTime, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 
 interface Review { id: string; workOrderId: string; workOrderNumber: string; item: string; batchNo: string | null; qty: number; stage: string; status: string; exceptions: { key: string; kind: string; severity: string; text: string; link?: string | null }[]; comments: Record<string, { text: string; by: string; at: string }>; pendingComments: number; refreshedAt: string; signatures: { id: string; meaning: string; reason: string | null; signedBy: string; signedAt: string }[] }
@@ -23,7 +23,7 @@ export default function BatchReviewPage() {
   const [decide, setDecide] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const r = q.data;
-  if (!r) return null;
+  if (!r) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   const refresh = () => qc.invalidateQueries({ queryKey: ["/gmp/batch-reviews"] });
   async function comment(key: string) {
     setError(null);

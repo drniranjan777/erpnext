@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
-import { PageHeader, formatDateTime } from "@/components/ui/page";
+import { PageHeader, formatDateTime, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { askText } from "@/components/ui/ask";
 
 interface Permit { id: string; number: string; type: string; location: string; equipment: string | null; description: string; contractor: string | null; workers: number; validFrom: string; validTo: string; status: string; checklist: { key: string; label: string; done: boolean }[]; isolations: { point: string; lockNo: string }[]; gasTests: { at: string; o2Pct: number; lelPct: number; h2sPpm: number; coPpm: number; by: string }[]; approval: { signerName: string; signedAt: string } | null; conflicts: string[]; problems: { approve: string[]; activate: string[] }; closeNote: string | null; testIssues?: string[] }
 
@@ -20,7 +21,7 @@ const LABELS: Record<string, string> = { hot_work: "Hot work", cold_work: "Cold 
 export default function PermitPage() {
   const { id } = useParams<{ id: string }>();
   const q = useQuery({ queryKey: ["/hse/permits", id], queryFn: () => api<Permit>(`/hse/permits/${id}`) });
-  if (!q.data) return null;
+  if (!q.data) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   return <PermitView key={q.dataUpdatedAt} p={q.data} />;
 }
 
@@ -42,8 +43,8 @@ function PermitView({ p }: { p: Permit }) {
       setMsg({ tone: "danger", text: err instanceof ApiError ? err.message : "Could not reach the server." });
     }
   }
-  const close = (cancel: boolean) => {
-    const note = window.prompt(cancel ? "Why is the permit cancelled?" : "Closing note (work done, area cleared)");
+  const close = async (cancel: boolean) => {
+    const note = await askText(cancel ? "Why is the permit cancelled?" : "Closing note (work done, area cleared)");
     if (note) run(() => api(`/hse/permits/${p.id}/close`, { body: { note, cancel } }), cancel ? "Cancelled." : "Closed.");
   };
   return (

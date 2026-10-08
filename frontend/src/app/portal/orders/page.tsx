@@ -13,6 +13,7 @@ import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatMoney, STATUS_META, type DocumentStatus } from "@/lib/documents";
 import { portalApi } from "@/lib/portal";
+import { askConfirm } from "@/components/ui/ask";
 
 interface Order { id: string; number: string; docDate: string; status: DocumentStatus; grandTotal: string; customerPoNo: string | null; expectedDate: string | null; closedAt: string | null; deliveredPct: number }
 interface Request { id: string; number: string; status: string; customerPoNo: string | null; createdAt: string; lines: { itemId: string; qty: string }[]; rejectReason: string | null; salesOrderId: string | null; salesOrderNumber: string | null }
@@ -25,7 +26,7 @@ export default function PortalOrders() {
   const orders = useQuery({ queryKey: ["portal", "orders"], queryFn: () => portalApi<Order[]>("/portal/orders") });
   const requests = useQuery({ queryKey: ["portal", "requests"], queryFn: () => portalApi<Request[]>("/portal/requests") });
   async function withdraw(id: string) {
-    if (!window.confirm("Withdraw this order?")) return;
+    if (!await askConfirm("Withdraw this order?")) return;
     await portalApi(`/portal/requests/${id}/withdraw`, { body: {} }).catch(() => null);
     qc.invalidateQueries({ queryKey: ["portal"] });
   }
@@ -53,7 +54,7 @@ export default function PortalOrders() {
       {orders.error && <ErrorBlock error={orders.error} />}
       {orders.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Order</th><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Your PO</th><th className="px-4 py-2 text-right font-medium">Value</th><th className="px-4 py-2 font-medium">Delivered</th><th className="px-4 py-2 font-medium">Status</th></tr></thead>
             <tbody className="divide-y divide-border">
               {orders.data.map((o) => (
@@ -68,7 +69,7 @@ export default function PortalOrders() {
               ))}
               {!orders.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No orders yet.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {placing && <NewOrder onClose={() => setPlacing(false)} />}

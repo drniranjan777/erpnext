@@ -262,7 +262,7 @@ function QuoteDialog({ rfq, vendorId, onClose, onSaved }: { rfq: Rfq; vendorId: 
           <Field label="Delivery terms">{(p) => <Input {...p} placeholder="Ex-works / delivered" value={h.deliveryTerms} onChange={(e) => setH({ ...h, deliveryTerms: e.target.value })} />}</Field>
           <Field label="Other charges (₹)">{(p) => <Input {...p} inputMode="decimal" placeholder="Freight, packing…" value={h.otherCharges} onChange={(e) => setH({ ...h, otherCharges: e.target.value })} />}</Field>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="py-2 font-medium">Item</th>
@@ -288,7 +288,7 @@ function QuoteDialog({ rfq, vendorId, onClose, onSaved }: { rfq: Rfq; vendorId: 
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </Dialog>
   );

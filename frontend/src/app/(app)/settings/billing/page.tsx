@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { formatDate, formatMoney } from "@/lib/documents";
+import { askConfirm } from "@/components/ui/ask";
 
 type Cycle = "monthly" | "yearly";
 
@@ -155,7 +156,7 @@ export default function BillingPage() {
               {e.readOnly && <Alert>The workspace is read-only. Choose a plan below to continue making changes.</Alert>}
               <div className="flex flex-wrap gap-2 pt-1">
                 {s.subscription?.status === "active" && (
-                  <Button variant="ghost" size="sm" loading={cancel.isPending} onClick={() => confirm("Cancel the subscription at the end of the current period?") && cancel.mutate()}>
+                  <Button variant="ghost" size="sm" loading={cancel.isPending} onClick={async () => await askConfirm("Cancel the subscription at the end of the current period?") && cancel.mutate()}>
                     Cancel subscription
                   </Button>
                 )}

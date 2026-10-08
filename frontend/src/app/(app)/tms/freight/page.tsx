@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { formatDate, formatMoney, todayIST } from "@/lib/documents";
 import { TMS } from "@/lib/tms";
+import { askText } from "@/components/ui/ask";
 
 interface Bill { id: string; number: string; billNo: string; billDate: string; transporter: string; claimedAmount: string; computedAmount: string; difference: string; status: string; decisionNote: string | null; trips: number }
 interface Billable { id: string; number: string; tripDate: string; vehicleNo: string; freightAmount: string | null; freightBasis: string | null; expenses: string }
@@ -34,9 +35,9 @@ export default function FreightBillsPage() {
     }
   }
   const lines = Object.entries(claims).filter(([, v]) => v !== "").map(([tripId, v]) => ({ tripId, claimed: Number(v) }));
-  function decide(b: Bill, approve: boolean) {
+  async function decide(b: Bill, approve: boolean) {
     const ask = !approve ? "Why is it disputed?" : Number(b.difference) > 0 ? `₹${b.difference} above the contract: why approve it?` : "Note (optional)";
-    const note = window.prompt(ask);
+    const note = await askText(ask);
     if (note === null) return;
     run(() => api(`${TMS}/freight-bills/${b.id}/decide`, { body: { approve, note: note || null } }), approve ? "Approved." : "Disputed; its trips can be billed again.");
   }
@@ -53,7 +54,7 @@ export default function FreightBillsPage() {
             <Field label="Bill date">{(p) => <Input {...p} type="date" value={head.billDate} onChange={(e) => setHead({ ...head, billDate: e.target.value })} />}</Field>
           </div>
           {tr && (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="text-left text-xs text-muted"><tr><th className="py-1">Trip</th><th>Vehicle</th><th className="text-right">Contract freight</th><th className="text-right">Expenses</th><th className="text-right">Claimed ₹</th></tr></thead>
               <tbody className="divide-y divide-border">
                 {billable.data?.map((t) => (
@@ -67,13 +68,13 @@ export default function FreightBillsPage() {
                 ))}
                 {billable.data && !billable.data.length && <tr><td colSpan={5} className="py-3 text-center text-muted">No completed, unbilled trips.</td></tr>}
               </tbody>
-            </table>
+            </table></div>
           )}
           <div className="flex justify-end"><Button disabled={!tr || !head.billNo || !lines.length} onClick={() => run(() => api(`${TMS}/freight-bills`, { body: { transporterId: tr, ...head, lines } }), "Bill recorded for checking.").then(() => setClaims({}))}>Record bill</Button></div>
         </div>
       </Card>
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Bill</th><th className="px-4 py-2 font-medium">Transporter</th><th className="px-4 py-2 text-right font-medium">Claimed</th><th className="px-4 py-2 text-right font-medium">Contract</th><th className="px-4 py-2 text-right font-medium">Difference</th><th className="px-4 py-2 font-medium" /></tr></thead>
           <tbody className="divide-y divide-border">
             {bills.data?.map((b) => (
@@ -92,7 +93,7 @@ export default function FreightBillsPage() {
             ))}
             {bills.data && !bills.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No bills.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
     </div>
   );

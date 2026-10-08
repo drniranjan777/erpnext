@@ -165,7 +165,7 @@ function FiveSAudits() {
         </Card>
       )}
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Area</th><th className="px-4 py-2 font-medium">Date</th>{S.map(([, l]) => <th key={l} className="px-2 py-2 text-center font-medium">{l}</th>)}<th className="px-4 py-2 text-right font-medium">Total</th></tr></thead>
           <tbody className="divide-y divide-border">
             {q.data?.map((a) => (
@@ -178,7 +178,7 @@ function FiveSAudits() {
             ))}
             {q.data && !q.data.length && <tr><td colSpan={8} className="px-4 py-6 text-center text-muted">No audits.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
     </div>
   );

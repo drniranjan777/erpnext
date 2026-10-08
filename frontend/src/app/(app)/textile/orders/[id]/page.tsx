@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page";
+import { PageHeader, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
@@ -25,7 +25,7 @@ export default function BuyerOrderPage() {
   const q = useQuery({ queryKey: ["/textile/orders", id], queryFn: () => api<Order>(`/textile/orders/${id}`) });
   const [msg, setMsg] = useState<string | null>(null);
   const o = q.data;
-  if (!o) return null;
+  if (!o) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   async function mark(key: string, date: string | null) {
     setMsg(null);
     try {
@@ -44,13 +44,13 @@ export default function BuyerOrderPage() {
       {o.missingCertificates.length > 0 && <Alert tone="warning">The buyer requires {o.missingCertificates.map((c) => c.toUpperCase()).join(", ")}: no valid certificate on the ex-factory date. Add it under Certificates.</Alert>}
       <Card>
         <CardHeader title="Breakdown" description={`${o.totals.total.toLocaleString("en-IN")} pieces × ${o.currency} ${o.price} = ${o.currency} ${o.value.toLocaleString("en-IN")}`} />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-xs text-muted"><tr><th className="px-3 py-1.5 text-left">Colour</th>{sizes.map((z) => <th key={z} className="px-3 py-1.5 text-right">{z}</th>)}<th className="px-3 py-1.5 text-right">Total</th></tr></thead>
           <tbody className="divide-y divide-border">
             {Object.entries(o.breakdown).map(([c, s]) => <tr key={c}><td className="px-3 py-1.5">{c}</td>{sizes.map((z) => <td key={z} className="px-3 py-1.5 text-right tabular-nums">{s[z] ?? ""}</td>)}<td className="px-3 py-1.5 text-right font-medium tabular-nums">{o.totals.byColour[c]}</td></tr>)}
             <tr className="font-medium"><td className="px-3 py-1.5">Total</td>{sizes.map((z) => <td key={z} className="px-3 py-1.5 text-right tabular-nums">{o.totals.bySize[z]}</td>)}<td className="px-3 py-1.5 text-right tabular-nums">{o.totals.total}</td></tr>
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Card>
         <CardHeader title="Time and action" description={o.late ? `${o.late} milestone(s) late` : "On track"} />

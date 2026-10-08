@@ -81,7 +81,7 @@ export default function BomPage() {
       </Card>
       <Card>
         <CardHeader title="Materials" />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">#</th><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 text-right font-medium">Qty</th><th className="px-4 py-2 text-right font-medium">Scrap</th><th className="px-4 py-2 font-medium">Notes</th></tr></thead>
           <tbody className="divide-y divide-border">
             {d.lines.map((l) => (
@@ -99,12 +99,12 @@ export default function BomPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       {d.operations.length > 0 && (
         <Card>
           <CardHeader title="Routing" />
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Op</th><th className="px-4 py-2 font-medium">Operation</th><th className="px-4 py-2 font-medium">Work centre</th><th className="px-4 py-2 text-right font-medium">Setup</th><th className="px-4 py-2 text-right font-medium">Run / unit</th><th className="px-4 py-2 font-medium" /></tr></thead>
             <tbody className="divide-y divide-border">
               {d.operations.map((o) => (
@@ -118,7 +118,7 @@ export default function BomPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       <div className="grid gap-6 lg:grid-cols-2">

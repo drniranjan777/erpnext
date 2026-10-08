@@ -30,7 +30,7 @@ export default function PortalInvoices() {
       {q.error && <ErrorBlock error={q.error} />}
       {tab === "invoices" && inv.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Invoice</th><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Due</th><th className="px-4 py-2 font-medium">Your PO</th><th className="px-4 py-2 text-right font-medium">Amount</th><th className="px-4 py-2 text-right font-medium">Balance</th><th className="px-4 py-2 font-medium" /></tr></thead>
             <tbody className="divide-y divide-border">
               {inv.data.map((i) => (
@@ -46,12 +46,12 @@ export default function PortalInvoices() {
               ))}
               {!inv.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No invoices yet.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {tab === "payments" && pay.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Receipt</th><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Mode</th><th className="px-4 py-2 font-medium">Reference</th><th className="px-4 py-2 text-right font-medium">TDS</th><th className="px-4 py-2 text-right font-medium">Amount</th></tr></thead>
             <tbody className="divide-y divide-border">
               {pay.data.map((p) => (
@@ -66,7 +66,7 @@ export default function PortalInvoices() {
               ))}
               {!pay.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No payments recorded yet.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

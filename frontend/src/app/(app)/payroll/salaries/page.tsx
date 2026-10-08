@@ -28,7 +28,7 @@ export default function SalariesPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Employee</th><th className="px-4 py-2 font-medium">From</th><th className="px-4 py-2 font-medium">Components (monthly)</th><th className="px-4 py-2 text-right font-medium">Monthly gross</th><th className="px-4 py-2 text-right font-medium">CTC a year</th><th /></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((r) => (
@@ -43,7 +43,7 @@ export default function SalariesPage() {
               ))}
               {!q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No employees.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {editing && <SalaryDialog row={editing} comps={comps.data ?? []} onClose={() => setEditing(null)} />}

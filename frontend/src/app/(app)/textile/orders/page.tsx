@@ -87,10 +87,10 @@ function NewOrder({ onClose }: { onClose: () => void }) {
           <label className="text-xs text-muted">Ex-factory<Input type="date" value={f.exFactory} onChange={(e) => setF({ ...f, exFactory: e.target.value })} /></label>
         </div>
         {pack.data && (
-          <table className="w-full text-xs">
+          <div className="overflow-x-auto"><table className="w-full text-xs">
             <thead><tr><th className="text-left">Colour</th>{pack.data.sizes.map((z) => <th key={z}>{z}</th>)}</tr></thead>
             <tbody>{colours.map((c) => <tr key={c}><td>{c}</td>{pack.data!.sizes.map((z) => <td key={z} className="p-0.5"><Input className="h-8 w-16" type="number" min={0} aria-label={`${c} ${z}`} value={qty[c]?.[z] ?? ""} onChange={(e) => setQty({ ...qty, [c]: { ...qty[c], [z]: e.target.value } })} /></td>)}</tr>)}</tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </Dialog>

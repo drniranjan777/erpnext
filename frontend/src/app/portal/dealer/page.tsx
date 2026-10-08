@@ -64,7 +64,7 @@ export default function DealerPage() {
       </Card>
       <Card>
         <CardHeader title="Your stock" description="Our invoices to you, less the secondary sales reported, plus any stock counts." />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 text-right font-medium">On hand</th><th className="px-4 py-2 text-right font-medium">Sold, last 30 days</th><th className="px-4 py-2 text-right font-medium">Days of cover</th></tr></thead>
           <tbody className="divide-y divide-border">
             {stock.data?.map((s) => (
@@ -72,7 +72,7 @@ export default function DealerPage() {
             ))}
             {stock.data && !stock.data.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No stock recorded.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       {raising && <ClaimDialog schemes={schemes.data ?? []} onClose={() => setRaising(false)} />}
     </div>

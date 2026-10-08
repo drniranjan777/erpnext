@@ -59,7 +59,7 @@ export default function InstructionsPage() {
       <PageHeader title="Work instructions" description="Shown at the machine terminal for each item's operation. Editing a released version starts a new draft; releasing it replaces the old one. Steps marked 'confirm' must be ticked before the job can start." actions={manage && <Button onClick={() => setEdit(blank())}><Plus className="size-4" aria-hidden /> New instructions</Button>} />
       {error && !edit && <Alert>{error}</Alert>}
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item · operation</th><th className="px-4 py-2 font-medium">Title</th><th className="px-4 py-2 font-medium">Version</th><th className="px-4 py-2 font-medium">Content</th><th className="px-4 py-2" /></tr></thead>
           <tbody className="divide-y divide-border">
             {list.data?.map((r) => (
@@ -78,7 +78,7 @@ export default function InstructionsPage() {
             ))}
             {list.data && !list.data.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">No work instructions yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Dialog open={!!edit} onClose={() => setEdit(null)} size="xl" title={edit?.id ? "Edit work instructions" : "New work instructions"} footer={manage && <Button disabled={!edit?.itemId || (edit?.title.length ?? 0) < 2 || !edit?.steps.every((s) => s.title.trim())} onClick={save}>Save draft</Button>}>
         {edit && (

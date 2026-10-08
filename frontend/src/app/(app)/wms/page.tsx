@@ -11,6 +11,7 @@ import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useWmsWarehouses, WMS } from "@/lib/wms";
+import { askConfirm } from "@/components/ui/ask";
 
 export default function WmsHome() {
   const { can } = useAuth();
@@ -18,7 +19,7 @@ export default function WmsHome() {
   const q = useWmsWarehouses();
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   async function enable(id: string, code: string) {
-    if (!window.confirm(`Run ${code} with bins? Its current stock goes into the receiving bin, to be put away. This cannot be undone.`)) return;
+    if (!await askConfirm(`Run ${code} with bins? Its current stock goes into the receiving bin, to be put away. This cannot be undone.`)) return;
     setMsg(null);
     try {
       const r = await api<{ linesMoved: number }>(`${WMS}/warehouses/${id}/enable`, { body: {} });
@@ -67,7 +68,7 @@ export default function WmsHome() {
 
 function Gs1Settings({ manage }: { manage: boolean }) {
   const q = useQuery({ queryKey: [WMS, "settings"], queryFn: () => api<{ gs1Prefix: string | null; ssccExtension: number }>(`${WMS}/settings`) });
-  if (!q.data) return null;
+  if (!q.data) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   return <Gs1Form key={q.data.gs1Prefix ?? ""} initial={q.data} manage={manage} />;
 }
 

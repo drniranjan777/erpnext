@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page";
+import { PageHeader, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
@@ -57,7 +57,7 @@ export default function ProjectPage() {
     }
   }
   const p = q.data;
-  if (!p) return null;
+  if (!p) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   const people = Array.isArray(emps.data) ? emps.data : (emps.data?.items ?? []);
   const leaves = p.wbs.filter((x) => !p.wbs.some((y) => y.parentId === x.id));
   const depth = (x: Wbs) => x.code.split(".").length - 1;

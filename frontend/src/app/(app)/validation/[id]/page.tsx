@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
-import { PageHeader, formatDateTime } from "@/components/ui/page";
+import { PageHeader, formatDateTime, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -33,7 +33,7 @@ export default function ValidationProjectPage() {
   const [newPq, setNewPq] = useState({ title: "", requirementIds: "", steps: "", expected: "" });
   const [error, setError] = useState<string | null>(null);
   const p = q.data;
-  if (!p) return null;
+  if (!p) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   const refresh = () => qc.invalidateQueries({ queryKey: ["/validation/projects"] });
   async function run(fn: () => Promise<unknown>) {
     setError(null);
@@ -121,11 +121,11 @@ export default function ValidationProjectPage() {
         <>
           <Card>
             <CardHeader title="Traceability matrix" />
-            <table className="w-full border-t border-border text-sm">
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
               <tbody className="divide-y divide-border">
                 {p.trace.map((r) => <tr key={r.requirementId}><td className="px-4 py-1.5 font-mono text-xs">{r.requirementId}</td><td className="px-4 py-1.5">{r.title}</td><td className="px-4 py-1.5"><Badge tone={PRIO[r.priority]}>{r.priority}</Badge></td><td className="px-4 py-1.5 text-xs">{r.tests.map((t) => `${t.ref} ${t.result}`).join(" · ") || "–"}</td><td className="px-4 py-1.5"><Badge tone={TRACE[r.status]}>{r.status}</Badge></td></tr>)}
               </tbody>
-            </table>
+            </table></div>
           </Card>
           <Card>
             <CardHeader title="Signatures" />

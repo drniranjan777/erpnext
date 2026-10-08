@@ -52,7 +52,7 @@ export default function ReceiptPage() {
       </Card>
       <Card>
         <CardHeader title="Material settled" />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
             <tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 text-right font-medium">Consumed</th><th className="px-4 py-2 text-right font-medium">Returned</th><th className="px-4 py-2 text-right font-medium">Loss</th></tr>
           </thead>
@@ -66,7 +66,7 @@ export default function ReceiptPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Card>
         <CardHeader title="Activity" />

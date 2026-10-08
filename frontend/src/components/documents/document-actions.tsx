@@ -11,6 +11,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { api, ApiError } from "@/lib/api";
 import { documentKeys, type DocumentHeader } from "@/lib/documents";
+import { askConfirm } from "@/components/ui/ask";
 
 type Action = "submit" | "approve" | "reject" | "cancel" | "amend" | "delete";
 
@@ -120,7 +121,7 @@ export function DocumentActions({ doc, apiBase, routeBase, printHref, queryKey, 
           <Button
             variant="ghost"
             loading={run.isPending && run.variables?.action === "delete"}
-            onClick={() => confirm("Delete this draft? This can't be undone.") && run.mutate({ action: "delete" })}
+            onClick={async () => await askConfirm("Delete this draft? This can't be undone.") && run.mutate({ action: "delete" })}
           >
             <Trash2 className="size-4 text-danger" aria-hidden /> Delete draft
           </Button>

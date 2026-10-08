@@ -67,7 +67,7 @@ export default function AssetsPage() {
         {q.error && <div className="p-5"><ErrorBlock error={q.error} /></div>}
         {q.data && !q.data.items.length && <EmptyState title="No assets" description="Add machines, vehicles, computers… to start depreciating them." />}
         {!!q.data?.items.length && (
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Asset</th><th className="px-4 py-2 font-medium">Category</th><th className="px-4 py-2 font-medium">In use from</th><th className="px-4 py-2 text-right font-medium">Cost</th><th className="px-4 py-2 text-right font-medium">Depreciation</th><th className="px-4 py-2 text-right font-medium">Book value</th><th className="px-4 py-2 font-medium">Up to</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.items.map((a) => (
@@ -85,13 +85,13 @@ export default function AssetsPage() {
             {status === "active" && (
               <tfoot className="border-t-2 border-border font-semibold"><tr><td className="px-4 py-2" colSpan={3}>Total</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(q.data.totals.cost)}</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(q.data.totals.accumulated)}</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(q.data.totals.netBookValue)}</td><td /></tr></tfoot>
             )}
-          </table>
+          </table></div>
         )}
       </Card>
       <Card>
         <CardHeader title="Income-tax depreciation (s.32)" description="Block-wise WDV; half rate on additions used under 180 days in the year. For the tax computation only; not posted." action={<Select className="h-9 w-32" aria-label="Financial year" value={fy} onChange={(e) => setFy(Number(e.target.value))}>{[0, 1, 2].map((i) => <option key={i} value={fyNow() - i}>{fyNow() - i}-{String((fyNow() - i + 1) % 100).padStart(2, "0")}</option>)}</Select>} />
         {!!it.data?.blocks.length && (
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Block</th><th className="px-4 py-2 text-right font-medium">Opening WDV</th><th className="px-4 py-2 text-right font-medium">Additions (≥180 days)</th><th className="px-4 py-2 text-right font-medium">Additions (&lt;180 days)</th><th className="px-4 py-2 text-right font-medium">Sales</th><th className="px-4 py-2 text-right font-medium">Depreciation</th><th className="px-4 py-2 text-right font-medium">Closing WDV</th></tr></thead>
             <tbody className="divide-y divide-border">
               {it.data.blocks.map((b) => (
@@ -101,7 +101,7 @@ export default function AssetsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
         {it.data && !it.data.blocks.length && <p className="px-5 pb-4 text-sm text-muted">No assets.</p>}
       </Card>

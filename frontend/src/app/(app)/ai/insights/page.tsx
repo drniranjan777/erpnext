@@ -89,7 +89,7 @@ export default function InsightsPage() {
       {prices.data && (
         <Card>
           <CardHeader title="Purchase price outlook" description="Monthly average price paid for the biggest-spend items, with the next three months forecast (80 % range)." />
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 text-right font-medium">Last</th><th className="px-4 py-2 font-medium">Next months</th><th className="px-4 py-2 text-right font-medium">Change</th></tr></thead>
             <tbody className="divide-y divide-border">
               {prices.data.map((p) => (
@@ -102,7 +102,7 @@ export default function InsightsPage() {
               ))}
               {!prices.data.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Needs purchase orders in at least two months.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

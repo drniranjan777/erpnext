@@ -10,6 +10,7 @@ import { Input, Select } from "@/components/ui/field";
 import { PageHeader, formatDateTime } from "@/components/ui/page";
 import { api, ApiError, apiDownload, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { askConfirm } from "@/components/ui/ask";
 
 interface Folder { id: string; name: string; parentId: string | null; retentionYears: number | null; files: number }
 interface Hit { id: string; title: string; docNo: string | null; tags: string[]; currentVersion: number; legalHold: boolean; retentionUntil: string | null; folder: string; snippet: string | null }
@@ -90,7 +91,7 @@ export default function DmsPage() {
         </Card>
         {f && (
           <Card>
-            <CardHeader title={f.title} description={`${f.folder} · ${f.status}${f.retentionUntil ? ` · keep until ${f.retentionUntil}` : " · kept for ever"}${f.hasText ? " · searchable" : ""}`} action={manage && f.status === "active" && <span className="flex gap-1"><Button size="sm" variant="secondary" onClick={() => run(() => api(`/doc-store/files/${f.id}/hold`, { body: { legalHold: !f.legalHold } }), f.legalHold ? "Hold lifted." : "Legal hold placed.")}>{f.legalHold ? "Lift hold" : "Legal hold"}</Button>{!f.disposal && <Button size="sm" variant="secondary" onClick={() => window.confirm("Dispose of the file? Its content is deleted; the record stays.") && run(() => api(`/doc-store/files/${f.id}/dispose`, { body: {} }), "Disposed of.")}>Dispose</Button>}</span>} />
+            <CardHeader title={f.title} description={`${f.folder} · ${f.status}${f.retentionUntil ? ` · keep until ${f.retentionUntil}` : " · kept for ever"}${f.hasText ? " · searchable" : ""}`} action={manage && f.status === "active" && <span className="flex gap-1"><Button size="sm" variant="secondary" onClick={() => run(() => api(`/doc-store/files/${f.id}/hold`, { body: { legalHold: !f.legalHold } }), f.legalHold ? "Hold lifted." : "Legal hold placed.")}>{f.legalHold ? "Lift hold" : "Legal hold"}</Button>{!f.disposal && <Button size="sm" variant="secondary" onClick={async () => await askConfirm("Dispose of the file? Its content is deleted; the record stays.") && run(() => api(`/doc-store/files/${f.id}/dispose`, { body: {} }), "Disposed of.")}>Dispose</Button>}</span>} />
             {manage && f.status === "active" && (
               <div className="flex flex-wrap items-center gap-2 border-t border-border p-3 text-sm">
                 <input type="file" aria-label="File" onChange={(e) => setUpload(e.target.files?.[0] ?? null)} />

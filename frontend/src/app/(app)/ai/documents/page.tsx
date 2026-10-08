@@ -85,7 +85,7 @@ export default function DocumentsPage() {
                 <p className="text-xs">Matched: {Object.entries(c.matches).filter(([k]) => k !== "items" && k !== "checks").map(([k, v]) => `${human(k)} → ${Array.isArray(v) ? v.map((x) => (x as { number?: string }).number).join(", ") : ((v as { name?: string; number?: string }).name ?? (v as { number?: string }).number)}`).join("; ")}</p>
               )}
               {c.lines.length > 0 && (
-                <table className="w-full text-xs">
+                <div className="overflow-x-auto"><table className="w-full text-xs">
                   <thead className="text-left text-muted"><tr>{Object.keys(c.lines[0]).map((k) => <th key={k} className="py-1 pr-2">{human(k)}</th>)}{Array.isArray(c.matches.items) && <th>Item</th>}</tr></thead>
                   <tbody className="divide-y divide-border">
                     {c.lines.map((l, i) => (
@@ -95,7 +95,7 @@ export default function DocumentsPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
               {c.result && <p className="text-xs text-success">Applied: {JSON.stringify(c.result)}</p>}
             </div>

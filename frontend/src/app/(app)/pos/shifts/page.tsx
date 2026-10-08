@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
-import { Input, Select } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
 import { PageHeader, formatDateTime } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -51,25 +52,20 @@ function Shifts() {
       setMsg({ tone: "danger", text: err instanceof ApiError ? err.message : "Could not reach the server." });
     }
   }
-  const ret = (s: Sale) => {
-    const which = window.prompt(`Return which item and how many? (${s.lines.map((l) => `${l.code} × ${l.qty}`).join(", ")}) — e.g. ${s.lines[0].code} 1`);
-    if (!which) return;
-    const [code, n] = which.trim().split(/\s+/);
-    const l = s.lines.find((x) => x.code.toLowerCase() === code.toLowerCase());
-    const reason = l && window.prompt("Reason for the return");
-    if (!l || !reason) return;
-    run(() => api(`/pos/sessions/${open}/sales/${s.id}/return`, { body: { clientRef: clientRef(), lines: [{ itemId: l.itemId, qty: Number(n || 1) }], refund: "cash", reason } }), "Return recorded and refunded in cash.");
-  };
+  const [returning, setReturning] = useState<Sale | null>(null);
+  const ret = (s: Sale, lines: { itemId: string; qty: number }[], reason: string) =>
+    run(() => api(`/pos/sessions/${open}/sales/${s.id}/return`, { body: { clientRef: clientRef(), lines, refund: "cash", reason } }), "Return recorded and refunded in cash.").then(() => setReturning(null));
   const z = shift.data?.summary;
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <PageHeader title="Shifts and tills" description="Sales and returns of each shift, the day-close (Z) report with cash to count, and the tills." actions={<Link className="text-sm text-primary hover:underline" href="/pos">Back to the till</Link>} />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+      {returning && <ReturnDialog sale={returning} onClose={() => setReturning(null)} onReturn={(lines, reason) => ret(returning, lines, reason)} />}
       {shift.data && (
         <Card>
           <CardHeader title={`${shift.data.terminal.code} · shift from ${formatDateTime(shift.data.openedAt)}`} description={`${shift.data.status} · opening cash ${inr(shift.data.openingCash)}`} />
           <ul className="divide-y divide-border border-t border-border text-sm">
-            {shift.data.sales.map((s) => <li key={s.id} className="flex flex-wrap items-center gap-2 px-4 py-1.5"><Badge tone={s.kind === "return" ? "warning" : "success"}>{s.kind}</Badge><span>{s.number}</span><span className="text-xs text-muted">{formatDateTime(s.soldAt)}{s.buyerName ? ` · ${s.buyerName}` : ""} · {s.lines.map((l) => `${l.code} × ${l.qty}`).join(", ")}</span><span className="ml-auto tabular-nums">{inr(s.total)}</span><Link className="text-xs text-primary hover:underline" href={`/print/pos-receipt/${s.id}`} target="_blank">Receipt</Link>{shift.data!.status === "open" && s.kind === "sale" && <Button size="sm" variant="secondary" onClick={() => ret(s)}>Return</Button>}</li>)}
+            {shift.data.sales.map((s) => <li key={s.id} className="flex flex-wrap items-center gap-2 px-4 py-1.5"><Badge tone={s.kind === "return" ? "warning" : "success"}>{s.kind}</Badge><span>{s.number}</span><span className="text-xs text-muted">{formatDateTime(s.soldAt)}{s.buyerName ? ` · ${s.buyerName}` : ""} · {s.lines.map((l) => `${l.code} × ${l.qty}`).join(", ")}</span><span className="ml-auto tabular-nums">{inr(s.total)}</span><Link className="text-xs text-primary hover:underline" href={`/print/pos-receipt/${s.id}`} target="_blank">Receipt</Link>{shift.data!.status === "open" && s.kind === "sale" && <Button size="sm" variant="secondary" onClick={() => setReturning(s)}>Return</Button>}</li>)}
           </ul>
           {z && (
             <div className="grid gap-4 border-t border-border p-4 text-sm sm:grid-cols-3">
@@ -109,5 +105,38 @@ function Shifts() {
         </>
       )}
     </div>
+  );
+}
+
+/** Picks what comes back from a sale: a quantity per line and the reason. */
+function ReturnDialog({ sale, onClose, onReturn }: { sale: Sale; onClose: () => void; onReturn: (lines: { itemId: string; qty: number }[], reason: string) => Promise<unknown> }) {
+  const [qty, setQty] = useState<Record<number, string>>({});
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const lines = sale.lines.map((l, i) => ({ itemId: l.itemId, qty: Number(qty[i] || 0), max: l.qty })).filter((l) => l.qty > 0);
+  const valid = lines.length > 0 && lines.every((l) => l.qty <= l.max) && reason.trim().length > 0;
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={`Return from ${sale.number}`}
+      description="Enter how many of each item came back. The refund is paid in cash."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button disabled={!valid} loading={busy} onClick={() => { setBusy(true); void onReturn(lines.map(({ itemId, qty: q }) => ({ itemId, qty: q })), reason.trim()).finally(() => setBusy(false)); }}>Record return</Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        {sale.lines.map((l, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <span className="flex-1 text-sm"><span className="font-medium">{l.code}</span> {l.name} <span className="text-muted">· sold {l.qty}</span></span>
+            <Input className="w-24 text-right" type="number" min={0} max={l.qty} step="any" inputMode="decimal" aria-label={`Quantity of ${l.code} returned`} placeholder="0" value={qty[i] ?? ""} onChange={(e) => setQty({ ...qty, [i]: e.target.value })} />
+          </div>
+        ))}
+        <Field label="Reason" required>{(p) => <Input {...p} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. damaged, wrong size" />}</Field>
+      </div>
+    </Dialog>
   );
 }

@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
 import { HR, type OrgRow } from "@/lib/hr";
 import { inr } from "@/lib/payroll";
+import { askConfirm } from "@/components/ui/ask";
 
 interface Cycle { id: string; name: string; fromDate: string; toDate: string; status: "goal_setting" | "review" | "closed"; incrementGuide: Record<string, number> }
 interface Goal { id: string; kra: string | null; title: string; target: string | null; weight: string; selfRating: number | null; selfComment: string | null; managerRating: number | null; managerComment: string | null }
@@ -147,7 +148,7 @@ function Calibrate({ cycle, manage }: { cycle: Cycle; manage: boolean }) {
   const [editing, setEditing] = useState<Appraisal | null>(null);
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   async function apply() {
-    if (!window.confirm("Write the calibrated increments into salaries and record promotions?")) return;
+    if (!await askConfirm("Write the calibrated increments into salaries and record promotions?")) return;
     setMsg(null);
     try {
       const r = await api<{ increments: number; promotions: number; skipped: string[] }>(`${HR}/performance/cycles/${cycle.id}/apply`, { body: {} });
@@ -164,7 +165,7 @@ function Calibrate({ cycle, manage }: { cycle: Cycle; manage: boolean }) {
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       {manage && cycle.status !== "goal_setting" && <Button variant="secondary" onClick={apply}>Apply increments to salaries</Button>}
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Employee</th><th className="px-4 py-2 text-right font-medium">Self</th><th className="px-4 py-2 text-right font-medium">Manager</th><th className="px-4 py-2 text-right font-medium">Final</th><th className="px-4 py-2 text-right font-medium">Increment</th><th className="px-4 py-2 text-right font-medium">New CTC</th><th /></tr></thead>
           <tbody className="divide-y divide-border">
             {q.data!.map((a) => (
@@ -180,7 +181,7 @@ function Calibrate({ cycle, manage }: { cycle: Cycle; manage: boolean }) {
             ))}
             {!q.data!.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">Nobody has goals in this cycle.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       {editing && <CalibrateDialog cycle={cycle} a={editing} designations={desigs.data ?? []} onClose={() => setEditing(null)} />}
     </>

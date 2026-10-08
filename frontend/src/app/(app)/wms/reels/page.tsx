@@ -12,6 +12,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/documents";
 import { WMS } from "@/lib/wms";
+import { askText } from "@/components/ui/ask";
 
 interface Reel { id: string; openedAt: string | null; code: string; itemCode: string; itemName: string; batchNo: string | null; warehouse: string | null; bin: string | null; qty: string; mslLevel: string | null; status: string; bakeCount: number; usedMinutes: number; remainingMinutes: number | null; expired: boolean }
 const TONE = { sealed: "neutral", open: "warning", expired: "danger", empty: "neutral" } as const;
@@ -31,7 +32,7 @@ export default function ReelsPage() {
     setMsg(null);
     let qty: number | undefined;
     if (kind === "use") {
-      const v = window.prompt(`Parts taken from ${r.code}?`);
+      const v = await askText(`Parts taken from ${r.code}?`);
       if (!v) return;
       qty = Number(v);
     }
@@ -59,7 +60,7 @@ export default function ReelsPage() {
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Select className="h-9 w-40" aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">In use</option><option value="open">Open</option><option value="sealed">Sealed</option><option value="expired">Expired</option><option value="empty">Empty</option></Select>
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-3 py-2 font-medium">Reel</th><th className="px-3 py-2 font-medium">Part</th><th className="px-3 py-2 font-medium">Where</th><th className="px-3 py-2 text-right font-medium">Qty</th><th className="px-3 py-2 font-medium">MSL</th><th className="px-3 py-2 font-medium">Floor life left</th><th className="px-3 py-2 font-medium" /></tr></thead>
           <tbody className="divide-y divide-border">
             {q.data?.map((r) => (
@@ -81,7 +82,7 @@ export default function ReelsPage() {
             ))}
             {q.data && !q.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No reels.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       {exec && (
         <Card>

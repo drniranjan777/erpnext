@@ -86,7 +86,7 @@ export default function PaymentRunPage() {
         {q.error && <div className="p-5"><ErrorBlock error={q.error} /></div>}
         {q.data && !q.data.bills.length && <EmptyState title="Nothing due" description="No unpaid bills due by this date." />}
         {!!q.data?.bills.length && (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
               <tr><th className="w-10 px-4 py-2.5" /><th className="px-4 py-2.5 font-medium">Vendor</th><th className="px-4 py-2.5 font-medium">Bill</th><th className="px-4 py-2.5 font-medium">Due</th><th className="px-4 py-2.5 text-right font-medium">Outstanding</th><th className="w-36 px-4 py-2.5 text-right font-medium">Pay</th></tr>
             </thead>
@@ -102,7 +102,7 @@ export default function PaymentRunPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
     </div>

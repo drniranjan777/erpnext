@@ -41,7 +41,7 @@ export default function SlaPage() {
             <Card className="px-5 py-4"><p className="text-xs uppercase text-muted">Customer rating</p><p className="text-2xl font-semibold">{r.data.backlog.avgRating ?? "–"}</p></Card>
           </div>
           <Card>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Priority</th><th className="px-4 py-2 text-right font-medium">Tickets</th><th className="px-4 py-2 font-medium">Response met</th><th className="px-4 py-2 font-medium">Resolution met</th><th className="px-4 py-2 text-right font-medium">Average time to resolve</th></tr></thead>
               <tbody className="divide-y divide-border">
                 {r.data.byPriority.map((p) => (
@@ -55,7 +55,7 @@ export default function SlaPage() {
                 ))}
                 {!r.data.byPriority.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No tickets in this period.</td></tr>}
               </tbody>
-            </table>
+            </table></div>
             {r.data.byCategory.length > 0 && <p className="border-t border-border px-4 py-2 text-xs text-muted">By category: {r.data.byCategory.map((c) => `${c.category} ${c.tickets}`).join(" · ")}</p>}
           </Card>
         </>

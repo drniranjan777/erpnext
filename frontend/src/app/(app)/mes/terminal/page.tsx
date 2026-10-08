@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
-import { PageHeader, timeAgo } from "@/components/ui/page";
+import { PageHeader, timeAgo, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { FIRST_OFF, type Execution, type Instruction, type RecipeParameter, type StartCheck } from "@/lib/mes";
+import { askText } from "@/components/ui/ask";
 
 interface Machine { id: string; code: string; name: string }
 interface QueueOp { operationId: string; seq: number; name: string; status: string; workOrderId: string; workOrderNumber: string; itemCode: string; itemName: string; orderQty: string; goodQty: string; toolCode: string | null; hasInstructions: boolean }
@@ -45,7 +46,7 @@ function MachineTerminal({ machineId }: { machineId: string }) {
       setError(err instanceof ApiError ? err.message : "Could not reach the server.");
     }
   }
-  if (!t.data) return null;
+  if (!t.data) return t.isError ? <ErrorBlock error={t.error} /> : <LoadingBlock />;
   const { session, queue, running } = t.data;
   return (
     <div className="space-y-4">
@@ -113,7 +114,7 @@ function StartJob({ machineId, operationId, operator, onCancel, onStarted }: { m
   const [checks, setChecks] = useState<StartCheck[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  if (!p.data) return null;
+  if (!p.data) return p.isError ? <ErrorBlock error={p.error} /> : <LoadingBlock />;
   const { instruction, recipe, required, operation } = p.data;
   const body = () => ({ operationId, machineId, operatorName: operator, toolCode: tool || null, materials: mats.filter((m) => m.code.trim()).map((m) => ({ code: m.code.trim(), batchNo: m.batchNo.trim() || null })), stepsAcked: acked });
   async function run(start: boolean) {
@@ -203,7 +204,7 @@ function RunningJob({ executionId, onDone }: { executionId: string; onDone: () =
     }
   }
   const e = x.data;
-  if (!e) return null;
+  if (!e) return x.isError ? <ErrorBlock error={x.error} /> : <LoadingBlock />;
   const chars = e.instruction?.characteristics ?? [];
   const readings = () => chars.filter((c) => values[c.name] !== undefined && values[c.name] !== "").map((c) => ({ name: c.name, value: Number(values[c.name]) }));
   const [foLabel, foTone] = FIRST_OFF[e.firstOff.status];
@@ -227,7 +228,7 @@ function RunningJob({ executionId, onDone }: { executionId: string; onDone: () =
               can("mes.firstoff.approve") ? (
                 <span className="flex gap-2">
                   <Button className="h-12" onClick={() => act(() => api(`/mes/executions/${e.id}/first-off`, { body: { approved: true, readings: readings() } }), () => setValues({}))}>Approve first-off</Button>
-                  <Button variant="danger" className="h-12" onClick={() => act(() => api(`/mes/executions/${e.id}/first-off`, { body: { approved: false, readings: readings(), note: window.prompt("Why is it rejected?") } }))}>Reject</Button>
+                  <Button variant="danger" className="h-12" onClick={async () => { const note = await askText("Why is it rejected?"); if (note) act(() => api(`/mes/executions/${e.id}/first-off`, { body: { approved: false, readings: readings(), note } })); }}>Reject</Button>
                 </span>
               ) : (
                 <p className="text-muted">Waiting for quality to approve the first piece.</p>

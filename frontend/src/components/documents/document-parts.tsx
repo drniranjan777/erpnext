@@ -32,6 +32,7 @@ import {
   type DocumentStatus,
   type Revision,
 } from "@/lib/documents";
+import { askConfirm } from "@/components/ui/ask";
 
 export function StatusBadge({ status }: { status: DocumentStatus }) {
   const meta = STATUS_META[status];
@@ -215,7 +216,7 @@ export function AttachmentsPanel({ documentId, readOnly }: { documentId: string;
                 variant="ghost"
                 size="sm"
                 loading={remove.isPending && remove.variables === f.id}
-                onClick={() => confirm(`Remove ${f.fileName}?`) && remove.mutate(f.id)}
+                onClick={async () => await askConfirm(`Remove ${f.fileName}?`) && remove.mutate(f.id)}
                 aria-label={`Remove ${f.fileName}`}
               >
                 <Trash2 className="size-4 text-danger" />

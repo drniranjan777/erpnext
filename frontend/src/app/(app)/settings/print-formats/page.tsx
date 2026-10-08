@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Select } from "@/components/ui/field";
 import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, timeAgo } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
+import { askConfirm } from "@/components/ui/ask";
 
 interface PrintFormat {
   id: string;
@@ -68,7 +69,7 @@ export default function PrintFormatsPage() {
               <Button variant="ghost" size="sm" onClick={() => setEditing(f)} aria-label={`Edit ${f.name}`}>
                 <Pencil className="size-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => confirm(`Delete "${f.name}"?`) && del.mutate(f.id)} aria-label={`Delete ${f.name}`}>
+              <Button variant="ghost" size="sm" onClick={async () => await askConfirm(`Delete "${f.name}"?`) && del.mutate(f.id)} aria-label={`Delete ${f.name}`}>
                 <Trash2 className="size-4 text-danger" />
               </Button>
             </li>

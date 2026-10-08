@@ -131,7 +131,7 @@ function WasteTab() {
         <>
           {q.data.stored.length > 0 && <p className="text-sm text-muted">In store: {q.data.stored.map((s) => `${s.category} ${formatQty(s.qty)} ${s.unit}`).join(" · ")}</p>}
           <Card>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Waste</th><th className="px-4 py-2 text-right font-medium">Qty</th><th className="px-4 py-2 font-medium">Generated</th><th className="px-4 py-2 font-medium">Disposal</th></tr></thead>
               <tbody className="divide-y divide-border">
                 {q.data.entries.map((w) => (
@@ -144,7 +144,7 @@ function WasteTab() {
                 ))}
                 {!q.data.entries.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Nothing recorded.</td></tr>}
               </tbody>
-            </table>
+            </table></div>
           </Card>
         </>
       )}
@@ -214,7 +214,7 @@ function Licences() {
       )}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Licence</th><th className="px-4 py-2 font-medium">Authority</th><th className="px-4 py-2 font-medium">Valid until</th><th className="px-4 py-2 font-medium">State</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((l) => (
@@ -227,7 +227,7 @@ function Licences() {
               ))}
               {!q.data.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No licences recorded.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

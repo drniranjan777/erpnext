@@ -64,7 +64,7 @@ export function ItemVendors({ itemId, readOnly }: { itemId: string; readOnly: bo
         </div>
       )}
       {rows.length > 0 ? (
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-4 py-2 font-medium">Vendor</th>
@@ -107,7 +107,7 @@ export function ItemVendors({ itemId, readOnly }: { itemId: string; readOnly: bo
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       ) : (
         <p className="border-t border-border px-5 py-4 text-sm text-muted">No vendor list: any vendor can be used.</p>
       )}

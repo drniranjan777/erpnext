@@ -13,6 +13,7 @@ import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { iamKeys, type PermissionGroup, type Role } from "@/lib/iam";
+import { askConfirm, tell } from "@/components/ui/ask";
 
 type Draft = { id?: string; name: string; description: string; permissions: string[] };
 
@@ -118,7 +119,7 @@ function DeleteRoleButton({ role }: { role: Role }) {
   const del = useMutation({
     mutationFn: () => api<void>(`/iam/roles/${role.id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: iamKeys.roles }),
-    onError: (err) => alert((err as Error).message),
+    onError: (err) => void tell((err as Error).message, "Could not delete the role"),
   });
   return (
     <Button
@@ -128,7 +129,7 @@ function DeleteRoleButton({ role }: { role: Role }) {
       loading={del.isPending}
       disabled={role.memberCount > 0}
       title={role.memberCount > 0 ? "Reassign its users before deleting" : undefined}
-      onClick={() => confirm(`Delete the role "${role.name}"?`) && del.mutate()}
+      onClick={async () => await askConfirm(`Delete the role "${role.name}"?`) && del.mutate()}
       aria-label={`Delete ${role.name}`}
     >
       <Trash2 className="size-4 text-danger" />

@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth";
 import { CRM, type Activity, type Stage } from "@/lib/crm";
 import { formatDate } from "@/lib/documents";
 import { inr } from "@/lib/payroll";
+import { askText } from "@/components/ui/ask";
 
 interface OppView { id: string; number: string; title: string; amount: string; closeDate: string | null; status: "open" | "won" | "lost"; stageId: string; stage: string; stageProbability: number; probability: number | null; partyId: string; party: string; owner: string | null; leadId: string | null; leadNumber: string | null; competitor: string | null; lostReason: string | null; quotationId: string | null; quotationNumber: string | null; quotationStatus: string | null; activities: Activity[]; nextAction: NextAction }
 
@@ -32,7 +33,7 @@ export default function OpportunityPage() {
   const [error, setError] = useState<string | null>(null);
   async function move(stageId: string) {
     const s = stages.data?.find((x) => x.id === stageId);
-    const lostReason = s?.kind === "lost" ? window.prompt("Why was it lost?") : null;
+    const lostReason = s?.kind === "lost" ? await askText("Why was it lost?") : null;
     if (s?.kind === "lost" && !lostReason) return;
     setError(null);
     try {

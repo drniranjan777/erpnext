@@ -203,7 +203,7 @@ function BlockView({ b }: { b: Block }) {
         {b.title}
         {b.href && <Link href={b.href} className="font-normal text-primary hover:underline">Full report</Link>}
       </p>
-      <table className="w-full text-xs">
+      <div className="overflow-x-auto"><table className="w-full text-xs">
         <tbody className="divide-y divide-border">
           {b.rows.slice(0, 10).map((r, i) => (
             <tr key={i}>
@@ -212,7 +212,7 @@ function BlockView({ b }: { b: Block }) {
           ))}
           {!b.rows.length && <tr><td className="px-2 py-2 text-muted">No rows.</td></tr>}
         </tbody>
-      </table>
+      </table></div>
       {(b.more ?? 0) + Math.max(0, b.rows.length - 10) > 0 && <p className="px-3 py-1 text-[11px] text-muted">and {(b.more ?? 0) + Math.max(0, b.rows.length - 10)} more</p>}
     </div>
   );

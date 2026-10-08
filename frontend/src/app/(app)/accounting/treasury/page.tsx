@@ -72,10 +72,10 @@ export default function TreasuryPage() {
                 {i.status !== "active" && <Badge>{i.status}</Badge>}
               </button>
               {open === i.id && sched.data && (
-                <table className="mx-4 mb-3 w-[calc(100%-2rem)] text-xs">
+                <div className="overflow-x-auto"><table className="mx-4 mb-3 w-[calc(100%-2rem)] text-xs">
                   <thead className="text-muted"><tr><th className="text-left">#</th><th className="text-left">Date</th><th className="text-right">Opening</th><th className="text-right">Interest</th><th className="text-right">Principal</th><th className="text-right">Payment</th><th className="text-right">Closing</th></tr></thead>
                   <tbody>{sched.data.map((r) => <tr key={r.no}><td>{r.no}</td><td>{formatDate(r.date)}</td><td className="text-right tabular-nums">{inr(r.opening)}</td><td className="text-right tabular-nums">{inr(r.interest)}</td><td className="text-right tabular-nums">{inr(r.principal)}</td><td className="text-right tabular-nums">{inr(r.payment)}</td><td className="text-right tabular-nums">{inr(r.closing)}</td></tr>)}</tbody>
-                </table>
+                </table></div>
               )}
             </li>
           ))}

@@ -17,6 +17,7 @@ import { formatDate, todayIST } from "@/lib/documents";
 import { HR } from "@/lib/hr";
 import { inr, PAY, type SalaryTemplate } from "@/lib/payroll";
 import { REQ_TONE, STAGE_TONE, type Candidate, type Requisition } from "@/lib/talent";
+import { askConfirm } from "@/components/ui/ask";
 
 type Dlg = { kind: "candidate" } | { kind: "interview"; c: Candidate } | { kind: "feedback"; interviewId: string } | { kind: "offer"; c: Candidate } | { kind: "accept"; c: Candidate } | null;
 
@@ -50,7 +51,7 @@ export default function RequisitionPage() {
         actions={
           <span className="flex gap-2">
             {manage && r.status === "approved" && <Button onClick={() => setDlg({ kind: "candidate" })}><Plus className="size-4" aria-hidden /> Add candidate</Button>}
-            {manage && r.status === "approved" && <Button variant="ghost" onClick={() => window.confirm("Close this requisition?") && act(`${HR}/recruitment/requisitions/${r.id}/close`)}>Close</Button>}
+            {manage && r.status === "approved" && <Button variant="ghost" onClick={async () => await askConfirm("Close this requisition?") && act(`${HR}/recruitment/requisitions/${r.id}/close`)}>Close</Button>}
           </span>
         }
       />

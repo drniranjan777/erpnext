@@ -12,6 +12,7 @@ import { PageHeader, formatDateTime, timeAgo } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Gateway } from "@/lib/iot";
+import { askText } from "@/components/ui/ask";
 
 interface Model { id: string; name: string; version: string; classes: string[]; minConfidence: number; artifactUrl: string | null; validation: { precision?: number; recall?: number; samples?: number } | null; status: string; deployedAt: string | null; deployments: { gatewayCode: string; status: string | null; result: string | null }[] }
 interface Stats { total: number; defects: number; defectRatePct: number | null; avgConfidence: number | null; uncertainPct: number | null; byClass: { defectClass: string; count: number }[]; reviewed: number; accuracyPct: number | null; falseRejects: number; escapes: number }
@@ -88,7 +89,7 @@ export default function VisionPage() {
                 ) : (
                   <>
                     <Button size="sm" variant="ghost" onClick={() => run(() => api(`/vision/inspections/${i.id}/review`, { body: { review: "correct" } }))}>Right</Button>
-                    <Button size="sm" variant="ghost" onClick={() => run(() => api(`/vision/inspections/${i.id}/review`, { body: { review: "wrong", actualClass: i.result === "ok" ? window.prompt("Which defect was it?") : null } }))}>Wrong</Button>
+                    <Button size="sm" variant="ghost" onClick={async () => { const actualClass = i.result === "ok" ? await askText("Which defect was it?") : null; if (i.result !== "ok" || actualClass) run(() => api(`/vision/inspections/${i.id}/review`, { body: { review: "wrong", actualClass } })); }}>Wrong</Button>
                   </>
                 )}
               </span>

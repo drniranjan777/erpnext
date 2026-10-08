@@ -121,7 +121,7 @@ export default function BankReconciliationPage() {
         {lines.error && <div className="p-5"><ErrorBlock error={lines.error} /></div>}
         {lines.data && !lines.data.lines.length && <EmptyState title="No lines" description={status === "unmatched" ? "Everything imported is matched." : "Import a statement to start."} />}
         {!!lines.data?.lines.length && (
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
               <tr><th className="px-4 py-2 font-medium">Date</th><th className="px-4 py-2 font-medium">Narration</th><th className="px-4 py-2 text-right font-medium">Withdrawal</th><th className="px-4 py-2 text-right font-medium">Deposit</th><th className="px-4 py-2 font-medium">Matched to</th><th /></tr>
             </thead>
@@ -150,7 +150,7 @@ export default function BankReconciliationPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
       {matching && lines.data && <MatchDialog line={matching} entries={lines.data.openEntries} onClose={() => setMatching(null)} onDone={refresh} />}

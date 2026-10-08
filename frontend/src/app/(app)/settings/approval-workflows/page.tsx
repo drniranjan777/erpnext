@@ -14,6 +14,7 @@ import { api, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/documents";
 import { iamKeys, type Member, type Role } from "@/lib/iam";
 import type { Branch } from "@/lib/types";
+import { askConfirm } from "@/components/ui/ask";
 
 interface Step {
   name: string;
@@ -104,7 +105,7 @@ export default function ApprovalWorkflowsPage() {
                 <Button variant="ghost" size="sm" onClick={() => setEditing(r)} aria-label={`Edit ${r.name}`}>
                   <Pencil className="size-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => confirm(`Delete rule "${r.name}"?`) && del.mutate(r.id)} aria-label={`Delete ${r.name}`}>
+                <Button variant="ghost" size="sm" onClick={async () => await askConfirm(`Delete rule "${r.name}"?`) && del.mutate(r.id)} aria-label={`Delete ${r.name}`}>
                   <Trash2 className="size-4 text-danger" />
                 </Button>
               </div>

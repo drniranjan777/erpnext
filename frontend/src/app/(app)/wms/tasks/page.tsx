@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/auth";
 import { formatQty } from "@/lib/documents";
 import { sendOrQueue } from "@/lib/offline-queue";
 import { useWarehouseParam, WMS, type Task } from "@/lib/wms";
+import { askConfirm } from "@/components/ui/ask";
 
 export default function TasksPage() {
   return (
@@ -47,7 +48,7 @@ function Tasks() {
     }
   }
   async function cancel(t: Task) {
-    if (!window.confirm(`Cancel ${t.number}?`)) return;
+    if (!await askConfirm(`Cancel ${t.number}?`)) return;
     await api(`${WMS}/tasks/${t.id}/cancel`, { body: {} }).catch(() => null);
     qc.invalidateQueries({ queryKey: [WMS] });
   }
@@ -61,7 +62,7 @@ function Tasks() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Task</th><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 text-right font-medium">Qty</th><th className="px-4 py-2 font-medium">From</th><th className="px-4 py-2 font-medium">To</th><th className="px-4 py-2 font-medium">Why</th><th className="px-4 py-2 font-medium" /></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((t) => (
@@ -85,7 +86,7 @@ function Tasks() {
               ))}
               {!q.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No tasks.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {doing && <ConfirmDialog t={doing} onClose={() => { setDoing(null); qc.invalidateQueries({ queryKey: [WMS] }); }} />}

@@ -110,7 +110,7 @@ export default function AgeingPage() {
             {interest.data && <p className="pb-2 text-sm">Total <strong className="tabular-nums">{formatMoney(interest.data.total)}</strong></p>}
           </div>
           {!!interest.data?.bills.length && (
-            <table className="w-full border-t border-border text-sm">
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
               <tbody className="divide-y divide-border">
                 {interest.data.bills.map((b) => (
                   <tr key={b.id}>
@@ -121,7 +121,7 @@ export default function AgeingPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </Card>
       )}

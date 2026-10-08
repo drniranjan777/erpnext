@@ -22,7 +22,7 @@ export default function PortalDeliveries() {
       <PageHeader title="Schedules & dispatches" description="The delivery schedules we hold from you, and advance shipping notices for goods on the way." />
       <Card>
         <CardHeader title="Delivery schedules" action={<Input className="h-9 w-40" type="month" aria-label="Month" value={month} onChange={(e) => setMonth(e.target.value)} />} />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Schedule</th><th className="px-4 py-2 font-medium">Your part no.</th><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 text-right font-medium">Qty</th></tr></thead>
           <tbody className="divide-y divide-border">
             {sch.data?.map((s) => (
@@ -35,7 +35,7 @@ export default function PortalDeliveries() {
             ))}
             {sch.data && !sch.data.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No schedules for this month.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Card>
         <CardHeader title="Advance shipping notices" />

@@ -50,7 +50,7 @@ export default function ApqrPage() {
           </Card>
           <Card>
             <CardHeader title="Batches" />
-            <table className="w-full border-t border-border text-sm"><tbody className="divide-y divide-border">{r.batches.list.map((b, i) => <tr key={i}><td className="px-4 py-1.5">{b.number}</td><td className="px-4 py-1.5">{b.date}</td><td className="px-4 py-1.5 text-right">{b.produced} of {b.qty}</td><td className="px-4 py-1.5">{b.stage}</td><td className="px-4 py-1.5">{b.review ?? "not reviewed"}</td></tr>)}</tbody></table>
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm"><tbody className="divide-y divide-border">{r.batches.list.map((b, i) => <tr key={i}><td className="px-4 py-1.5">{b.number}</td><td className="px-4 py-1.5">{b.date}</td><td className="px-4 py-1.5 text-right">{b.produced} of {b.qty}</td><td className="px-4 py-1.5">{b.stage}</td><td className="px-4 py-1.5">{b.review ?? "not reviewed"}</td></tr>)}</tbody></table></div>
           </Card>
           {list("Deviations", r.deviations, (x) => `${x.number ?? ""} · ${x.kind} · ${x.category}: ${x.description}${x.closed ? " (closed)" : ""}`)}
           {list("CAPAs", r.capas, (x) => `${x.number ?? ""} · ${x.kind}: ${x.problem} (${x.status})`)}

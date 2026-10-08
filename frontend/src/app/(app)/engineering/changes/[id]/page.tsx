@@ -108,7 +108,7 @@ export default function ChangePage() {
       </Card>
       <Card>
         <CardHeader title="Affected items" />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 font-medium">In use now</th><th className="px-4 py-2 font-medium">New version</th><th className="px-4 py-2 font-medium">Remarks</th></tr></thead>
           <tbody className="divide-y divide-border">
             {d.items.map((l) => (
@@ -120,7 +120,7 @@ export default function ChangePage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Card>
         <CardHeader title={d.stage === "request" ? "Impact" : "Impact at approval"} description={`${t.openWorkOrders} open work order${t.openWorkOrders === 1 ? "" : "s"} · ${formatMoney(t.stockValue)} of stock · ${t.itemsOnOrder} item${t.itemsOnOrder === 1 ? "" : "s"} on order · used in ${t.parents} product${t.parents === 1 ? "" : "s"}`} />

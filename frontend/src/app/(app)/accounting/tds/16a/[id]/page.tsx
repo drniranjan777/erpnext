@@ -47,20 +47,20 @@ function Form16a() {
       </Card>
       <Card>
         <CardHeader title="Transactions" />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <tbody className="divide-y divide-border">
             {d.transactions.map((t) => <tr key={t.billId}><td className="px-4 py-2 font-mono">{t.number}</td><td className="px-4 py-2">{formatDate(t.date)}</td><td className="px-4 py-2">{t.section}</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(t.base)}</td><td className="px-4 py-2 text-right">{Number(t.rate)}%</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(t.tds)}</td></tr>)}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Card>
         <CardHeader title="Challans" />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <tbody className="divide-y divide-border">
             {d.challans.map((c) => <tr key={c.voucherId}><td className="px-4 py-2">{c.section}</td><td className="px-4 py-2 font-mono">BSR {c.bsrCode}</td><td className="px-4 py-2 font-mono">{c.challanSerial}</td><td className="px-4 py-2">{formatDate(c.depositDate)}</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(c.amount)}</td></tr>)}
             {!d.challans.length && <tr><td className="px-4 py-3 text-muted">Not deposited yet</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
     </div>
   );

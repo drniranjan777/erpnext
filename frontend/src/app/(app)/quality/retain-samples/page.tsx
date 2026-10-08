@@ -38,7 +38,7 @@ export default function RetainSamplesPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Lot</th><th className="px-4 py-2 text-right font-medium">Qty</th><th className="px-4 py-2 font-medium">Where</th><th className="px-4 py-2 font-medium">Drawn</th><th className="px-4 py-2 font-medium">Keep until</th><th className="px-4 py-2" /></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((s) => (
@@ -53,7 +53,7 @@ export default function RetainSamplesPage() {
               ))}
               {!q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No retain samples.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

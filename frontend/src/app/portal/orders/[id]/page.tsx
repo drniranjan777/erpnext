@@ -22,7 +22,7 @@ export default function PortalOrder() {
       <Link href="/portal/orders" className="text-sm text-primary hover:underline">← Orders</Link>
       <PageHeader title={`Order ${o.number}`} description={`${formatDate(o.docDate)}${o.customerPoNo ? ` · your PO ${o.customerPoNo}` : ""}${o.expectedDate ? ` · expected ${formatDate(o.expectedDate)}` : ""}`} actions={<Badge tone={STATUS_META[o.status]?.tone}>{STATUS_META[o.status]?.label ?? o.status}</Badge>} />
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-4 py-2 text-right font-medium">Ordered</th><th className="px-4 py-2 text-right font-medium">Delivered</th><th className="px-4 py-2 text-right font-medium">Invoiced</th><th className="px-4 py-2 text-right font-medium">Rate</th><th className="px-4 py-2 text-right font-medium">Amount</th></tr></thead>
           <tbody className="divide-y divide-border">
             {o.lines.map((l) => (
@@ -41,7 +41,7 @@ export default function PortalOrder() {
             <tr><td colSpan={5} className="px-4 py-1 text-right text-muted">GST</td><td className="px-4 py-1 text-right tabular-nums">{formatMoney(o.taxTotal)}</td></tr>
             <tr><td colSpan={5} className="px-4 py-2 text-right font-medium">Total</td><td className="px-4 py-2 text-right font-semibold tabular-nums">{formatMoney(o.grandTotal)}</td></tr>
           </tfoot>
-        </table>
+        </table></div>
       </Card>
     </div>
   );

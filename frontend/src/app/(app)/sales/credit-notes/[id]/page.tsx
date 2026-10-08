@@ -42,7 +42,7 @@ export default function CreditNotePage() {
       </Card>
       <Card>
         <CardHeader title="Lines" />
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <tbody className="divide-y divide-border">
             {d.lines.map((l) => (
               <tr key={l.id}>
@@ -54,7 +54,7 @@ export default function CreditNotePage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         <div className="border-t border-border px-5 py-4"><TaxSummary tax={d} stateTaxLabel={d.stateTaxLabel} totalLabel="Credit note total" /></div>
       </Card>
       <Card>

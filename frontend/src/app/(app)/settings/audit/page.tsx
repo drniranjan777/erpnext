@@ -132,7 +132,7 @@ function EntryDetails({ entry }: { entry: AuditEntry }) {
   return (
     <div className="space-y-3 text-xs">
       {changes.length > 0 && (
-        <table className="w-full max-w-3xl overflow-hidden rounded-lg border border-border bg-surface">
+        <div className="overflow-x-auto"><table className="w-full max-w-3xl overflow-hidden rounded-lg border border-border bg-surface">
           <thead className="text-left text-muted">
             <tr>
               <th className="px-3 py-1.5 font-medium">Field</th>
@@ -149,7 +149,7 @@ function EntryDetails({ entry }: { entry: AuditEntry }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
       <dl className="grid gap-x-6 gap-y-1 text-muted sm:grid-cols-2">
         <div><dt className="inline">Action code: </dt><dd className="inline font-mono">{entry.action}</dd></div>

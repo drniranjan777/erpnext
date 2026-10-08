@@ -81,7 +81,7 @@ export default function LeadsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr>{manage && <th className="w-8 px-3 py-2" />}<th className="px-4 py-2 font-medium">Lead</th><th className="px-4 py-2 font-medium">Source</th><th className="px-4 py-2 text-right font-medium">Value</th><th className="px-4 py-2 font-medium">Owner</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2 text-right font-medium">Score</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.items.map((l) => (
@@ -97,7 +97,7 @@ export default function LeadsPage() {
               ))}
               {!q.data.items.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No leads.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
           {q.data.total > PAGE && (
             <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted">
               <span>{offset + 1}–{Math.min(offset + PAGE, q.data.total)} of {q.data.total}</span>

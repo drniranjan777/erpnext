@@ -9,9 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
-import { PageHeader, formatDateTime } from "@/components/ui/page";
+import { PageHeader, formatDateTime, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { askText } from "@/components/ui/ask";
 
 interface Ppap { id: string; code: string; itemCode: string; itemName: string; customer: string | null; level: number; reason: string; status: string; customer_comments: string | null; elements: { no: number; name: string; requirement: string; status: string; reference: string | null; notes: string | null }[]; open: { no: number }[]; evidence: { fmeas: { id: string; code: string; kind: string }[]; controlPlans: { id: string; code: string; phase: string }[]; inspections: { id: string; number: string | null; result: string }[]; drawings: { drawingNo: string; revision: string }[] }; psw: { meaning: string; reason: string | null; signedBy: string; signedAt: string }[] }
 
@@ -29,7 +30,7 @@ export default function PpapDetailPage() {
   const [psw, setPsw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const s = q.data;
-  if (!s) return null;
+  if (!s) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   const editable = s.status === "draft" || s.status === "rejected";
   async function run(fn: () => Promise<unknown>) {
     setError(null);
@@ -76,7 +77,7 @@ export default function PpapDetailPage() {
       {manage && (
         <div className="flex flex-wrap gap-2">
           {editable && <Button disabled={s.open.length > 0} onClick={() => setPsw(true)}>Sign the PSW and submit</Button>}
-          {s.status === "submitted" && (["approved", "interim", "rejected"] as const).map((d) => <Button key={d} variant={d === "rejected" ? "danger" : "secondary"} onClick={() => run(() => api(`/auto/ppap/${id}/decision`, { body: { decision: d, comments: window.prompt("Customer comments") } }))}>Customer: {d}</Button>)}
+          {s.status === "submitted" && (["approved", "interim", "rejected"] as const).map((d) => <Button key={d} variant={d === "rejected" ? "danger" : "secondary"} onClick={async () => { const comments = await askText("Customer comments (optional)"); if (comments !== null) run(() => api(`/auto/ppap/${id}/decision`, { body: { decision: d, comments: comments || null } })); }}>Customer: {d}</Button>)}
         </div>
       )}
       {psw && <ESignDialog meaning="Part submission warrant signed" reasonRequired reasonLabel="Declaration" onClose={() => setPsw(false)} onSign={async (password, declaration) => { await api(`/auto/ppap/${id}/submit`, { body: { password, declaration } }); qc.invalidateQueries({ queryKey: ["/auto/ppap"] }); }} />}

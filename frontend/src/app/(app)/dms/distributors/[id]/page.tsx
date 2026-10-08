@@ -45,7 +45,7 @@ export default function DistributorPage() {
       <Card>
         <CardHeader title="Stock at the distributor" description="Opening and counts, plus our invoices to them, less their sales to retailers (free goods included)." />
         {stock.isLoading && <LoadingBlock />}
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Item</th><th className="px-3 py-2 text-right font-medium">Opening / counts</th><th className="px-3 py-2 text-right font-medium">Bought from us</th><th className="px-3 py-2 text-right font-medium">Sold</th><th className="px-3 py-2 text-right font-medium">In stock</th><th className="px-3 py-2 text-right font-medium">Days of cover</th></tr></thead>
           <tbody className="divide-y divide-border">
             {stock.data?.map((s) => (
@@ -60,7 +60,7 @@ export default function DistributorPage() {
             ))}
             {stock.data && !stock.data.length && <tr><td colSpan={6} className="px-4 py-4 text-center text-muted">Nothing invoiced or recorded yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
         {can("dms.network.manage") && (
           <div className="flex flex-wrap items-end gap-2 border-t border-border p-4">
             {error && <Alert>{error}</Alert>}

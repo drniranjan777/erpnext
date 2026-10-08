@@ -15,6 +15,7 @@ import { LoadingBlock, PageHeader } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { CONDITION_TONE, CONDITIONS, useWarehouseParam, WMS, type Bin, type Zone } from "@/lib/wms";
+import { askText } from "@/components/ui/ask";
 
 export default function LayoutPage() {
   return (
@@ -38,7 +39,7 @@ function Layout() {
   const manage = can("wms.setup.manage");
   const refresh = () => qc.invalidateQueries({ queryKey: [WMS] });
   async function toggle(b: Bin) {
-    const reason = b.isBlocked ? null : window.prompt(`Why block ${b.code}?`);
+    const reason = b.isBlocked ? null : await askText(`Why block ${b.code}?`);
     if (!b.isBlocked && !reason) return;
     await api(`${WMS}/bins/${b.id}/block`, { body: { blocked: !b.isBlocked, reason } }).catch(() => null);
     refresh();
@@ -77,7 +78,7 @@ function Layout() {
           <Select className="h-9 w-48" aria-label="Zone" value={zoneId} onChange={(e) => setZoneId(e.target.value)}><option value="">All zones</option>{zones.data?.map((z) => <option key={z.id} value={z.id}>{z.code}</option>)}</Select>
           <Input className="h-9 w-48" placeholder="Bin code" aria-label="Bin code" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Bin</th><th className="px-4 py-2 font-medium">Zone</th><th className="px-4 py-2 font-medium">Type</th><th className="px-4 py-2 font-medium">Capacity</th><th className="px-4 py-2 font-medium">Fixed item</th><th className="px-4 py-2 text-right font-medium">Walk</th><th className="px-4 py-2 font-medium" /></tr></thead>
           <tbody className="divide-y divide-border">
             {bins.data?.map((b) => (
@@ -97,7 +98,7 @@ function Layout() {
             ))}
             {bins.data && !bins.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No bins.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       {dialog?.kind === "zone" && <ZoneDialog wh={wh} zone={dialog.zone} onClose={() => { setDialog(null); refresh(); }} />}
       {dialog?.kind === "generate" && <GenerateDialog zones={zones.data ?? []} onClose={() => { setDialog(null); refresh(); }} />}

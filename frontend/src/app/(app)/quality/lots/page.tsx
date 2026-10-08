@@ -38,7 +38,7 @@ export default function LotsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Lot</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2 text-right font-medium">In stock</th><th className="px-4 py-2 font-medium">Expiry</th><th className="px-4 py-2" /></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.items.map((l) => (
@@ -55,7 +55,7 @@ export default function LotsPage() {
               ))}
               {!q.data.items.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No lots in this status.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {sign && <SignDialog lot={sign} onClose={() => setSign(null)} />}

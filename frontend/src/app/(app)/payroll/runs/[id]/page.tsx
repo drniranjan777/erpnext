@@ -14,6 +14,7 @@ import { api, apiDownload, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { todayIST } from "@/lib/documents";
 import { inr, monthLabel, PAY, RUN_TONE, type PayLine, type RunView } from "@/lib/payroll";
+import { askConfirm } from "@/components/ui/ask";
 
 type Tab = "payslips" | "statutory";
 const amt = (ls: PayLine[], code: string) => ls.filter((l) => l.code === code).reduce((s, l) => s + Number(l.amount), 0);
@@ -28,7 +29,7 @@ export default function PayrollRunPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function act(path: string, body: unknown = {}, confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !await askConfirm(confirmText)) return;
     setBusy(true);
     setError(null);
     try {

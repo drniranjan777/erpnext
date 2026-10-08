@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate, todayIST } from "@/lib/documents";
 import { DMS, type Distributor, type SchemeRow } from "@/lib/dms";
 import { inr } from "@/lib/payroll";
+import { askConfirm, askText } from "@/components/ui/ask";
 
 interface Claim { id: string; number: string; kind: string; fromDate: string; toDate: string; claimedAmount: string; computedAmount: string | null; approvedAmount: string | null; status: "submitted" | "approved" | "rejected" | "settled"; notes: string | null; decisionNote: string | null; journalId: string | null; distributor: string; schemeCode: string | null; schemeName: string | null }
 const TONE = { submitted: "warning", approved: "primary", rejected: "danger", settled: "success" } as const;
@@ -27,7 +28,7 @@ export default function ClaimsPage() {
   const [error, setError] = useState<string | null>(null);
   const q = useQuery({ queryKey: [DMS, "claims", status], queryFn: () => api<Claim[]>(`${DMS}/claims`, { query: { status: status || undefined } }) });
   async function act(path: string, body: unknown, confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !await askConfirm(confirmText)) return;
     setError(null);
     try {
       await api(path, { body });
@@ -45,7 +46,7 @@ export default function ClaimsPage() {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Claim</th><th className="px-4 py-2 font-medium">Period</th><th className="px-3 py-2 text-right font-medium">Claimed</th><th className="px-3 py-2 text-right font-medium">Per the system</th><th className="px-3 py-2 text-right font-medium">Approved</th><th className="px-4 py-2 font-medium">Status</th><th /></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((c) => (
@@ -60,8 +61,8 @@ export default function ClaimsPage() {
                     <span className="inline-flex gap-1">
                       {c.status === "submitted" && can("dms.claims.manage") && (
                         <>
-                          <Button size="sm" variant="secondary" onClick={() => { const v = window.prompt("Amount to approve", c.computedAmount ?? c.claimedAmount); if (v) act(`${DMS}/claims/${c.id}/decide`, { approve: true, approvedAmount: Number(v) }); }}><Check className="size-3.5" aria-hidden /> Approve</Button>
-                          <Button size="sm" variant="ghost" aria-label="Reject" onClick={() => { const note = window.prompt("Why rejected?"); if (note) act(`${DMS}/claims/${c.id}/decide`, { approve: false, note }); }}><X className="size-3.5" aria-hidden /></Button>
+                          <Button size="sm" variant="secondary" onClick={async () => { const v = await askText("Amount to approve", c.computedAmount ?? c.claimedAmount); if (v) act(`${DMS}/claims/${c.id}/decide`, { approve: true, approvedAmount: Number(v) }); }}><Check className="size-3.5" aria-hidden /> Approve</Button>
+                          <Button size="sm" variant="ghost" aria-label="Reject" onClick={async () => { const note = await askText("Why rejected?"); if (note) act(`${DMS}/claims/${c.id}/decide`, { approve: false, note }); }}><X className="size-3.5" aria-hidden /></Button>
                         </>
                       )}
                       {c.status === "approved" && can("dms.claims.settle") && <Button size="sm" onClick={() => act(`${DMS}/claims/${c.id}/settle`, {}, `Credit ${c.distributor} with ${inr(c.approvedAmount)}?`)}><Landmark className="size-3.5" aria-hidden /> Settle</Button>}
@@ -71,7 +72,7 @@ export default function ClaimsPage() {
               ))}
               {!q.data.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-muted">No claims.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {raising && <RaiseDialog onClose={() => setRaising(false)} />}

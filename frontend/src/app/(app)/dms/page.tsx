@@ -62,7 +62,7 @@ function Distributors({ manage, members }: { manage: boolean; members: Member[] 
   if (q.error) return <ErrorBlock error={q.error} />;
   return (
     <Card>
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto"><table className="w-full text-sm">
         <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Distributor</th><th className="px-4 py-2 font-medium">Salesperson</th><th className="px-4 py-2 text-right font-medium">Retailers</th><th className="px-4 py-2 text-right font-medium">Secondary this month</th></tr></thead>
         <tbody className="divide-y divide-border">
           {q.data!.map((d) => (
@@ -75,7 +75,7 @@ function Distributors({ manage, members }: { manage: boolean; members: Member[] 
           ))}
           {!q.data!.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">No distributors yet. Any customer can be made a distributor.</td></tr>}
         </tbody>
-      </table>
+      </table></div>
       {manage && (
         <div className="flex flex-wrap items-end gap-2 border-t border-border p-4">
           {error && <Alert>{error}</Alert>}
@@ -122,7 +122,7 @@ function Retailers({ manage }: { manage: boolean }) {
     <>
       <div className="flex gap-3"><Input className="h-9 w-64" placeholder="Name, code or phone" aria-label="Search" value={search} onChange={(e) => setSearch(e.target.value)} />{manage && <Button onClick={() => setAdding(true)}><Plus className="size-4" aria-hidden /> Retailer</Button>}</div>
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Retailer</th><th className="px-4 py-2 font-medium">Distributor · beat</th><th className="px-4 py-2 font-medium">Class</th><th className="px-4 py-2 text-right font-medium">Points</th><th className="px-4 py-2 font-medium">Last visit</th></tr></thead>
           <tbody className="divide-y divide-border">
             {q.data?.map((r) => (
@@ -136,7 +136,7 @@ function Retailers({ manage }: { manage: boolean }) {
             ))}
             {q.data && !q.data.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted">No retailers.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       {adding && <RetailerDialog onClose={() => setAdding(false)} />}
     </>

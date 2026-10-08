@@ -8,7 +8,7 @@ import { ESignDialog } from "@/components/esign-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page";
+import { PageHeader, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -27,7 +27,7 @@ export default function EbomPage() {
   const [signing, setSigning] = useState(false);
   const [msg, setMsg] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const e = q.data;
-  if (!e) return null;
+  if (!e) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   async function mbom() {
     setMsg(null);
     try {
@@ -44,10 +44,10 @@ export default function EbomPage() {
       <PageHeader title={`${e.item} · revision ${e.revision}`} description={`Engineering BOM · ${e.status}`} actions={can("plm.items.manage") && <span className="flex gap-2">{e.status === "draft" && <Button onClick={() => setSigning(true)}>Release</Button>}{e.status === "released" && !e.mbomId && <Button variant="secondary" onClick={mbom}>Draft manufacturing BOM</Button>}{e.mbomId && <Link className="inline-flex h-9 items-center rounded-lg border border-border px-3 text-sm hover:bg-surface-muted" href={`/manufacturing/boms/${e.mbomId}`}>Manufacturing BOM</Link>}</span>} />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs text-muted"><tr><th className="px-4 py-1.5">Find no.</th><th className="px-4 py-1.5">Part</th><th className="px-4 py-1.5 text-right">Qty</th><th className="px-4 py-1.5">Reference</th></tr></thead>
           <tbody className="divide-y divide-border">{e.lines.map((l) => <tr key={l.findNo}><td className="px-4 py-1.5">{l.findNo}</td><td className="px-4 py-1.5">{l.item}</td><td className="px-4 py-1.5 text-right tabular-nums">{l.qty}</td><td className="px-4 py-1.5 text-xs">{l.refDes ?? ""}</td></tr>)}</tbody>
-        </table>
+        </table></div>
       </Card>
       <Card>
         <CardHeader title="Against the manufacturing BOM" />

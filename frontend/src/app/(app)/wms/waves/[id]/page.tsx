@@ -15,6 +15,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, formatQty } from "@/lib/documents";
 import { WMS } from "@/lib/wms";
+import { askConfirm } from "@/components/ui/ask";
 
 interface PickTask { id: string; number: string; status: string; pathSeq: number; orderId: string; orderNumber: string; itemId: string; itemCode: string; itemName: string; batchId: string | null; batchNo: string | null; expiryDate: string | null; qty: string; doneQty: string | null; fromBin: string; zone: string; doneBin: string | null; assignee: string | null }
 interface WaveView { id: string; number: string; mode: string; status: string; warehouseId: string; shortages: { orderId: string; itemId: string; short: string; why: string }[]; orders: { id: string; number: string; customer: string; packages: number; deliveryId: string | null; deliveryNumber: string | null }[]; tasks: PickTask[] }
@@ -54,7 +55,7 @@ export default function WavePage() {
           <span className="flex flex-wrap gap-2">
             <Badge tone={w.status === "delivered" ? "success" : w.status === "cancelled" ? "neutral" : "primary"}>{w.status}</Badge>
             {exec && w.status === "picked" && <Button onClick={() => act(`${WMS}/waves/${id}/deliveries`, "Draft delivery notes made from the picks. Submit them to issue the stock.")}><Truck className="size-4" aria-hidden /> Make delivery notes</Button>}
-            {exec && ["open", "picked"].includes(w.status) && <Button variant="ghost" onClick={() => window.confirm("Cancel this wave? Open picks are dropped.") && act(`${WMS}/waves/${id}/cancel`, "Wave cancelled.")}>Cancel wave</Button>}
+            {exec && ["open", "picked"].includes(w.status) && <Button variant="ghost" onClick={async () => await askConfirm("Cancel this wave? Open picks are dropped.") && act(`${WMS}/waves/${id}/cancel`, "Wave cancelled.")}>Cancel wave</Button>}
           </span>
         }
       />
@@ -63,7 +64,7 @@ export default function WavePage() {
       {groups.map((g) => (
         <Card key={g.title}>
           <CardHeader title={g.title} />
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-3 py-2 font-medium">#</th><th className="px-3 py-2 font-medium">Bin</th><th className="px-3 py-2 font-medium">Item</th><th className="px-3 py-2 font-medium">Batch</th><th className="px-3 py-2 text-right font-medium">Qty</th><th className="px-3 py-2 font-medium">Order</th><th className="px-3 py-2 font-medium" /></tr></thead>
             <tbody className="divide-y divide-border">
               {g.tasks.map((t) => (
@@ -78,7 +79,7 @@ export default function WavePage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       ))}
       {w.status !== "cancelled" && w.orders.map((o) => <PackCard key={o.id} waveId={id} order={o} canPack={exec && w.status !== "delivered"} />)}

@@ -9,6 +9,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
+import { askConfirm } from "@/components/ui/ask";
 
 type Filters = Record<string, string | number | boolean | null>;
 
@@ -62,7 +63,7 @@ export function SavedViews({ entity, current, onApply }: { entity: string; curre
             {v.name}
           </button>
           {v.mine && (
-            <button onClick={() => confirm(`Delete view "${v.name}"?`) && remove.mutate(v.id)} aria-label={`Delete view ${v.name}`} className="text-muted hover:text-danger">
+            <button onClick={async () => await askConfirm(`Delete view "${v.name}"?`) && remove.mutate(v.id)} aria-label={`Delete view ${v.name}`} className="text-muted hover:text-danger">
               <X className="size-3" />
             </button>
           )}

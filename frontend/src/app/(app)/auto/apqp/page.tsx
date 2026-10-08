@@ -27,7 +27,7 @@ export default function ApqpPage() {
     <div className="mx-auto max-w-6xl space-y-4">
       <PageHeader title="APQP" description="Advanced product quality planning for new and changed parts: the 24 standard deliverables across five phases, each phase closed by a signed gate. PPAP is the deliverable of phase 4." actions={can("auto.apqp.manage") && <Button onClick={() => setCreating(true)}><Plus className="size-4" aria-hidden /> New project</Button>} />
       <Card>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Project</th><th className="px-4 py-2 font-medium">Customer · part</th><th className="px-4 py-2 font-medium">SOP</th><th className="px-4 py-2 font-medium">Phases</th></tr></thead>
           <tbody className="divide-y divide-border">
             {list.data?.map((r) => (
@@ -40,7 +40,7 @@ export default function ApqpPage() {
             ))}
             {list.data && !list.data.length && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted">No APQP projects.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       {creating && <NewProject onClose={() => setCreating(false)} />}
     </div>

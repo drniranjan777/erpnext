@@ -55,7 +55,7 @@ export default function TdsPage() {
         <>
           <Card>
             <CardHeader title={`Sections · ${d.quarter}`} />
-            <table className="w-full border-t border-border text-sm">
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
               <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Section</th><th className="px-4 py-2 text-right font-medium">Deductees</th><th className="px-4 py-2 text-right font-medium">Deducted</th><th className="px-4 py-2 text-right font-medium">Deposited</th><th className="px-4 py-2 text-right font-medium">To deposit</th><th /></tr></thead>
               <tbody className="divide-y divide-border">
                 {d.sections.map((s) => (
@@ -70,11 +70,11 @@ export default function TdsPage() {
                 ))}
                 {!d.sections.length && <tr><td colSpan={6} className="px-4 py-3 text-muted">No TDS this quarter.</td></tr>}
               </tbody>
-            </table>
+            </table></div>
           </Card>
           <Card>
             <CardHeader title="Deductions" />
-            <table className="w-full border-t border-border text-sm">
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
               <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Deductee</th><th className="px-4 py-2 font-medium">Bill</th><th className="px-4 py-2 font-medium">Section</th><th className="px-4 py-2 text-right font-medium">Amount</th><th className="px-4 py-2 text-right font-medium">Rate</th><th className="px-4 py-2 text-right font-medium">TDS</th><th /></tr></thead>
               <tbody className="divide-y divide-border">
                 {d.deductions.map((x) => (
@@ -89,7 +89,7 @@ export default function TdsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </Card>
           {d.challans.length > 0 && (
             <Card>

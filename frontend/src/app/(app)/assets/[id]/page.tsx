@@ -82,14 +82,14 @@ export default function AssetPage() {
       </div>
       <Card>
         <CardHeader title="Depreciation charged" />
-        <table className="w-full border-t border-border text-sm">
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
           <tbody className="divide-y divide-border">
             {(a.history ?? []).map((h) => (
               <tr key={h.id}><td className="px-4 py-2">{formatDate(h.fromDate)} – {formatDate(h.toDate)}</td><td className="px-4 py-2 text-muted">{h.days} days</td><td className="px-4 py-2"><Link href={`/accounting/journals/${h.journalId}`} className="font-mono text-primary hover:underline">{h.journalNumber}</Link></td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(h.amount)}</td></tr>
             ))}
             {!a.history?.length && <tr><td className="px-4 py-3 text-muted">Not depreciated yet</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       {!!a.references?.length && (
         <Card>

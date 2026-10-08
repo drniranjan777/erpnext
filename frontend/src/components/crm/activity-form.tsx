@@ -9,6 +9,7 @@ import { api, ApiError } from "@/lib/api";
 import { todayIST } from "@/lib/documents";
 import { ACTIVITY_LABEL, CRM, type Activity, when } from "@/lib/crm";
 import { Badge } from "@/components/ui/badge";
+import { askText } from "@/components/ui/ask";
 
 /** The activity timeline of a lead or opportunity, with a form to log or schedule the next one. */
 export function ActivityTimeline({ activities, link, canManage }: { activities: Activity[]; link: { leadId?: string; opportunityId?: string }; canManage: boolean }) {
@@ -53,7 +54,7 @@ export function ActivityTimeline({ activities, link, canManage }: { activities: 
             <span className="text-xs text-muted">{a.doneAt ? `done ${when(a.doneAt)}` : `due ${when(a.dueAt)}`}{a.owner && ` · ${a.owner}`}</span>
             {a.outcome && <span className="text-xs">→ {a.outcome}</span>}
             {a.notes && <span className="block w-full text-xs text-muted">{a.notes}</span>}
-            {!a.doneAt && canManage && <Button className="ml-auto" size="sm" variant="ghost" onClick={() => { const outcome = window.prompt("Outcome"); if (outcome !== null) run(() => api(`${CRM}/activities/${a.id}/done`, { body: { outcome: outcome || null } })); }}>Done</Button>}
+            {!a.doneAt && canManage && <Button className="ml-auto" size="sm" variant="ghost" onClick={async () => { const outcome = await askText("Outcome (optional)"); if (outcome !== null) run(() => api(`${CRM}/activities/${a.id}/done`, { body: { outcome: outcome || null } })); }}>Done</Button>}
           </li>
         ))}
         {!activities.length && <li className="px-5 py-4 text-muted">No activities yet.</li>}

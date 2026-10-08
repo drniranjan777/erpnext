@@ -68,7 +68,7 @@ export default function LabelsPage() {
       )}
       <Card>
         <CardHeader title="FSSAI annual return" description="Quantities of each finished product made and sold in the period." action={<span className="flex gap-1"><Input className="h-8 w-36" type="date" aria-label="From" value={period.from} onChange={(e) => setPeriod({ ...period, from: e.target.value })} /><Input className="h-8 w-36" type="date" aria-label="To" value={period.to} onChange={(e) => setPeriod({ ...period, to: e.target.value })} /></span>} />
-        <table className="w-full border-t border-border text-sm"><tbody className="divide-y divide-border">{fssai.data?.map((r) => <tr key={r.itemId}><td className="px-4 py-1.5">{r.code} · {r.name}</td><td className="px-4 py-1.5 text-right tabular-nums">{r.made} {r.uom} made</td><td className="px-4 py-1.5 text-right tabular-nums">{r.sold} {r.uom} sold</td></tr>)}</tbody></table>
+        <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm"><tbody className="divide-y divide-border">{fssai.data?.map((r) => <tr key={r.itemId}><td className="px-4 py-1.5">{r.code} · {r.name}</td><td className="px-4 py-1.5 text-right tabular-nums">{r.made} {r.uom} made</td><td className="px-4 py-1.5 text-right tabular-nums">{r.sold} {r.uom} sold</td></tr>)}</tbody></table></div>
         {fssai.data && !fssai.data.length && <p className="p-4 text-center text-muted"><Badge>no finished products</Badge></p>}
       </Card>
     </div>

@@ -31,7 +31,7 @@ export default function ChartOfAccountsPage() {
         {q.isLoading && <LoadingBlock />}
         {q.error && <div className="p-5"><ErrorBlock error={q.error} /></div>}
         {rows.length > 0 && (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-4 py-2.5 font-medium">Account</th>
@@ -69,7 +69,7 @@ export default function ChartOfAccountsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
       {editing && <AccountDialog {...editing} groups={rows.filter((r) => r.isGroup)} onClose={() => setEditing(null)} />}

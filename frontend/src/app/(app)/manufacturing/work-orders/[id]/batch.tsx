@@ -15,6 +15,7 @@ import { api, ApiError } from "@/lib/api";
 import { formatQty } from "@/lib/documents";
 import type { WorkOrder } from "@/lib/manufacturing";
 import { BASIS_LABEL, PROC, type BatchView } from "@/lib/process";
+import { ErrorBlock, LoadingBlock } from "@/components/ui/page";
 
 /** Formula, dispensing record, stage readings and yield of a process batch. */
 export function BatchPanel({ w, onChanged }: { w: WorkOrder; onChanged: (text: string) => void }) {
@@ -22,7 +23,7 @@ export function BatchPanel({ w, onChanged }: { w: WorkOrder; onChanged: (text: s
   const [dispensing, setDispensing] = useState(false);
   const [correcting, setCorrecting] = useState(false);
   const b = q.data;
-  if (!b) return null;
+  if (!b) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   const ingredients = b.materials.filter((m) => m.kind === "component");
   return (
     <>
@@ -43,7 +44,7 @@ export function BatchPanel({ w, onChanged }: { w: WorkOrder; onChanged: (text: s
       {b.dispensings.length > 0 && (
         <Card>
           <CardHeader title="Dispensing record" />
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Ingredient</th><th className="px-4 py-2 font-medium">Lot / assay</th><th className="px-4 py-2 text-right font-medium">Target</th><th className="px-4 py-2 text-right font-medium">Weighed</th><th className="px-4 py-2 font-medium">Check</th></tr></thead>
             <tbody className="divide-y divide-border">
               {b.dispensings.map((d) => (
@@ -56,7 +57,7 @@ export function BatchPanel({ w, onChanged }: { w: WorkOrder; onChanged: (text: s
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {correcting && (
@@ -120,7 +121,7 @@ function DispenseDialog({ woId, ingredients, onClose, onDone }: { woId: string; 
   return (
     <Dialog open onClose={onClose} size="xl" title="Dispense" description="Weigh each ingredient against its target. Potency-dosed ingredients need the lot's assay; the target is adjusted for it." footer={<><Input className="mr-auto h-9 w-56" aria-label="Checked by" placeholder="Checked by" value={checkedBy} onChange={(e) => setCheckedBy(e.target.value)} /><Button variant="secondary" onClick={onClose}>Cancel</Button><Button onClick={go} loading={busy} disabled={!chosen.length}>Record weighings</Button></>}>
       {error && <Alert>{error}</Alert>}
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto"><table className="w-full text-sm">
         <thead className="text-left text-xs uppercase tracking-wide text-muted"><tr><th className="py-1 font-medium">Ingredient</th><th className="py-1 text-right font-medium">Required</th><th className="py-1 font-medium">Weighed</th><th className="py-1 font-medium">Lot</th><th className="py-1 font-medium">Assay %</th><th className="py-1 font-medium">If outside tolerance</th></tr></thead>
         <tbody>
           {ingredients.map((m) => (
@@ -134,7 +135,7 @@ function DispenseDialog({ woId, ingredients, onClose, onDone }: { woId: string; 
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </Dialog>
   );
 }

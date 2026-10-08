@@ -83,7 +83,7 @@ export default function GstReturnsPage() {
         <CardHeader title="Documents issued" />
         {docs.data && !docs.data.rows.length && <EmptyState title="No documents" />}
         {!!docs.data?.rows.length && (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-4 py-2 font-medium">Nature of document</th>
@@ -106,7 +106,7 @@ export default function GstReturnsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
     </div>

@@ -115,7 +115,7 @@ function Roster({ manage }: { manage: boolean }) {
       {q.error && <ErrorBlock error={q.error} />}
       {q.data && (
         <Card>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr>{manage && <th className="w-8 px-4 py-2"><input type="checkbox" aria-label="All" checked={picked.size === q.data.length && q.data.length > 0} onChange={(e) => setPicked(new Set(e.target.checked ? q.data!.map((r) => r.id) : []))} /></th>}<th className="px-4 py-2 font-medium">Employee</th><th className="px-4 py-2 font-medium">On {formatDate(date)}</th><th className="px-4 py-2 font-medium">Rotation</th><th className="px-4 py-2 font-medium">Weekly off</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.map((r) => (
@@ -128,7 +128,7 @@ function Roster({ manage }: { manage: boolean }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
       {assigning && <AssignDialog ids={[...picked]} onClose={() => setAssigning(false)} onDone={() => { setAssigning(false); setPicked(new Set()); }} />}

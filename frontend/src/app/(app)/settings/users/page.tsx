@@ -13,6 +13,7 @@ import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, formatDateTime, timeA
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { iamKeys, type Invitation, type InvitationLink, type Member, type Role } from "@/lib/iam";
+import { askConfirm } from "@/components/ui/ask";
 
 export default function UsersPage() {
   const { can, me } = useAuth();
@@ -179,8 +180,8 @@ function PendingInvitation({
             variant="ghost"
             size="sm"
             loading={revoke.isPending}
-            onClick={() => {
-              if (confirm(`Withdraw the invitation for ${inv.email}?`)) revoke.mutate();
+            onClick={async () => {
+              if (await askConfirm(`Withdraw the invitation for ${inv.email}?`)) revoke.mutate();
             }}
             aria-label={`Withdraw invitation for ${inv.email}`}
           >
@@ -346,8 +347,8 @@ function EditMemberDialog({ member, roles, onClose }: { member: Member; roles: R
             variant={disabled ? "secondary" : "danger"}
             className="mr-auto"
             loading={update.isPending && update.variables?.status !== undefined}
-            onClick={() => {
-              if (disabled || confirm(`Disable ${member.fullName}? They will be signed out immediately.`)) {
+            onClick={async () => {
+              if (disabled || await askConfirm(`Disable ${member.fullName}? They will be signed out immediately.`)) {
                 update.mutate({ status: disabled ? "active" : "disabled" });
               }
             }}

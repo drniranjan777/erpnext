@@ -132,7 +132,7 @@ function Workers({ manage }: { manage: boolean }) {
   if (q.isLoading) return <LoadingBlock />;
   return (
     <Card>
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto"><table className="w-full text-sm">
         <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Worker</th><th className="px-4 py-2 font-medium">Contractor</th><th className="px-4 py-2 font-medium">Skill</th><th className="px-4 py-2 text-right font-medium">Daily wage</th><th className="px-4 py-2 font-medium">UAN</th><th className="px-4 py-2 font-medium">Engaged</th></tr></thead>
         <tbody className="divide-y divide-border">
           {q.data?.map((w) => (
@@ -147,7 +147,7 @@ function Workers({ manage }: { manage: boolean }) {
           ))}
           {q.data && !q.data.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No contract workers.</td></tr>}
         </tbody>
-      </table>
+      </table></div>
       {manage && (
         <div className="flex flex-wrap items-end gap-2 border-t border-border p-4">
           {error && <Alert>{error}</Alert>}
@@ -212,7 +212,7 @@ function Wages({ manage }: { manage: boolean }) {
       </div>
       {error && <div className="p-4"><Alert>{error}</Alert></div>}
       {q.isLoading && <LoadingBlock />}
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto"><table className="w-full text-sm">
         <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Worker</th><th className="px-2 py-2 text-right font-medium">Attended</th><th className="px-2 py-2 font-medium">Days paid</th><th className="px-2 py-2 font-medium">Gross paid</th><th className="px-2 py-2 font-medium">PF</th><th className="px-2 py-2 font-medium">ESI</th></tr></thead>
         <tbody className="divide-y divide-border">
           {q.data?.workers.map((w) => (
@@ -223,7 +223,7 @@ function Wages({ manage }: { manage: boolean }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </Card>
   );
 }
@@ -249,7 +249,7 @@ function ComplianceView() {
             ))}
           </div>
           <Card>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Worker</th><th className="px-3 py-2 text-right font-medium">Days</th><th className="px-3 py-2 text-right font-medium">Rate due</th><th className="px-3 py-2 text-right font-medium">Due</th><th className="px-3 py-2 text-right font-medium">Paid</th><th className="px-4 py-2 font-medium">Findings</th></tr></thead>
               <tbody className="divide-y divide-border">
                 {q.data.workers.map((w) => (
@@ -264,7 +264,7 @@ function ComplianceView() {
                 ))}
                 {!q.data.workers.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No contract workers engaged in this month.</td></tr>}
               </tbody>
-            </table>
+            </table></div>
           </Card>
         </>
       )}

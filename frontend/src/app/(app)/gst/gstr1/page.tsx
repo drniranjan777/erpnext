@@ -37,27 +37,27 @@ export default function Gstr1Page() {
         {q.isLoading && <LoadingBlock />}
         {q.error && <div className="p-5"><ErrorBlock error={q.error} /></div>}
         {q.data && (
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <tbody className="divide-y divide-border">
               <tr><td className="px-5 py-2">Invoices reported</td><td className="px-5 py-2 text-right font-medium tabular-nums">{q.data.summary.invoices}</td></tr>
               {SECTIONS.map(([k, label]) => (
                 <tr key={k}><td className="px-5 py-2 text-muted">{label}</td><td className="px-5 py-2 text-right tabular-nums">{q.data!.summary[k] ?? 0}</td></tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
       {!!q.data?.json.b2cs.length && (
         <Card>
           <CardHeader title="B2C small (table 7)" />
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted"><tr><th className="px-4 py-2 font-medium">Type</th><th className="px-4 py-2 font-medium">State</th><th className="px-4 py-2 text-right font-medium">Rate</th><th className="px-4 py-2 text-right font-medium">Taxable</th><th className="px-4 py-2 text-right font-medium">IGST</th><th className="px-4 py-2 text-right font-medium">CGST</th><th className="px-4 py-2 text-right font-medium">SGST</th></tr></thead>
             <tbody className="divide-y divide-border">
               {q.data.json.b2cs.map((r, i) => (
                 <tr key={i}><td className="px-4 py-2">{r.sply_ty}</td><td className="px-4 py-2">{r.pos}</td><td className="px-4 py-2 text-right">{r.rt}%</td><td className="px-4 py-2 text-right tabular-nums">{r.txval.toFixed(2)}</td><td className="px-4 py-2 text-right tabular-nums">{r.iamt.toFixed(2)}</td><td className="px-4 py-2 text-right tabular-nums">{r.camt.toFixed(2)}</td><td className="px-4 py-2 text-right tabular-nums">{r.samt.toFixed(2)}</td></tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       )}
     </div>

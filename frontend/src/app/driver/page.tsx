@@ -11,6 +11,7 @@ import { Alert, Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
 import { LoadingBlock } from "@/components/ui/page";
 import { STOP_TONE, type Stop, type Trip } from "@/lib/tms";
+import { askText } from "@/components/ui/ask";
 
 /** Public, no login: the link from the dispatcher is the key. */
 async function call<T>(path: string, body?: unknown): Promise<T> {
@@ -143,7 +144,7 @@ function Pod({ stop, onDeliver, onFail, onCancel }: { stop: Stop; onDeliver: (b:
       <label className="block text-sm">Photo of the goods or signed copy <input type="file" accept="image/*" capture="environment" className="mt-1 block text-xs" onChange={(e) => pickPhoto(e.target.files?.[0])} /></label>
       <div className="flex gap-2">
         <Button className="flex-1" disabled={name.trim().length < 2} onClick={deliver}>Delivered</Button>
-        <Button variant="secondary" onClick={() => { const why = window.prompt(`Why could ${stop.customer} not take it?`); if (why && why.trim().length >= 3) onFail(why); }}>Not delivered</Button>
+        <Button variant="secondary" onClick={async () => { const why = await askText(`Why could ${stop.customer} not take it?`); if (why && why.trim().length >= 3) onFail(why); }}>Not delivered</Button>
         <Button variant="ghost" onClick={onCancel}>Back</Button>
       </div>
     </div>

@@ -45,7 +45,7 @@ function Scan() {
       <OfflineBanner />
       <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setBin(code.trim().toUpperCase()); }}>
         <Input className="h-11 flex-1 font-mono text-lg uppercase" autoFocus placeholder="Scan a bin label" aria-label="Bin code" value={code} onChange={(e) => setCode(e.target.value)} />
-        <Button type="submit" size="lg"><ScanLine className="size-5" aria-hidden /></Button>
+        <Button type="submit" size="lg" aria-label="Look up"><ScanLine className="size-5" aria-hidden /></Button>
       </form>
       {view.error && <ErrorBlock error={view.error} />}
       {view.data && <BinCard wh={wh} b={view.data} />}

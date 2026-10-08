@@ -16,6 +16,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate, todayIST } from "@/lib/documents";
 import { PRIORITY_TONE, SLA_LABEL, SLA_TONE, STATUS_TONE, SVC, when } from "@/lib/service";
+import { askText } from "@/components/ui/ask";
 
 interface Ticket {
   id: string; number: string; subject: string; description: string | null; category: string; priority: keyof typeof PRIORITY_TONE; status: keyof typeof STATUS_TONE; channel: string;
@@ -74,7 +75,7 @@ export default function TicketPage() {
             <span className="flex flex-wrap gap-2">
               {!["resolved", "closed"].includes(t.status) && <Button variant="secondary" onClick={() => setDlg("visit")}><CalendarPlus className="size-4" aria-hidden /> Visit</Button>}
               {t.itemId && !closed && <Button variant="ghost" onClick={() => setDlg("rma")}><PackageX className="size-4" aria-hidden /> RMA</Button>}
-              {!["resolved", "closed"].includes(t.status) && <Button onClick={() => { const resolution = window.prompt("How was it resolved?"); if (resolution) act(`${SVC}/tickets/${t.id}/status`, { status: "resolved", resolution }); }}><CheckCircle2 className="size-4" aria-hidden /> Resolve</Button>}
+              {!["resolved", "closed"].includes(t.status) && <Button onClick={async () => { const resolution = await askText("How was it resolved?"); if (resolution) act(`${SVC}/tickets/${t.id}/status`, { status: "resolved", resolution }); }}><CheckCircle2 className="size-4" aria-hidden /> Resolve</Button>}
               {t.status === "resolved" && <Button variant="secondary" onClick={() => act(`${SVC}/tickets/${t.id}/status`, { status: "closed" })}>Close</Button>}
               {["resolved", "closed"].includes(t.status) && <Button variant="ghost" onClick={() => act(`${SVC}/tickets/${t.id}/status`, { status: "open" })}>Reopen</Button>}
             </span>

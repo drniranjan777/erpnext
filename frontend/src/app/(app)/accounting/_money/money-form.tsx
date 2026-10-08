@@ -157,7 +157,7 @@ export function MoneyForm({ kind, prefillParty }: { kind: MoneyKind; prefillPart
             action={<Button size="sm" variant="secondary" onClick={fillOldestFirst} disabled={!settled}>Oldest first</Button>}
           />
           {errors.allocations && <p className="px-5 pb-2 text-sm text-danger">{errors.allocations}</p>}
-          <table className="w-full border-t border-border text-sm">
+          <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
             <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
               <tr><th className="px-4 py-2 font-medium">Bill</th><th className="px-4 py-2 font-medium">Due</th><th className="px-4 py-2 text-right font-medium">Outstanding</th><th className="w-40 px-4 py-2 text-right font-medium">Settle</th></tr>
             </thead>
@@ -172,7 +172,7 @@ export function MoneyForm({ kind, prefillParty }: { kind: MoneyKind; prefillPart
               ))}
               {bills.data && !bills.data.bills.length && <tr><td colSpan={4} className="px-4 py-3 text-muted">No open bills: the whole amount stays on account.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
           <div className="border-t border-border px-5 py-3"><Checkbox label="Settle anything left over against the oldest bills" checked={h.autoAllocate} onChange={(e) => setH({ ...h, autoAllocate: e.target.checked })} /></div>
         </Card>
       )}

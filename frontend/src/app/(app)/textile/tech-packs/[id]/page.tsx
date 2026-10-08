@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page";
+import { PageHeader, ErrorBlock, LoadingBlock } from "@/components/ui/page";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/documents";
+import { askText } from "@/components/ui/ask";
 
 interface Point { code: string; description: string; tolerance: number; sizes: Record<string, number> }
 interface Material { component: string; description: string; consumption: number; unit: string; supplier?: string | null }
@@ -26,7 +27,7 @@ const STONE: Record<string, "warning" | "success" | "danger" | "primary"> = { pe
 export default function TechPackPage() {
   const { id } = useParams<{ id: string }>();
   const q = useQuery({ queryKey: ["/textile/tech-packs", id], queryFn: () => api<Pack>(`/textile/tech-packs/${id}`) });
-  if (!q.data) return null;
+  if (!q.data) return q.isError ? <ErrorBlock error={q.error} /> : <LoadingBlock />;
   return <PackEditor key={q.dataUpdatedAt} pack={q.data} />;
 }
 
@@ -53,8 +54,8 @@ function PackEditor({ pack }: { pack: Pack }) {
   const save = () => run(() => api("/textile/tech-packs", { body: { styleNo: pack.styleNo, buyerId: pack.buyerId, season: pack.season, description: pack.description, sizes: pack.sizes, colours: pack.colours, materials, measurements: points, construction: construction || null, requiredCertificates: certs } }), pack.status === "approved" ? "Saved as a new draft version." : "Saved.");
   const setP = (i: number, p: Partial<Point>) => setPoints(points.map((x, j) => (j === i ? { ...x, ...p } : x)));
   const setM = (i: number, p: Partial<Material>) => setMaterials(materials.map((x, j) => (j === i ? { ...x, ...p } : x)));
-  const decide = (id: string, status: string) => {
-    const c = window.prompt(status === "approved" ? "Buyer comments (optional)" : "Buyer comments");
+  const decide = async (id: string, status: string) => {
+    const c = await askText(status === "approved" ? "Buyer comments (optional)" : "Buyer comments");
     if (c === null) return;
     run(() => api(`/textile/samples/${id}/decision`, { body: { status, buyerComments: c || null } }), "Decision recorded.");
   };

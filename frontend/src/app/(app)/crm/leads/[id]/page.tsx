@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth";
 import { CRM, grade, GRADE_TONE, LEAD_TONE, SOURCES, type Activity, type Lead } from "@/lib/crm";
 import { formatDate } from "@/lib/documents";
 import { inr } from "@/lib/payroll";
+import { askText } from "@/components/ui/ask";
 
 interface LeadView extends Lead { requirement: string | null; sourceRef: string | null; scoreReasons: string[]; lostReason: string | null; partyId: string | null; partyName: string | null; opportunityId: string | null; duplicateNumber: string | null; activities: Activity[]; insight: LeadInsight }
 
@@ -30,7 +31,7 @@ export default function LeadPage() {
   const [converting, setConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function status(s: string) {
-    const lostReason = s === "lost" ? window.prompt("Why was it lost?") : null;
+    const lostReason = s === "lost" ? await askText("Why was it lost?") : null;
     if (s === "lost" && !lostReason) return;
     setError(null);
     try {

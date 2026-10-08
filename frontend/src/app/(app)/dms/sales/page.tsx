@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate, todayIST } from "@/lib/documents";
 import { DMS, SCHEME_KIND, slabText, type Applied, type Retailer, type SchemeRow } from "@/lib/dms";
 import { inr } from "@/lib/payroll";
+import { askConfirm } from "@/components/ui/ask";
 
 interface Sale { id: string; number: string; date: string; retailer: string; distributor: string; gross: string; discount: string; net: string; source: string; status: string; schemes: Applied[]; bookedBy: string | null }
 type Tab = "sales" | "schemes";
@@ -85,7 +86,7 @@ function Sales({ manage }: { manage: boolean }) {
                 {s.schemes.map((a) => <Badge key={`${a.code}${a.itemId}`} tone="success">{a.code}{a.freeQty ? ` +${a.freeQty} free` : ` −${inr(a.discount)}`}</Badge>)}
                 {s.status === "cancelled" && <Badge tone="danger">cancelled</Badge>}
                 <span className="ml-auto tabular-nums">{inr(s.net)}</span>
-                {manage && s.status === "recorded" && <Button size="sm" variant="ghost" aria-label="Cancel sale" onClick={() => window.confirm("Cancel this sale?") && cancel(s.id)}><Trash2 className="size-3.5" aria-hidden /></Button>}
+                {manage && s.status === "recorded" && <Button size="sm" variant="ghost" aria-label="Cancel sale" onClick={async () => await askConfirm("Cancel this sale?") && cancel(s.id)}><Trash2 className="size-3.5" aria-hidden /></Button>}
               </li>
             ))}
             {!q.data.length && <li className="px-5 py-6 text-center text-muted">No secondary sales yet.</li>}

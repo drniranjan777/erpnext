@@ -61,7 +61,7 @@ export default function DeliveryPage() {
       </Card>
       <Card>
         <CardHeader title="Items" />
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-4 py-2 font-medium">Item</th>
@@ -82,7 +82,7 @@ export default function DeliveryPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Card>
         <CardHeader title="Activity" />

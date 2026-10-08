@@ -72,7 +72,7 @@ export default function Gstr3bPage() {
         <>
           <Card>
             <CardHeader title="3.1 Outward and reverse-charge inward supplies" />
-            <table className="w-full border-t border-border text-sm">
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
               {head()}
               <tbody className="divide-y divide-border">
                 <Row label="(a) Taxable outward supplies" v={d.table31.a} />
@@ -81,11 +81,11 @@ export default function Gstr3bPage() {
                 <Row label="(d) Inward supplies on reverse charge" v={d.table31.d} />
                 <Row label="(e) Non-GST outward supplies" v={d.table31.e} />
               </tbody>
-            </table>
+            </table></div>
           </Card>
           <Card>
             <CardHeader title="4 Eligible input tax credit" />
-            <table className="w-full border-t border-border text-sm">
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
               {head(false)}
               <tbody className="divide-y divide-border">
                 <Row withTaxable={false} label="(A)(1) Import of goods" v={{ igst: d.table4.imports.igst, cgst: "0", sgst: "0", cess: d.table4.imports.cess }} />
@@ -95,7 +95,7 @@ export default function Gstr3bPage() {
                 <tr className="font-semibold"><td className="px-4 py-2">(C) Net ITC available</td>{HEADS.map((h) => <td key={h} className="px-4 py-2 text-right tabular-nums">{formatMoney(d.table4.net[h])}</td>)}</tr>
                 <Row withTaxable={false} label="(D) Ineligible ITC (s.17(5))" v={d.table4.ineligible} />
               </tbody>
-            </table>
+            </table></div>
           </Card>
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
@@ -112,7 +112,7 @@ export default function Gstr3bPage() {
           </div>
           <Card>
             <CardHeader title="6.1 Payment of tax" description="On the tax ledgers as at the period end: IGST credit is used first, then CGST and SGST (never across each other); reverse-charge tax is paid in cash." />
-            <table className="w-full border-t border-border text-sm">
+            <div className="overflow-x-auto"><table className="w-full border-t border-border text-sm">
               <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
                 <tr><th className="px-4 py-2 font-medium">Tax</th><th className="px-4 py-2 text-right font-medium">Liability</th><th className="px-4 py-2 text-right font-medium">Paid by IGST</th><th className="px-4 py-2 text-right font-medium">by CGST</th><th className="px-4 py-2 text-right font-medium">by SGST</th><th className="px-4 py-2 text-right font-medium">by cess</th><th className="px-4 py-2 text-right font-medium">Cash (incl. RCM)</th></tr>
               </thead>
@@ -126,7 +126,7 @@ export default function Gstr3bPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <p className="border-t border-border px-5 py-3 text-sm text-muted">Credit carried forward: {HEADS.map((h) => `${LABEL[h]} ${formatMoney(d.setOff.creditLeft[h])}`).join(" · ")}</p>
           </Card>
         </>

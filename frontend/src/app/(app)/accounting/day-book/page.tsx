@@ -38,7 +38,7 @@ export default function DayBookPage() {
                 {VOUCHER_PATH[v.voucherType] ? <Link href={`${VOUCHER_PATH[v.voucherType]}/${v.voucherId}`} className="font-medium text-primary hover:underline">{v.voucherNumber}</Link> : v.voucherNumber}
                 {v.isReversal && <Badge className="ml-2">Cancellation</Badge>}
               </p>
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto"><table className="w-full text-sm">
                 <tbody>
                   {v.lines.map((l, i) => (
                     <tr key={i}>
@@ -48,7 +48,7 @@ export default function DayBookPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           ))}
         </div>

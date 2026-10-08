@@ -43,7 +43,7 @@ export default function JournalPage() {
       )}
       <Card>
         <CardHeader title="Entries" />
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-muted">
             <tr><th className="px-4 py-2 font-medium">Account</th><th className="px-4 py-2 font-medium">Party / cost centre</th><th className="px-4 py-2 text-right font-medium">Debit</th><th className="px-4 py-2 text-right font-medium">Credit</th></tr>
           </thead>
@@ -60,7 +60,7 @@ export default function JournalPage() {
           <tfoot className="border-t-2 border-border font-semibold">
             <tr><td className="px-4 py-2" colSpan={2}>Total</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(d.totalDebit)}</td><td className="px-4 py-2 text-right tabular-nums">{formatMoney(d.totalDebit)}</td></tr>
           </tfoot>
-        </table>
+        </table></div>
       </Card>
       {d.related.length > 0 && (
         <Card>
