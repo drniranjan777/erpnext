@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { cmAnomalies, cmModels, energyMinutes, energySettings, iotSignals, maintAssets, type Transaction } from '@nextgen/database';
-import { and, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
@@ -9,8 +9,8 @@ import { IotService, type IngestedSignal } from '../iot/iot.service';
 import { MaintenanceOrdersService } from '../maintenance/orders.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { cmStep, excursions, intervalStart, maxDemand, meanKineticTemperature, projectedDemandKw, stdOf } from './analytics';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const CM_PURPOSES = ['vibration', 'temperature', 'current', 'pressure', 'speed', 'power_kw', 'other'];
 
 export const energySettingsSchema = z.object({

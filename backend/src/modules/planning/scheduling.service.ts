@@ -1,13 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { setupTransitions, workCenters, workOrderOperations, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
 import { IST_MS, istDayStart, nextWorking, spread, workingMinutes, type Calendar } from './calendar';
 import { schedule, type SchedOp, type SchedOrder, type SchedWorkCenter } from './scheduler';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const num = (v: string | number | null | undefined) => (v === null || v === undefined ? 0 : Number(v));
 const DAY = 86_400_000;
 /** Midnight IST at the start of an ISO date. */

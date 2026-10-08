@@ -24,7 +24,6 @@ import type { AuthContext } from '../../common/auth-context';
 import { Decimal } from '../../common/decimal';
 import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
-import { DocumentsService } from '../documents/documents.service';
 import { ownGstRegistration } from '../gst/pricing';
 import { computeSetOff, normaliseInvoiceNo, type Heads } from './gst-setoff';
 import { GstReportsService } from './gst-reports.service';
@@ -66,7 +65,6 @@ const itms = (rows: TaxRow[], sign = 1) => {
 export class GstReturnsService {
   constructor(
     private readonly database: DatabaseService,
-    private readonly documents: DocumentsService,
     private readonly reports: GstReportsService,
   ) {}
 

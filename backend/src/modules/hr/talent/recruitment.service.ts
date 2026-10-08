@@ -16,7 +16,7 @@ import {
   salaryTemplates,
   type Transaction,
 } from '@nextgen/database';
-import { and, asc, desc, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../../common/auth-context';
 import { todayIST } from '../../../common/fiscal-year';
@@ -26,8 +26,8 @@ import { applyTemplate } from '../../payroll/salary';
 import { createEmployeeSchema, EmployeesService } from '../employees.service';
 import { addDays } from '../time/attendance-engine';
 import { permissionsOf } from '../time/people';
+import { many } from '../../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const money = z
   .union([z.number(), z.string()])
   .transform((v) => Math.round(Number(v) * 100) / 100)

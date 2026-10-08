@@ -10,7 +10,7 @@ import { EntitlementsService } from '../billing/entitlements.service';
 import { DocumentsService } from './documents.service';
 import { StorageService } from './storage.service';
 
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 const ALLOWED_TYPES = new Set([
   'application/pdf',

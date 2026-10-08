@@ -16,7 +16,7 @@ import { SALES_REPORTS } from './catalogue/sales';
 import { CATEGORIES, type Params, type QueryReport, type ReportColumn, type ReportDef, type ReportParam } from './report-types';
 
 /** Rows returned to the screen and in exports; beyond this, narrow the filters. */
-export const ROW_LIMIT = 10_000;
+const ROW_LIMIT = 10_000;
 
 export const REPORTS: ReportDef[] = [...SALES_REPORTS, ...PURCHASE_REPORTS, ...INVENTORY_REPORTS, ...PRODUCTION_REPORTS, ...QUALITY_REPORTS, ...LINK_REPORTS];
 
@@ -28,7 +28,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 /** pg parses `date` as local midnight; read it back the same way. */
 const dateText = (v: unknown) => (v instanceof Date ? `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())}` : v === null || v === undefined ? null : String(v));
 
-export function resolveDefault(d: string | undefined, today = todayIST()) {
+function resolveDefault(d: string | undefined, today = todayIST()) {
   if (d === 'today') return today;
   if (d && ['yesterday', 'week_start', 'prev_month_start', 'prev_month_end'].includes(d)) return relativeDate(d, today);
   if (d === 'fy_start') return fiscalYearOf(today).start;
@@ -37,7 +37,7 @@ export function resolveDefault(d: string | undefined, today = todayIST()) {
 }
 
 /** Fills defaults and checks every parameter against its type. */
-export function resolveParams(defs: ReportParam[], input: Params): Params {
+function resolveParams(defs: ReportParam[], input: Params): Params {
   const out: Params = {};
   const errors: { path: string; message: string }[] = [];
   for (const d of defs) {

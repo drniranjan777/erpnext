@@ -12,7 +12,7 @@ const positive = (label: string) => amount(label).refine((v) => Number(v) > 0, `
 
 // ---- Purchase invoice ----
 
-export const piLineSchema = z.object({
+const piLineSchema = z.object({
   /** Three-way match: the GRN line being billed. */
   grnLineId: z.uuid().nullable().optional(),
   /** Two-way match (services): the PO line being billed. */
@@ -72,7 +72,7 @@ export const billableSchema = z.object({ vendorId: z.uuid(), poId: z.uuid().opti
 
 // ---- Debit note ----
 
-export const dnLineSchema = z.object({
+const dnLineSchema = z.object({
   piLineId: z.uuid(),
   /** Returned quantity (return) or quantity the price reduction applies to (price adjustment). */
   qty: positive('Quantity'),
@@ -113,7 +113,7 @@ export const listDnSchema = z.object({
 
 // ---- Landed cost ----
 
-export const CHARGE_TYPES = ['freight', 'customs_duty', 'insurance', 'clearing', 'loading', 'octroi', 'other'] as const;
+const CHARGE_TYPES = ['freight', 'customs_duty', 'insurance', 'clearing', 'loading', 'octroi', 'other'] as const;
 
 const lcHeader = {
   docDate: isoDate.optional(),

@@ -393,4 +393,4 @@ export class EwayBillService {
   }
 }
 
-export { MODE_CODE };
+{ MODE_CODE };

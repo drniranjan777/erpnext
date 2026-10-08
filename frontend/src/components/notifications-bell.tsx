@@ -18,7 +18,7 @@ interface Notification {
   createdAt: string;
 }
 
-export const notificationKeys = {
+const notificationKeys = {
   count: ["notifications", "count"] as const,
   list: ["notifications", "list"] as const,
 };

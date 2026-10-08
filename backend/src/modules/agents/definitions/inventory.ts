@@ -1,8 +1,7 @@
-import { sql, type SQL } from 'drizzle-orm';
-import type { Transaction } from '@nextgen/database';
+import { sql } from 'drizzle-orm';
 import { daysOfCover, type AgentDefinition, type Finding } from '../framework';
+import { many } from '../../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const inr = (v: number) => `₹${Math.round(v).toLocaleString('en-IN')}`;
 
 /** Real issues: outgoing rows of vouchers that neither brought the item back in (transfers) nor were reversed. */

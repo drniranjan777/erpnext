@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { apqpProjects, controlPlans, csrRequirements, ediMessages, ediPartners, fmeas, lpaAudits, lpaChecklists, ppapSubmissions, type ControlPlanRow, type FmeaRow, type Transaction } from '@nextgen/database';
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -10,8 +10,8 @@ import { DatabaseService } from '../../database/database.service';
 import { SchedulesService } from '../crm/schedules.service';
 import { ESignService } from '../gmp/esign.service';
 import { actionPriority, apqpProgress, apqpTemplate, buildDesadv, buildInvoic, lpaScore, ppapElements, ppapOpen, readSchedule } from './auto-rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const code = z.string().trim().min(1).max(30);
 const text = (n: number) => z.string().trim().max(n).nullable().optional();
 const r10 = z.number().int().min(1).max(10);

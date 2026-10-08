@@ -18,7 +18,7 @@ export function istDayStart(t: number) {
   return Math.floor((t + IST_MS) / DAY) * DAY - IST_MS;
 }
 
-export function isWorkingDay(cal: Calendar, dayStart: number) {
+function isWorkingDay(cal: Calendar, dayStart: number) {
   const dow = new Date(dayStart + IST_MS).getUTCDay(); // 0 = Sunday
   if (cal.daysPerWeek >= 7) return true;
   if (cal.daysPerWeek === 6) return dow !== 0;
@@ -28,7 +28,7 @@ export function isWorkingDay(cal: Calendar, dayStart: number) {
 const valid = (cal: Calendar) => cal.minutesPerDay > 0 && cal.daysPerWeek > 0;
 
 /** The first working window that ends after `t`, clipped to start no earlier than `t`. */
-export function windowFrom(cal: Calendar, t: number): { start: number; end: number } {
+function windowFrom(cal: Calendar, t: number): { start: number; end: number } {
   if (!valid(cal)) return { start: t, end: Number.MAX_SAFE_INTEGER };
   const len = Math.min(cal.minutesPerDay, 1440) * MIN;
   // A shift may run past midnight, so start from the previous day.

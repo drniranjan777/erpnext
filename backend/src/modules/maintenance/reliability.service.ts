@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { type Transaction } from '@nextgen/database';
-import { sql, type SQL } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
 import { IST_MS, workingMinutes, type Calendar } from '../planning/calendar';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const DAY = 86_400_000;
 const num = (v: string | number | null | undefined) => (v === null || v === undefined ? 0 : Number(v));
 const r1 = (v: number) => Math.round(v * 10) / 10;

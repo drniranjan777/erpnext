@@ -20,7 +20,6 @@ import {
 import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 import type { AuthContext } from '../../common/auth-context';
 import { Decimal } from '../../common/decimal';
-import { DatabaseService } from '../../database/database.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
 import type { SystemKey } from './chart-template';
 import { LedgerService, type GlLine } from './ledger.service';
@@ -66,7 +65,6 @@ export class PostingRulesService implements OnModuleInit {
   private readonly rules = new Map<DocType, Rule>();
 
   constructor(
-    private readonly database: DatabaseService,
     private readonly documents: DocumentsService,
     private readonly ledger: LedgerService,
   ) {}

@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { projectCostLinks, projectMilestones, projectResources, projects, projectTime, projectWbs, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -8,8 +8,8 @@ import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
 import { SalesInvoicesService } from '../sales/invoices.service';
 import { COST_TYPES, earnedValue, milestoneAmounts, r2, resourceLoad, rollUp, wbsCodeProblem, type CostType, type WbsFigures } from './project-rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const LINKABLE = ['purchase_order', 'purchase_invoice', 'stock_entry', 'journal_entry'];
 
 export const projectSchema = z.object({

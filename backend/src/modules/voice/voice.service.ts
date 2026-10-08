@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { aiVoiceLogs, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -14,8 +14,8 @@ import { createRequisitionSchema } from '../purchase/requisitions.schemas';
 import { RequisitionsService } from '../purchase/requisitions.service';
 import { scoreEval } from './eval-set';
 import { parseCommand, VOICE_LANGUAGES } from './grammar';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const LANGS = VOICE_LANGUAGES.map((l) => l.code) as [string, ...string[]];
 /** JSON with sorted keys, so values stored as jsonb (which reorders keys) compare equal. */
 const stable = (v: unknown): string => (Array.isArray(v) ? `[${v.map(stable).join(',')}]` : v && typeof v === 'object' ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${stable((v as Record<string, unknown>)[k])}`).join(',')}}` : JSON.stringify(v));

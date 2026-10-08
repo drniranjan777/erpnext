@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { posSales, posSessions, posTerminals, type Transaction } from '@nextgen/database';
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -12,8 +12,7 @@ import { CreditNotesService } from '../sales/credit-notes.service';
 import { SalesInvoicesService } from '../sales/invoices.service';
 import { createCreditSchema, createInvoiceSchema } from '../sales/sales.schemas';
 import { bill, line, r2, TENDERS, tenderProblem, zReport } from './pos-rules';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../common/sql';
 
 export const terminalSchema = z.object({ code: z.string().trim().min(1).max(20), name: z.string().trim().min(2).max(80), warehouseId: z.uuid(), receiptFooter: z.string().trim().max(300).nullable().optional() });
 export const openSchema = z.object({ terminalId: z.uuid(), openingCash: z.number().min(0).max(10_000_000).default(0) });
@@ -102,7 +101,7 @@ export class PosService {
   async getSession(auth: AuthContext, id: string) {
     return this.database.run(auth, async (tx) => {
       const { s, t } = await this.session(tx, id);
-      const sales = await tx.select().from(posSales).where(eq(posSales.sessionId, id)).orderBy(desc(posSales.soldAt));
+      const sales = await tx.select().from(posSales).where(and(eq(posSales.sessionId, id), isNotNull(posSales.documentId))).orderBy(desc(posSales.soldAt));
       const live = s.status === 'open' ? zReport(s.openingCash, sales, 0) : null;
       return { ...s, terminal: { id: t.id, code: t.code, name: t.name, warehouseId: t.warehouseId, receiptFooter: t.receiptFooter }, sales, summary: s.zReport ?? live };
     });
@@ -113,8 +112,8 @@ export class PosService {
       many(
         tx,
         sql`select s.id, t.code as terminal, s.status, s.opening_cash as "openingCash", s.opened_at as "openedAt", s.closed_at as "closedAt", u.full_name as "openedBy", s.z_report as "zReport",
-                   (select count(*)::int from pos_sales x where x.session_id = s.id and x.kind = 'sale') as sales,
-                   (select coalesce(sum(case when x.kind = 'sale' then x.total else -x.total end), 0)::float8 from pos_sales x where x.session_id = s.id) as net
+                   (select count(*)::int from pos_sales x where x.session_id = s.id and x.kind = 'sale' and x.document_id is not null) as sales,
+                   (select coalesce(sum(case when x.kind = 'sale' then x.total else -x.total end), 0)::float8 from pos_sales x where x.session_id = s.id and x.document_id is not null) as net
             from pos_sessions s join pos_terminals t on t.id = s.terminal_id left join users u on u.id = s.opened_by order by s.opened_at desc limit 100`,
       ),
     );
@@ -142,15 +141,30 @@ export class PosService {
 
   // ---- selling -----------------------------------------------------------------------------------
 
-  private async existing(auth: AuthContext, clientRef: string) {
-    const [x] = await this.database.run(auth, (tx) => tx.select().from(posSales).where(eq(posSales.clientRef, clientRef)));
-    return x ?? null;
+  /**
+   * A till's reference is claimed before anything is posted, so a sale sent twice at the same moment
+   * (a retry after a network drop) posts one invoice: the second request finds the claim, waits for
+   * the first to finish and returns the same sale.
+   */
+  private async replay(auth: AuthContext, clientRef: string) {
+    for (let i = 0; i < 40; i++) {
+      const [x] = await this.database.run(auth, (tx) => tx.select().from(posSales).where(eq(posSales.clientRef, clientRef)));
+      if (!x) return null;
+      if (x.documentId) return { ...x, replayed: true };
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    throw new ConflictException('This sale is still being recorded; try again in a moment');
+  }
+
+  /** Releases a claim whose invoice or credit note could not be posted, so the till can retry. */
+  private release(auth: AuthContext, id: string) {
+    return this.database.run(auth, (tx) => tx.delete(posSales).where(and(eq(posSales.id, id), isNull(posSales.documentId))));
   }
 
   /** A sale: priced with GST included, paid by one or more tenders, posted as a submitted sales invoice. */
   async sell(auth: AuthContext, sessionId: string, input: z.infer<typeof saleSchema>, meta: RequestMeta) {
-    const dup = await this.existing(auth, input.clientRef);
-    if (dup) return { ...dup, replayed: true };
+    const dup = await this.replay(auth, input.clientRef);
+    if (dup) return dup;
     const { s, t, items } = await this.database.run(auth, async (tx) => {
       const { s, t } = await this.session(tx, sessionId);
       if (s.status !== 'open') throw new ConflictException('The shift is closed');
@@ -166,64 +180,82 @@ export class PosService {
     const b = bill(lines);
     const pay = tenderProblem(b.total, input.tenders);
     if (pay.problem) throw new BadRequestException(pay.problem);
-    const buyer = [input.buyerName, input.buyerMobile, input.buyerGstin ? `GSTIN ${input.buyerGstin}` : null].filter(Boolean).join(' · ');
-    const inv = (await this.invoices.create(
-      auth,
-      createInvoiceSchema.parse({ customerId: t.customerId, warehouseId: t.warehouseId, notes: `POS ${t.code}${buyer ? ` · ${buyer}` : ''}`, lines: lines.map((l) => ({ itemId: l.itemId, qty: String(l.qty), rate: (l.taxable / l.qty).toFixed(4), description: l.name })) }),
-      meta,
-    )) as { id: string; version: number };
-    const posted = (await this.invoices.submit(auth, inv.id, inv.version, meta)) as { number: string | null };
-    return this.database.run(auth, async (tx) => {
-      const [r] = await tx
+    const [claim] = await this.database.run(auth, (tx) =>
+      tx
         .insert(posSales)
-        .values({ tenantId: auth.tenantId, sessionId: s.id, kind: 'sale', number: posted.number ?? inv.id, clientRef: input.clientRef, buyerName: input.buyerName ?? null, buyerMobile: input.buyerMobile ?? null, buyerGstin: input.buyerGstin ?? null, lines, taxable: b.taxable, tax: b.tax, total: b.total, tenders: input.tenders, change: pay.change, documentId: inv.id, soldBy: auth.userId })
+        .values({ tenantId: auth.tenantId, sessionId: s.id, kind: 'sale', number: input.clientRef, clientRef: input.clientRef, buyerName: input.buyerName ?? null, buyerMobile: input.buyerMobile ?? null, buyerGstin: input.buyerGstin ?? null, lines, taxable: b.taxable, tax: b.tax, total: b.total, tenders: input.tenders, change: pay.change, soldBy: auth.userId })
         .onConflictDoNothing()
-        .returning();
-      return { ...(r ?? (await tx.select().from(posSales).where(eq(posSales.clientRef, input.clientRef)))[0]), roundOff: b.roundOff };
-    });
+        .returning({ id: posSales.id }),
+    );
+    if (!claim) return (await this.replay(auth, input.clientRef))!;
+    try {
+      const buyer = [input.buyerName, input.buyerMobile, input.buyerGstin ? `GSTIN ${input.buyerGstin}` : null].filter(Boolean).join(' · ');
+      const inv = (await this.invoices.create(
+        auth,
+        createInvoiceSchema.parse({ customerId: t.customerId, warehouseId: t.warehouseId, notes: `POS ${t.code}${buyer ? ` · ${buyer}` : ''}`, lines: lines.map((l) => ({ itemId: l.itemId, qty: String(l.qty), rate: (l.taxable / l.qty).toFixed(4), description: l.name })) }),
+        meta,
+      )) as { id: string; version: number };
+      const posted = (await this.invoices.submit(auth, inv.id, inv.version, meta)) as { number: string | null };
+      return this.database.run(auth, async (tx) => {
+        const [r] = await tx.update(posSales).set({ number: posted.number ?? inv.id, documentId: inv.id }).where(eq(posSales.id, claim.id)).returning();
+        return { ...r, roundOff: b.roundOff };
+      });
+    } catch (err) {
+      await this.release(auth, claim.id);
+      throw err;
+    }
   }
 
   /** A return against a sale of this or an earlier shift: a submitted credit note, refunded in one tender. */
   async refund(auth: AuthContext, sessionId: string, saleId: string, input: z.infer<typeof returnSchema>, meta: RequestMeta) {
-    const dup = await this.existing(auth, input.clientRef);
-    if (dup) return { ...dup, replayed: true };
-    const { s, t, sale, already } = await this.database.run(auth, async (tx) => {
+    const dup = await this.replay(auth, input.clientRef);
+    if (dup) return dup;
+    // Checked and claimed with the sale locked, so two returns at once cannot exceed what was sold.
+    const { t, sale, lines, b, claimId } = await this.database.run(auth, async (tx) => {
       const { s, t } = await this.session(tx, sessionId);
       if (s.status !== 'open') throw new ConflictException('The shift is closed');
-      const [sale] = await tx.select().from(posSales).where(eq(posSales.id, saleId));
-      if (!sale || sale.kind !== 'sale') throw new NotFoundException('Sale not found');
-      const rets = await tx.select().from(posSales).where(eq(posSales.returnOfId, saleId));
-      return { s, t, sale, already: rets.flatMap((r) => r.lines) };
-    });
-    const lines = input.lines.map((l) => {
-      const sold = sale.lines.find((x) => x.itemId === l.itemId);
-      if (!sold) throw new BadRequestException('The item is not on this sale');
-      const returned = already.filter((x) => x.itemId === l.itemId).reduce((a, x) => a + x.qty, 0);
-      if (l.qty > sold.qty - returned + 1e-9) throw new BadRequestException(`At most ${sold.qty - returned} of ${sold.code} can be returned`);
-      return line({ itemId: sold.itemId, code: sold.code, name: sold.name, qty: l.qty, price: sold.price, discountPct: sold.discountPct, gstRate: sold.gstRate });
-    });
-    const b = bill(lines);
-    const invoice = (await this.invoices.get(auth, sale.documentId!)) as unknown as { lines: { id: string; itemId: string }[] };
-    const cn = (await this.credits.create(
-      auth,
-      createCreditSchema.parse({ invoiceId: sale.documentId, kind: 'return', reason: input.reason, warehouseId: t.warehouseId, lines: lines.map((l) => ({ invoiceLineId: invoice.lines.find((x) => x.itemId === l.itemId)!.id, qty: String(l.qty) })) }),
-      meta,
-    )) as { id: string; version: number };
-    const posted = (await this.credits.submit(auth, cn.id, cn.version, meta)) as { number: string | null };
-    return this.database.run(auth, async (tx) => {
-      const [r] = await tx
+      const [sale] = await tx.select().from(posSales).where(eq(posSales.id, saleId)).for('update');
+      if (!sale || sale.kind !== 'sale' || !sale.documentId) throw new NotFoundException('Sale not found');
+      const already = (await tx.select().from(posSales).where(eq(posSales.returnOfId, saleId))).flatMap((r) => r.lines);
+      const lines = input.lines.map((l) => {
+        const sold = sale.lines.find((x) => x.itemId === l.itemId);
+        if (!sold) throw new BadRequestException('The item is not on this sale');
+        const returned = already.filter((x) => x.itemId === l.itemId).reduce((a, x) => a + x.qty, 0);
+        if (l.qty > sold.qty - returned + 1e-9) throw new BadRequestException(`At most ${sold.qty - returned} of ${sold.code} can be returned`);
+        return line({ itemId: sold.itemId, code: sold.code, name: sold.name, qty: l.qty, price: sold.price, discountPct: sold.discountPct, gstRate: sold.gstRate });
+      });
+      const b = bill(lines);
+      const [claim] = await tx
         .insert(posSales)
-        .values({ tenantId: auth.tenantId, sessionId: s.id, kind: 'return', number: posted.number ?? cn.id, clientRef: input.clientRef, lines, taxable: b.taxable, tax: b.tax, total: b.total, tenders: [{ mode: input.refund, amount: b.total }], documentId: cn.id, returnOfId: sale.id, soldBy: auth.userId })
-        .returning();
-      return r;
+        .values({ tenantId: auth.tenantId, sessionId: s.id, kind: 'return', number: input.clientRef, clientRef: input.clientRef, lines, taxable: b.taxable, tax: b.tax, total: b.total, tenders: [{ mode: input.refund, amount: b.total }], returnOfId: sale.id, soldBy: auth.userId })
+        .onConflictDoNothing()
+        .returning({ id: posSales.id });
+      return { t, sale, lines, b, claimId: claim?.id ?? null };
     });
+    if (!claimId) return (await this.replay(auth, input.clientRef))!;
+    try {
+      const invoice = (await this.invoices.get(auth, sale.documentId!)) as unknown as { lines: { id: string; itemId: string }[] };
+      const cn = (await this.credits.create(
+        auth,
+        createCreditSchema.parse({ invoiceId: sale.documentId, kind: 'return', reason: input.reason, warehouseId: t.warehouseId, lines: lines.map((l) => ({ invoiceLineId: invoice.lines.find((x) => x.itemId === l.itemId)!.id, qty: String(l.qty) })) }),
+        meta,
+      )) as { id: string; version: number };
+      const posted = (await this.credits.submit(auth, cn.id, cn.version, meta)) as { number: string | null };
+      return this.database.run(auth, async (tx) => {
+        const [r] = await tx.update(posSales).set({ number: posted.number ?? cn.id, documentId: cn.id }).where(eq(posSales.id, claimId)).returning();
+        return { ...r, roundOff: b.roundOff };
+      });
+    } catch (err) {
+      await this.release(auth, claimId);
+      throw err;
+    }
   }
 
   close(auth: AuthContext, sessionId: string, input: z.infer<typeof closeSchema>) {
     return this.database.run(auth, async (tx) => {
       const { s } = await this.session(tx, sessionId);
       if (s.status !== 'open') throw new ConflictException('The shift is already closed');
-      const sales = await tx.select().from(posSales).where(eq(posSales.sessionId, sessionId));
+      const sales = await tx.select().from(posSales).where(and(eq(posSales.sessionId, sessionId), isNotNull(posSales.documentId)));
       const z = zReport(s.openingCash, sales, input.countedCash);
       const [r] = await tx.update(posSessions).set({ status: 'closed', closedBy: auth.userId, closedAt: new Date(), zReport: z }).where(eq(posSessions.id, sessionId)).returning();
       return r;
@@ -255,7 +287,7 @@ export class PosService {
               (select coalesce(sum(greatest(si.grand_total - si.received_amount - si.credited_amount, 0)), 0) from sales_invoices si join documents d on d.id = si.id where d.status in ('approved', 'completed') and si.due_date < ${today}::date)::float8 as overdue,
               (select coalesce(sum(greatest(pi.grand_total - pi.paid_amount, 0)), 0) from purchase_invoices pi join documents d on d.id = pi.id where d.status in ('approved', 'completed') and pi.due_date <= ${today}::date + 7)::float8 as payable7,
               (select coalesce(sum(g.debit - g.credit), 0) from gl_entries g join accounts a on a.id = g.account_id where a.account_type in ('bank', 'cash') or a.system_key = 'cash')::float8 as "cashBank",
-              (select coalesce(sum(case when x.kind = 'sale' then x.total else -x.total end), 0) from pos_sales x where x.sold_at >= (${today}::date - interval '5 hours 30 minutes'))::float8 as "posToday"`,
+              (select coalesce(sum(case when x.kind = 'sale' then x.total else -x.total end), 0) from pos_sales x where x.document_id is not null and x.sold_at >= (${today}::date - interval '5 hours 30 minutes'))::float8 as "posToday"`,
       );
       return f;
     });

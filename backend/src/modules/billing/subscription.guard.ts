@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import type { AppRequest } from '../../common/auth-context';
 import { EntitlementsService, PlanRequiredException } from './entitlements.service';
 
-export const ALLOW_READ_ONLY_KEY = 'allowWhenReadOnly';
+const ALLOW_READ_ONLY_KEY = 'allowWhenReadOnly';
 /** Mutations on this route/controller stay allowed when the workspace is read-only (billing, account, sign-out...). */
 export const AllowWhenReadOnly = () => SetMetadata(ALLOW_READ_ONLY_KEY, true);
 

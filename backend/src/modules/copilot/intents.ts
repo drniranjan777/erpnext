@@ -46,7 +46,7 @@ const DRAFT_KIND: [RegExp, string][] = [
 ];
 
 /** "draft a purchase order from Deccan Steels: 100 hex bolt, 50 hex nut by 2026-10-20" */
-export function parseDraft(text: string): Intent | null {
+function parseDraft(text: string): Intent | null {
   const m = /^\s*(?:please\s+)?(?:draft|create|make|prepare|raise|banao|बनाओ)\s+(?:an?\s+)?(.+)$/i.exec(text);
   if (!m) return null;
   const rest = m[1];

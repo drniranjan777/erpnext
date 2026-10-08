@@ -1,8 +1,8 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { membershipRoles, memberships, ssoSettings, users, type Transaction } from '@nextgen/database';
+import { membershipRoles, memberships, ssoSettings, users } from '@nextgen/database';
 import { hash } from '@node-rs/argon2';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
@@ -12,8 +12,7 @@ import type { Env } from '../../config/env';
 import { DatabaseService } from '../../database/database.service';
 import { TokensService } from '../auth/tokens.service';
 import { allowedEmail, authorizeUrl, pkce, samlSpMetadata, verifyIdToken, type Discovery } from './oidc';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../common/sql';
 
 export const ssoSchema = z.object({
   protocol: z.enum(['oidc', 'saml']).default('oidc'),

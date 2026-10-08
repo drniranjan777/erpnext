@@ -1,17 +1,17 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { warehouses, wmsBins, wmsItemProfiles, wmsTasks, wmsWarehouses, wmsZones, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { nextCode } from '../../common/codes';
 import { DatabaseService } from '../../database/database.service';
 import { applyBinMove, NIL_BATCH, wmsConfigs, type WmsConfig } from '../inventory/bins';
 import { room, suggestPutaway, unsuitable, type CandidateBin, type PutawayItem } from './putaway';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (max: number) => z.string().trim().max(max).nullable().optional();
 const num = (max: number) => z.number().positive().max(max).nullable().optional();
-export const CONDITIONS = ['ambient', 'cold', 'frozen', 'hazardous', 'quarantine', 'bonded'] as const;
+const CONDITIONS = ['ambient', 'cold', 'frozen', 'hazardous', 'quarantine', 'bonded'] as const;
 const ZONE_KINDS = ['storage', 'receiving', 'dispatch', 'staging', 'quarantine'] as const;
 const BIN_TYPES = ['pallet', 'shelf', 'floor', 'bulk', 'staging'] as const;
 

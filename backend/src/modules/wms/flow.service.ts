@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { itemBarcodes, items, wmsAppointments, wmsBins, wmsDockDoors, wmsPackages, wmsSettings, wmsTasks, wmsWaves, type Transaction } from '@nextgen/database';
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { nextCode } from '../../common/codes';
@@ -14,8 +14,8 @@ import { createGrnSchema } from '../purchase/receipts.schemas';
 import { DeliveriesService } from '../sales/deliveries.service';
 import { createDeliverySchema } from '../sales/sales.schemas';
 import { allocate, normaliseSscc, sscc, validSscc, type BinStockRow } from './outbound';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (max: number) => z.string().trim().max(max).nullable().optional();
 const n4 = (v: number) => v.toFixed(4);
 

@@ -1,13 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { approvedManufacturers, inspectionParameters, parties, supplierAudits, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { approvedManufacturers, inspectionParameters, parties, supplierAudits } from '@nextgen/database';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
 import { attributeChart, variablesCharts } from './spc';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const num = (v: string | number | null | undefined) => (v === null || v === undefined ? 0 : Number(v));
 
 export const auditSchema = z.object({

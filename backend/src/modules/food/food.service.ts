@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ccpRecords, complianceCertificates, foodLabels, haccpPlans, iotAlarmRules, itemAllergens, recalls, type HaccpCcp, type HaccpHazard, type Nutrition, type Transaction } from '@nextgen/database';
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
@@ -11,8 +11,8 @@ import { ESignService } from '../gmp/esign.service';
 import { excursions } from '../plant/analytics';
 import { TraceabilityService } from '../quality/traceability.service';
 import { ALLERGENS, allergenStatement, changeover, codexDecision, flattenTrace, nutritionPanel, recallMetrics, rollUp, significant, withinLimits } from './food-rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (n: number) => z.string().trim().max(n).nullable().optional();
 const allergen = z.enum(Object.keys(ALLERGENS) as [string, ...string[]]);
 const yn = z.boolean().nullable().optional();

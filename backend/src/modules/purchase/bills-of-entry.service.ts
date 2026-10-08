@@ -24,7 +24,7 @@ function fail(errors: Err[]): never {
 
 const rate = (label: string) => decimalSchema(2, label).refine((v) => v === null || Number(v) <= 100, `${label}: at most 100`);
 
-export const boeLineSchema = z.object({
+const boeLineSchema = z.object({
   itemId: z.uuid(),
   description: optionalText(300),
   qty: z

@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { companies, employeeEvents, employees, hrChecklists, hrSeparations, hrTasks, leaveLedger, payrollSettings, type Transaction } from '@nextgen/database';
-import { and, asc, eq, isNull, ne, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../../common/auth-context';
 import { todayIST } from '../../../common/fiscal-year';
@@ -14,8 +14,7 @@ import { DocumentsService } from '../../documents/documents.service';
 import { addDays, daysBetween } from '../time/attendance-engine';
 import { permissionsOf, selfEmployee } from '../time/people';
 import { fullAndFinal, type SeparationKind } from './settlement';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../../common/sql';
 
 export const checklistSchema = z.object({
   kind: z.enum(['onboarding', 'exit']),

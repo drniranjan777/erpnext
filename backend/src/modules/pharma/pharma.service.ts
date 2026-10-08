@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { dpcoCeilings, pharmaSettings, serialContainers, serialUnits, stabilityResults, stabilityStudies, wmsSettings, type StabilityTest, type Transaction } from '@nextgen/database';
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { nextCode } from '../../common/codes';
@@ -10,8 +10,8 @@ import { DatabaseService } from '../../database/database.service';
 import { DeviationsService } from '../qms/deviations.service';
 import { sscc } from '../wms/outbound';
 import { apiQrContent, dpcoBreaches, gs1DataMatrix, gs1Hri, pullDate, randomSerial, shelfLife, toGtin14 } from './pharma-math';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const day = z.iso.date();
 
 export const settingsSchema = z.object({ manufacturingLicenceNo: z.string().trim().max(60).nullable(), importLicenceNo: z.string().trim().max(60).nullable() });

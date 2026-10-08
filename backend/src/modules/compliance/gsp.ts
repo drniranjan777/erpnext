@@ -79,7 +79,7 @@ export function ewbValidUntil(from: Date, distanceKm: number, vehicleType: 'R' |
 }
 
 /** "yyyy-MM-dd HH:mm:ss" in IST, as NIC returns timestamps. */
-export function nicTimestamp(d: Date) {
+function nicTimestamp(d: Date) {
   return new Date(d.getTime() + IST_MS).toISOString().replace('T', ' ').slice(0, 19);
 }
 

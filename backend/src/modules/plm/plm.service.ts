@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { cadFiles, cadFileVersions, plmEboms, plmItemStates, type Transaction } from '@nextgen/database';
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { Readable } from 'node:stream';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
@@ -11,8 +11,8 @@ import { StorageService } from '../documents/storage.service';
 import { ESignService } from '../gmp/esign.service';
 import { BomsService } from '../manufacturing/boms.service';
 import { cadFormat, cadMetadata, canBuy, canSell, compareBoms, gateProblems, nextRevision, STAGES, type Stage } from './plm-rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const MAX_CAD = 100 * 1_048_576;
 
 export const moveSchema = z.object({ itemId: z.uuid(), to: z.enum(STAGES), note: z.string().trim().max(500).nullable().optional(), password: z.string().min(1).max(200).optional() });

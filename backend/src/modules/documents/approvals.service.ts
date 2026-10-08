@@ -369,12 +369,6 @@ export interface ApprovalFacts {
   creditExceeded?: boolean;
 }
 
-export const APPROVAL_CONDITIONS = {
-  discount_above: 'Discount above (%)',
-  margin_below: 'Margin below (%)',
-  credit_exceeded: 'Customer credit limit exceeded',
-} as const;
-
 /** A rule without a condition always applies; one with a condition applies only when the fact is present and met. */
 function conditionHolds(condition: string | null, value: string | null, facts: ApprovalFacts) {
   if (!condition) return true;

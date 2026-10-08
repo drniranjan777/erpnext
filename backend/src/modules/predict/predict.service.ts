@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { Transaction } from '@nextgen/database';
-import { sql, type SQL } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
 import { DatabaseService } from '../../database/database.service';
 import { forecastSeries, months } from '../planning/forecast';
 import { marginBridge, parseWhy, predictCollections, type ItemPeriod, type Period } from './analytics';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const inr = (v: number) => `₹${Math.round(v).toLocaleString('en-IN')}`;
 const pts = (v: number) => `${v > 0 ? '+' : ''}${v} pts`;
 

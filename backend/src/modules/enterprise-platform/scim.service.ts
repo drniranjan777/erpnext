@@ -6,8 +6,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const USER = 'urn:ietf:params:scim:schemas:core:2.0:User';
 const GROUP = 'urn:ietf:params:scim:schemas:core:2.0:Group';
 const LIST = 'urn:ietf:params:scim:api:messages:2.0:ListResponse';

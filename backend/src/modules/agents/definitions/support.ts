@@ -1,10 +1,9 @@
-import { sql, type SQL } from 'drizzle-orm';
-import type { Transaction } from '@nextgen/database';
+import { sql } from 'drizzle-orm';
 import { suggestReply } from '../../service/reply';
 import { triage } from '../../service/sla';
 import type { AgentDefinition, Finding } from '../framework';
+import { many } from '../../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const fmt = (iso: string) => new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 
 /**

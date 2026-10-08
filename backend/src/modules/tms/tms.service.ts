@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { deliveryNotes, parties, tmsFreightBills, tmsPositions, tmsRateContracts, tmsRates, tmsStops, tmsTransporters, tmsTrips, tmsVehicles, type Transaction } from '@nextgen/database';
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { nextCode } from '../../common/codes';
@@ -10,8 +10,8 @@ import { todayIST } from '../../common/fiscal-year';
 import type { Env } from '../../config/env';
 import { DatabaseService } from '../../database/database.service';
 import { freight, matchRate, trailKm, type Rate } from './freight';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (max: number) => z.string().trim().max(max).nullable().optional();
 const sha256 = (v: string) => createHash('sha256').update(v).digest('hex');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;

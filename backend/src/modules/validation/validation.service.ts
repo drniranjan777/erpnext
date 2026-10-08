@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { valApprovals, valProjects, valTests, type Transaction } from '@nextgen/database';
-import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import type { RequestMeta } from '../../common/request-meta';
@@ -12,8 +12,8 @@ import { DatabaseService } from '../../database/database.service';
 import { ESignService } from '../gmp/esign.service';
 import { MODULES, REQUIREMENTS, requirementsFor } from './catalogue';
 import { defaultRisk, riskPriority, summarise, TESTING, traceability, type Priority } from './risk';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const rating = z.number().int().min(1).max(3);
 
 export const projectSchema = z.object({

@@ -228,9 +228,9 @@ export function gasTestOk(t: { o2Pct: number; lelPct: number; h2sPpm: number; co
   return out;
 }
 
-export const NEEDS_GAS_TEST: PermitType[] = ['hot_work', 'confined_space'];
+const NEEDS_GAS_TEST: PermitType[] = ['hot_work', 'confined_space'];
 /** Hours a permit may run: one shift for hot work and confined space. */
-export const MAX_HOURS: Record<PermitType, number> = { hot_work: 8, confined_space: 8, cold_work: 12, height: 12, electrical: 12, excavation: 12, line_break: 12 };
+const MAX_HOURS: Record<PermitType, number> = { hot_work: 8, confined_space: 8, cold_work: 12, height: 12, electrical: 12, excavation: 12, line_break: 12 };
 
 /** Work that must not run together at the same location. */
 const CONFLICTS: [PermitType, PermitType][] = [

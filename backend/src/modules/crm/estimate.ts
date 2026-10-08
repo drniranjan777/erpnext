@@ -76,7 +76,7 @@ export function corrugatedBox(i: BoxInput): Estimate {
 
 // ---- Sheet-metal / structural fabrication --------------------------------------------------------
 
-export const DENSITY = { ms: 7850, ss: 8000, al: 2700, gi: 7850 } as const;
+const DENSITY = { ms: 7850, ss: 8000, al: 2700, gi: 7850 } as const;
 export type Metal = keyof typeof DENSITY;
 
 export interface FabPart {

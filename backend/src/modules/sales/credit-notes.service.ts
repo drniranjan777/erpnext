@@ -33,7 +33,6 @@ import type { CreateCreditInput, ListQuery } from './sales.schemas';
 
 const DOC_TYPE = 'credit_note' as const;
 const D = Decimal.from;
-const ZERO = D('0');
 
 /**
  * Credit note against an approved invoice, with the invoice's own GST treatment (place of supply,

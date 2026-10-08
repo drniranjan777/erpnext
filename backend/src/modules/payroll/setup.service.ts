@@ -24,7 +24,7 @@ const code = z
   .transform((c) => c.toUpperCase());
 const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Month as YYYY-MM');
 /** Codes payroll computes itself. */
-export const RESERVED = new Set(['PF', 'ESI', 'PT', 'LWF', 'TDS', 'LOAN', 'EPF_ER', 'EPS', 'EDLI', 'ESI_ER', 'LWF_ER']);
+const RESERVED = new Set(['PF', 'ESI', 'PT', 'LWF', 'TDS', 'LOAN', 'EPF_ER', 'EPS', 'EDLI', 'ESI_ER', 'LWF_ER']);
 
 export const settingsSchema = z.object({
   companyId: z.uuid().nullable().optional(),

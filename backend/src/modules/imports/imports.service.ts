@@ -72,7 +72,7 @@ class Rollback<T> extends Error {
   }
 }
 
-export const summarise = (rows: RowResult[]): Summary => ({
+const summarise = (rows: RowResult[]): Summary => ({
   total: rows.length,
   created: rows.filter((r) => r.status === 'created').length,
   skipped: rows.filter((r) => r.status === 'skipped').length,

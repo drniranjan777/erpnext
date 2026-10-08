@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { documents, memberships, sopTrainees, sops, users, type Transaction } from '@nextgen/database';
-import { and, eq, inArray, isNull, ne, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -9,9 +9,9 @@ import type { RequestMeta } from '../../common/request-meta';
 import { optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
+import { many } from '../../common/sql';
 
 const DOC_TYPE = 'sop' as const;
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 
 const body = {
   sopCode: z.string().trim().min(2).max(40).transform((v) => v.toUpperCase()),

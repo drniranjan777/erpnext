@@ -1,7 +1,7 @@
 import { ALL_DOC_TYPES } from '@nextgen/database';
 import { z } from 'zod';
 
-export const docTypeSchema = z.enum(ALL_DOC_TYPES as [string, ...string[]]);
+const docTypeSchema = z.enum(ALL_DOC_TYPES as [string, ...string[]]);
 const isoDate = z.iso.date();
 const money = z
   .union([z.string(), z.number()])
@@ -63,7 +63,7 @@ export const approvalRuleSchema = z
     branchId: z.uuid().nullable().optional(),
     minAmount: money.nullable().optional(),
     maxAmount: money.nullable().optional(),
-    /** Optional extra condition (see APPROVAL_CONDITIONS). */
+    /** Optional extra condition: discount_above, margin_below or credit_exceeded. */
     condition: z.enum(['discount_above', 'margin_below', 'credit_exceeded']).nullable().optional(),
     conditionValue: money.nullable().optional(),
     priority: z.number().int().min(0).max(10_000).default(100),

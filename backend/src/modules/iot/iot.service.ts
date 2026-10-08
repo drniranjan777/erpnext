@@ -1,23 +1,23 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { iotAlarmRules, iotAlarms, iotBatches, iotCommands, iotGateways, iotReadings, iotSignals, maintAssets, type SignalSource, type Transaction } from '@nextgen/database';
-import { and, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
 import { MaintenanceOrdersService } from '../maintenance/orders.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { bucketSeconds, describeRule, parseTs, stepRule, type AlarmOp, type RuleEvent } from './rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const sha256 = (v: string) => createHash('sha256').update(v).digest('hex');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const code = z.string().trim().min(1).max(60).regex(/^[A-Za-z0-9._:/-]+$/, 'Letters, digits and . _ : / - only');
 const text = (n: number) => z.string().trim().max(n).nullable().optional();
 
-export const PURPOSES = ['part_count', 'reject_count', 'run_state', 'temperature', 'humidity', 'vibration', 'current', 'pressure', 'energy_kwh', 'power_kw', 'speed', 'other'] as const;
+const PURPOSES = ['part_count', 'reject_count', 'run_state', 'temperature', 'humidity', 'vibration', 'current', 'pressure', 'energy_kwh', 'power_kw', 'speed', 'other'] as const;
 /** Signals whose value only goes up (the agent always sends them; resets are handled by consumers). */
-export const COUNTER_PURPOSES = new Set(['part_count', 'reject_count', 'energy_kwh']);
+const COUNTER_PURPOSES = new Set(['part_count', 'reject_count', 'energy_kwh']);
 
 export const gatewaySchema = z.object({ code, name: z.string().trim().min(2).max(120), location: text(200) });
 export const signalSchema = z.object({
@@ -81,7 +81,6 @@ export type IngestHook = (tx: Transaction, ctx: { tenantId: string; gatewayId: s
  */
 @Injectable()
 export class IotService {
-  private readonly logger = new Logger('Iot');
   private readonly hooks: IngestHook[] = [];
 
   constructor(

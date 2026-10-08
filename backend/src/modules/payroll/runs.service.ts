@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { companies, employees, payrollRuns, payslips, salaryComponents, type PayLine, type Transaction } from '@nextgen/database';
-import { and, asc, desc, eq, isNull, ne, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm';
 import type { AuthContext } from '../../common/auth-context';
 import { CryptoService } from '../../common/crypto.service';
 import { todayIST } from '../../common/fiscal-year';
@@ -16,8 +16,8 @@ import { permissionsOf } from '../hr/time/people';
 import { TimeService } from '../hr/time/time.service';
 import { PayrollSetupService } from './setup.service';
 import { esi, ESI_CEILING, esiPeriod, fiscalPosition, labourWelfareFund, monthlyTds, professionalTax, providentFund, type Declaration, type Regime } from './statutory';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const r0 = (n: number) => Math.round(n);
 const money = (n: number) => n.toFixed(2);
 const monthRange = (month: string) => {

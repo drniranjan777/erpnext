@@ -113,7 +113,7 @@ export function stateCode(v: string | undefined): string | null {
  * Common spellings of units (Tally symbols, Excel habits) → our default unit codes.
  * Unknown units are looked up by code as typed.
  */
-export const UNIT_ALIASES: Record<string, string> = {
+const UNIT_ALIASES: Record<string, string> = {
   NO: 'NOS',
   NOS: 'NOS',
   NUMBERS: 'NOS',

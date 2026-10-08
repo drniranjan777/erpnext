@@ -19,7 +19,7 @@ export function stableStringify(v: unknown): string {
     .join(',')}}`;
 }
 
-export const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
+const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 export const recordHash = (payload: unknown) => sha256(stableStringify(payload));
 
 export interface SignatureLink {

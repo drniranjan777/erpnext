@@ -1,6 +1,7 @@
 import type { PermissionCode, Transaction } from '@nextgen/database';
 import { sql, type SQL } from 'drizzle-orm';
 import type { AuthContext } from '../../common/auth-context';
+import { many } from '../../common/sql';
 
 export type Unit = 'money' | 'number' | 'percent' | 'qty';
 
@@ -29,7 +30,6 @@ export interface WidgetDef {
 }
 
 const one = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows[0];
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const s = (v: unknown) => (v === null || v === undefined ? '0' : String(v));
 const POSTED = sql.raw(`d.status in ('approved', 'completed')`);
 const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);

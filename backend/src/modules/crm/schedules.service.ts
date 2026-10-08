@@ -1,13 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { asns, customerScheduleLines, customerSchedules, items, parties, type Transaction } from '@nextgen/database';
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { nextCode } from '../../common/codes';
 import { DatabaseService } from '../../database/database.service';
 import { parseSheet } from '../imports/file-parser';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Month as YYYY-MM');
 
 export const scheduleSchema = z.object({

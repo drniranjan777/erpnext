@@ -70,7 +70,7 @@ export const submitOrderSchema = z.object({
 });
 
 // ---- Delivery note ----
-export const deliveryLineSchema = z.object({
+const deliveryLineSchema = z.object({
   soLineId: z.uuid(),
   qty: positive('Quantity'),
   batchNo: z
@@ -142,7 +142,7 @@ export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export const updateInvoiceSchema = z.object({ ...invoice, version: z.number().int() });
 
 // ---- Credit note ----
-export const creditLineSchema = z.object({
+const creditLineSchema = z.object({
   invoiceLineId: z.uuid(),
   qty: positive('Quantity'),
   /** Return: blank = invoiced net rate. Price adjustment: reduction per unit. */

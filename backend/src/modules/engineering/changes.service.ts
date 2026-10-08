@@ -1,6 +1,6 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, OnModuleInit } from '@nestjs/common';
 import { documents, drawings, engineeringChangeItems, engineeringChanges, items, type Transaction } from '@nextgen/database';
-import { and, asc, desc, eq, ilike, inArray, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, lt, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -10,9 +10,9 @@ import { optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
 import { riskOf } from '../quality/msa';
+import { many } from '../../common/sql';
 
 const DOC_TYPE = 'engineering_change' as const;
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 
 const body = {
   kind: z.enum(['bom', 'formula', 'drawing', 'item', 'process', 'facility', 'system']),

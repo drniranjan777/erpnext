@@ -14,7 +14,7 @@ const password = z
   .regex(/[A-Za-z]/, 'Password must contain a letter')
   .regex(/[0-9]/, 'Password must contain a number');
 
-export const slugSchema = z
+const slugSchema = z
   .string()
   .trim()
   .toLowerCase()

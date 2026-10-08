@@ -451,4 +451,4 @@ function maxZero(d: Decimal) {
   return (d.isNegative() ? Decimal.from('0') : d).toFixed(4);
 }
 
-export { maxZero };
+{ maxZero };

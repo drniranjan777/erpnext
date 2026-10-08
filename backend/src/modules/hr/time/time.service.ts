@@ -14,7 +14,7 @@ import {
   leaveTypes,
   type Transaction,
 } from '@nextgen/database';
-import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import type { Readable } from 'node:stream';
 import { z } from 'zod';
 import type { AuthContext } from '../../../common/auth-context';
@@ -24,6 +24,7 @@ import { StorageService } from '../../documents/storage.service';
 import { parseSheet } from '../../imports/file-parser';
 import { addDays, at, daysBetween, datesIn, distanceMetres, evaluateDay, istDate, leaveOn, parsePunchTime, shiftOn, weekday, weeklyExtraOt, type ShiftDef } from './attendance-engine';
 import { isManagerOf, permissionsOf, requireSelf, subjectOf } from './people';
+import { many } from '../../../common/sql';
 
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Time as HH:MM');
 const minutes = (min: number, max: number) => z.number().int().min(min).max(max);
@@ -59,7 +60,6 @@ export const regulariseSchema = z
 export const decideSchema = z.object({ approve: z.boolean(), note: z.string().trim().max(300).optional() });
 export const mobileSchema = z.object({ latitude: z.coerce.number().min(-90).max(90), longitude: z.coerce.number().min(-180).max(180), accuracy: z.coerce.number().min(0).max(100_000).optional() });
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const SELFIE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const CODE: Record<string, string> = { present: 'P', half_day: 'HD', absent: 'A', missed_punch: 'MP', weekly_off: 'WO', holiday: 'H', leave: 'L' };
 const monthRange = (month: string) => {

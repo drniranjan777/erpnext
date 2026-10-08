@@ -1,18 +1,18 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { emissionEntries, emissionFactors, eprCertificates, esgMetrics, partDeclarations, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { fiscalYearOf, todayIST } from '../../common/fiscal-year';
 import { DatabaseService } from '../../database/database.service';
 import { DEFAULT_FACTORS, energyGj, eprStatus, footprint, ltifr, perCrore, rollUpCompliance, type Activity, type PartDecl } from './esg-rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (n: number) => z.string().trim().max(n).nullable().optional();
 const fy = z.string().regex(/^\d{4}-\d{2}$/, 'Financial year as 2026-27');
 const EPR = ['plastic_packaging', 'e_waste', 'battery', 'tyre', 'used_oil'] as const;
 
-export const METRICS: Record<string, string> = {
+const METRICS: Record<string, string> = {
   water_withdrawal_kl: 'Water withdrawal (kl)',
   water_consumption_kl: 'Water consumption (kl)',
   water_discharge_kl: 'Water discharged (kl)',

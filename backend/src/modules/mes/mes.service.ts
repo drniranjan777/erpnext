@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { jobCards, machines, mesAndonCalls, mesCounts, mesDowntimeReasons, mesMachineSettings, mesMachineStates, mesShifts, type Transaction } from '@nextgen/database';
-import { and, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
@@ -8,12 +8,12 @@ import { counterStep } from '../iot/counters';
 import { IotService, type IngestedSignal } from '../iot/iot.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { combineOee, computeOee, currentShift, istDate, shiftWindows, type Loss, type MachineState, type OeeResult, type ShiftDef, type Span } from './oee';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const code = z.string().trim().min(1).max(20);
 
-export const LOSSES = ['breakdown', 'setup', 'minor_stop', 'speed', 'defects', 'startup', 'planned', 'other'] as const;
-export const DEFAULT_REASONS: { code: string; name: string; loss: Loss }[] = [
+const LOSSES = ['breakdown', 'setup', 'minor_stop', 'speed', 'defects', 'startup', 'planned', 'other'] as const;
+const DEFAULT_REASONS: { code: string; name: string; loss: Loss }[] = [
   { code: 'BRK', name: 'Breakdown', loss: 'breakdown' },
   { code: 'ELEC', name: 'Electrical fault', loss: 'breakdown' },
   { code: 'MOULD', name: 'Mould / die problem', loss: 'breakdown' },
@@ -27,7 +27,7 @@ export const DEFAULT_REASONS: { code: string; name: string; loss: Loss }[] = [
   { code: 'NOPLAN', name: 'No production planned', loss: 'planned' },
   { code: 'PM', name: 'Planned maintenance', loss: 'planned' },
 ];
-export const DEFAULT_SHIFTS = [
+const DEFAULT_SHIFTS = [
   { code: 'A', name: 'Shift A', startMinute: 360, endMinute: 840, breakMinutes: 30 },
   { code: 'B', name: 'Shift B', startMinute: 840, endMinute: 1320, breakMinutes: 30 },
   { code: 'C', name: 'Shift C', startMinute: 1320, endMinute: 360, breakMinutes: 30 },

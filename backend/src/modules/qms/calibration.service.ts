@@ -1,13 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { calibrations, gauges, grrStudies, type Transaction } from '@nextgen/database';
-import { desc, eq, sql, type SQL } from 'drizzle-orm';
+import { calibrations, gauges, grrStudies } from '@nextgen/database';
+import { desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
 import { gaugeRR, validateStudy } from '../quality/msa';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const plusDays = (d: string, n: number) => {
   const x = new Date(`${d}T00:00:00Z`);
   x.setUTCDate(x.getUTCDate() + n);

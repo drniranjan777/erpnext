@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { companies, parties, svcArticles, svcContracts, svcSettings, svcTicketEvents, svcTickets, svcWarranties, users, type Transaction } from '@nextgen/database';
-import { and, asc, desc, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { nextCode } from '../../common/codes';
@@ -11,8 +11,8 @@ import { JobsService } from '../jobs/jobs.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { suggestReply } from './reply';
 import { addWorkingMinutes, DEFAULT_TARGETS, slaState, triage, type Priority } from './sla';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (max: number) => z.string().trim().max(max).nullable().optional();
 const SLA_QUEUE = 'service.sla';
 const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;

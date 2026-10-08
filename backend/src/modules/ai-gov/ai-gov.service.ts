@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { aiEvalRuns, aiModelChanges, aiSettings, users, type Transaction } from '@nextgen/database';
-import { desc, eq, sql, type SQL } from 'drizzle-orm';
+import { aiEvalRuns, aiModelChanges, aiSettings, users } from '@nextgen/database';
+import { desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
@@ -9,8 +9,7 @@ import { EntitlementsService } from '../billing/entitlements.service';
 import { AiGateway } from './ai-gateway.service';
 import { EVAL_SUITES, type EvalSuite } from './evals';
 import { AI_FEATURE_CODES, AI_FEATURES, MODEL_FEATURES, monthStartIST, PLAN_AI_BUDGET_INR, priceOf, USD_INR } from './policy';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../common/sql';
 
 export const policySchema = z.object({
   features: z.partialRecord(z.enum(AI_FEATURE_CODES as [string, ...string[]]), z.boolean()).optional(),

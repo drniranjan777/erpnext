@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { aiActionLog, aiAgents, aiRecommendations, aiRuns, aiSettings, memberships, type AgentGuardrails, type Transaction } from '@nextgen/database';
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -17,8 +17,8 @@ import { purchaseAgent } from './definitions/purchase';
 import { salesAgent } from './definitions/sales';
 import { supportAgent } from './definitions/support';
 import { canAutoExecute, nextRun, type AgentDefinition, type Finding } from './framework';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const QUEUE = 'agents.run';
 const SYSTEM_META: RequestMeta = { ip: null, userAgent: 'ai-agent', requestId: 'agent' };
 

@@ -1,8 +1,6 @@
-import { sql, type SQL } from 'drizzle-orm';
-import type { Transaction } from '@nextgen/database';
+import { sql } from 'drizzle-orm';
 import type { AgentDefinition, Finding } from '../framework';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../../common/sql';
 
 /** Production agent: material shortages for work orders starting soon, and work orders running late. */
 export const productionAgent: AgentDefinition = {

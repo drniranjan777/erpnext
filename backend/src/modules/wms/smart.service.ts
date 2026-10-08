@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { itemBarcodes, items, parties, wms3plBills, wms3plClients, wmsBins, wmsRfidReads, wmsRfidTags, type Transaction } from '@nextgen/database';
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import type { RequestMeta } from '../../common/request-meta';
@@ -8,8 +8,8 @@ import { DatabaseService } from '../../database/database.service';
 import { SalesInvoicesService } from '../sales/invoices.service';
 import { createInvoiceSchema } from '../sales/sales.schemas';
 import { decodeSgtin96, faceLevels, gtinForms } from './smart';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const money = (v: number) => (Math.round(v * 100) / 100).toFixed(2);
 
 export const clientSchema = z.object({

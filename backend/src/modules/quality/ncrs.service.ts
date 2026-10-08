@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { documents, goodsReceipts, items, ncrs, parties, qualityInspections, uoms, type Transaction } from '@nextgen/database';
-import { and, desc, eq, ilike, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, ilike, lt, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { Decimal } from '../../common/decimal';
@@ -10,11 +10,11 @@ import type { RequestMeta } from '../../common/request-meta';
 import { optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
+import { many } from '../../common/sql';
 
 const DOC_TYPE = 'ncr' as const;
 const D = Decimal.from;
 const ZERO = D('0');
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 
 const qty0 = (label: string) =>
   z

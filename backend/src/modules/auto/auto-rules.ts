@@ -7,7 +7,7 @@ import type { ApqpDeliverable, PpapElement } from '@nextgen/database';
 
 // ---- APQP ---------------------------------------------------------------------------------------
 
-export const APQP_PHASES = ['Plan and define', 'Product design and development', 'Process design and development', 'Product and process validation', 'Feedback, assessment and corrective action'];
+const APQP_PHASES = ['Plan and define', 'Product design and development', 'Process design and development', 'Product and process validation', 'Feedback, assessment and corrective action'];
 
 const D: [number, string, string][] = [
   [1, 'P1-01', 'Voice of the customer and customer-specific requirements'],
@@ -51,7 +51,7 @@ export function apqpProgress(ds: ApqpDeliverable[]) {
 
 // ---- PPAP ---------------------------------------------------------------------------------------
 
-export const PPAP_ELEMENTS = [
+const PPAP_ELEMENTS = [
   'Design records',
   'Authorised engineering change documents',
   'Customer engineering approval',
@@ -178,7 +178,7 @@ export function parseEdifact(raw: string): { tag: string; elements: string[][] }
 
 const esc = (v: string) => v.replace(/([?:+'])/g, '?$1');
 /** One segment: tag, then elements (strings or component arrays). */
-export function seg(tag: string, ...elements: (string | (string | null | undefined)[] | null | undefined)[]) {
+function seg(tag: string, ...elements: (string | (string | null | undefined)[] | null | undefined)[]) {
   const parts = elements.map((e) => (Array.isArray(e) ? e.map((c) => esc(c ?? '')).join(':') : esc(e ?? '')));
   while (parts.length && parts[parts.length - 1] === '') parts.pop();
   return `${[tag, ...parts].join('+')}'`;

@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { type Transaction } from '@nextgen/database';
-import { sql, type SQL } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { z } from 'zod';
@@ -9,8 +9,8 @@ import type { AuthContext } from '../../common/auth-context';
 import type { Env } from '../../config/env';
 import { DatabaseService } from '../../database/database.service';
 import { CLEARED, EXCLUDED, HISTORY, insertionOrder, remap, type ExportFile, type ForeignKey } from './tenant-copy';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const CHUNK = 1000;
 
 export const importSchema = z.object({

@@ -1,13 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { twinLayouts, twinNodes, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
 import { MesService } from '../mes/mes.service';
 import { SchedulingService, whatIfSchema } from '../planning/scheduling.service';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../common/sql';
 
 export const layoutSchema = z.object({
   name: z.string().trim().min(2).max(80),

@@ -1,13 +1,12 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { expenseClaims, payrollInputs, type Transaction } from '@nextgen/database';
-import { eq, sql, type SQL } from 'drizzle-orm';
+import { expenseClaims, payrollInputs } from '@nextgen/database';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../../common/auth-context';
 import { todayIST } from '../../../common/fiscal-year';
 import { DatabaseService } from '../../../database/database.service';
 import { isManagerOf, permissionsOf, selfEmployee, subjectOf } from '../time/people';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../../common/sql';
 
 export const claimSchema = z.object({
   employeeId: z.uuid().optional(),

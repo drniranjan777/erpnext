@@ -5,8 +5,8 @@ import { fiscalYearOf } from '../../../common/fiscal-year';
 import type { ReportColumn } from '../report-types';
 import { DATASETS, type Dataset, type DatasetField } from './datasets';
 
-export const OPS = ['eq', 'ne', 'contains', 'gt', 'gte', 'lt', 'lte', 'in', 'empty', 'not_empty'] as const;
-export const PERIODS = ['all', 'today', 'last_7', 'last_30', 'last_90', 'mtd', 'last_month', 'qtd', 'fytd', 'last_fy', 'custom'] as const;
+const OPS = ['eq', 'ne', 'contains', 'gt', 'gte', 'lt', 'lte', 'in', 'empty', 'not_empty'] as const;
+const PERIODS = ['all', 'today', 'last_7', 'last_30', 'last_90', 'mtd', 'last_month', 'qtd', 'fytd', 'last_fy', 'custom'] as const;
 const AGGS = ['sum', 'avg', 'min', 'max', 'count'] as const;
 
 export const specSchema = z.object({

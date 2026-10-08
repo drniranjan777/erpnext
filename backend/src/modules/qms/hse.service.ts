@@ -1,12 +1,12 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { eprObligations, hazardousWaste, hseIncidents, licences, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { eprObligations, hazardousWaste, hseIncidents, licences } from '@nextgen/database';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const amount = (label: string) =>
   z
     .union([z.string(), z.number()])

@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { visionDeployments, visionInspections, visionModels, type Transaction } from '@nextgen/database';
-import { and, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
+import { visionDeployments, visionInspections, visionModels } from '@nextgen/database';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
@@ -8,8 +8,7 @@ import { IotService } from '../iot/iot.service';
 import { parseTs } from '../iot/rules';
 import { MesService } from '../mes/mes.service';
 import { defectBurst, visionDrift, visionStats, type InspectionRow } from './vision-monitor';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../common/sql';
 
 export const modelSchema = z.object({
   name: z.string().trim().min(2).max(80),

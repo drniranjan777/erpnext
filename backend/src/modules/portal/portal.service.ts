@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { companies, parties, portalOrders, svcTicketEvents, svcTickets, type Transaction } from '@nextgen/database';
-import { and, asc, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { nextCode } from '../../common/codes';
@@ -15,8 +15,8 @@ import { SalesOrdersService } from '../sales/orders.service';
 import { createOrderSchema } from '../sales/sales.schemas';
 import { TicketsService } from '../service/tickets.service';
 import type { PortalIdentity } from './portal-auth.service';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (max: number) => z.string().trim().max(max).nullable().optional();
 const qty = z.union([z.string(), z.number()]).transform((v) => String(v).trim()).refine((v) => /^\d{1,10}(\.\d{1,4})?$/.test(v) && Number(v) > 0, 'Quantity must be more than zero');
 

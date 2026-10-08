@@ -11,8 +11,8 @@ import { JournalsService } from '../accounting/journals.service';
 import { LedgerService } from '../accounting/ledger.service';
 import { DocumentsService } from '../documents/documents.service';
 import { allocate, consolidate, depositInterestFor, depositValue, facilityUse, loanInterestFor, loanSchedule, outstanding, r2, reconcile, type AccountBalance, type MemberBooks } from './finance-rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (n: number) => z.string().trim().max(n).nullable().optional();
 const month = z.string().regex(/^\d{4}-\d{2}$/, 'Month as 2026-04');
 

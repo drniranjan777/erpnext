@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { employees, leaveApplications, leaveLedger, leaveTypes, type Transaction } from '@nextgen/database';
-import { and, asc, eq, gte, lte, ne, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, gte, lte, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../../common/auth-context';
 import { todayIST } from '../../../common/fiscal-year';
@@ -8,6 +8,7 @@ import { DatabaseService } from '../../../database/database.service';
 import { daysBetween, leaveDaysFor } from './attendance-engine';
 import { isManagerOf, permissionsOf, selfEmployee, subjectOf } from './people';
 import { TimeService } from './time.service';
+import { many } from '../../../common/sql';
 
 const days = (max: number) => z.number().min(0).max(max);
 export const leaveTypeSchema = z
@@ -44,7 +45,6 @@ export const monthSchema = z.object({ month: z.string().regex(/^\d{4}-(0[1-9]|1[
 export const yearSchema = z.object({ year: z.number().int().min(2000).max(2100) });
 export const decideLeaveSchema = z.object({ approve: z.boolean(), note: z.string().trim().max(300).optional() });
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /**

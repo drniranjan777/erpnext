@@ -1,14 +1,14 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { aiDocCaptures, itemVendors, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { loadPermissions } from '../../common/guards';
 import { DatabaseService } from '../../database/database.service';
 import { AiBlockedError, AiGateway } from '../ai-gov/ai-gateway.service';
 import { extractDocument, type DocKind, type Extracted } from './extractors';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const KINDS = ['delivery_challan', 'eway_bill', 'coa', 'quotation', 'bank_statement', 'invoice', 'unknown'] as const;
 export const textSchema = z.object({ text: z.string().min(10).max(200_000), kind: z.enum(KINDS).optional(), fileName: z.string().max(200).optional() });
 

@@ -88,8 +88,6 @@ export function professionalTax(stateCode: string, gross: number, month: string,
   return tax && idx === slabs.length - 1 && t.feb && month.slice(5, 7) === '02' ? t.feb : tax;
 }
 
-export const PT_STATES = Object.keys(PT);
-
 // ---- Labour welfare fund ------------------------------------------------------------------------
 
 /** Deduction months and the employee / employer amounts. */
@@ -114,7 +112,7 @@ export function labourWelfareFund(stateCode: string, month: string) {
 export type Regime = 'new' | 'old';
 const NEW_SLABS: Slab[] = [[400_000, 0], [800_000, 0.05], [1_200_000, 0.1], [1_600_000, 0.15], [2_000_000, 0.2], [2_400_000, 0.25], [Infinity, 0.3]];
 const OLD_SLABS: Slab[] = [[250_000, 0], [500_000, 0.05], [1_000_000, 0.2], [Infinity, 0.3]];
-export const STANDARD_DEDUCTION: Record<Regime, number> = { new: 75_000, old: 50_000 };
+const STANDARD_DEDUCTION: Record<Regime, number> = { new: 75_000, old: 50_000 };
 
 function slabTax(income: number, slabs: Slab[]) {
   let tax = 0;

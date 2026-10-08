@@ -24,7 +24,7 @@ function fail(errors: Err[]): never {
   throw new BadRequestException({ message: errors[0].message, errors });
 }
 
-export const journalLineSchema = z.object({
+const journalLineSchema = z.object({
   accountId: z.uuid(),
   partyId: z.uuid().nullable().optional(),
   costCenterId: z.uuid().nullable().optional(),

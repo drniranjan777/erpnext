@@ -1,13 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { amChecklists, amChecks, amcContracts, amcVisits, fiveSAudits, kaizens, maintAssets, parties, type Transaction } from '@nextgen/database';
-import { eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { amChecklists, amChecks, amcContracts, amcVisits, fiveSAudits, kaizens, maintAssets, parties } from '@nextgen/database';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
 import { optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const score = z.number().int().min(1).max(5);
 const money = z
   .union([z.string(), z.number()])

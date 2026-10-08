@@ -36,7 +36,7 @@ export const DEFAULT_FACTORS: FactorDef[] = [
   { key: 'commute_car_km', name: 'Employee commuting by car', scope: 3, category: 'cat7_commuting', unit: 'km', kgCo2ePerUnit: 0.17, source: 'DEFRA average car' },
 ];
 
-export const ENERGY_GJ: Record<string, number> = Object.fromEntries(DEFAULT_FACTORS.filter((f) => f.gjPerUnit).map((f) => [f.key, f.gjPerUnit!]));
+const ENERGY_GJ: Record<string, number> = Object.fromEntries(DEFAULT_FACTORS.filter((f) => f.gjPerUnit).map((f) => [f.key, f.gjPerUnit!]));
 
 export type Activity = {
   period: string;

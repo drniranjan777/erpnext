@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { automationRuns, automations, DOC_TYPES, isDocType, type AutomationAction, type Transaction } from '@nextgen/database';
 import { createHmac } from 'node:crypto';
-import { desc, eq, sql, type SQL } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { DatabaseService } from '../../database/database.service';
@@ -11,8 +11,8 @@ import { MailService } from '../notifications/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AUTOMATION_EVENTS, matches, render } from './automation-rules';
 import { MarketplaceService } from './marketplace.service';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const QUEUE = 'automation.run';
 const isPrivateHost = (u: URL) => /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|\[?::1\]?$|0\.0\.0\.0)/.test(u.hostname);
 

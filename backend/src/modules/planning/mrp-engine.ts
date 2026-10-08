@@ -134,7 +134,7 @@ export function addDays(date: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-export function daysBetween(a: string, b: string) {
+function daysBetween(a: string, b: string) {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 }
 

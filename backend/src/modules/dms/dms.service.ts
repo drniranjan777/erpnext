@@ -16,7 +16,7 @@ import {
   parties,
   type Transaction,
 } from '@nextgen/database';
-import { and, asc, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
 import type { Readable } from 'node:stream';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
@@ -31,8 +31,8 @@ import { DocumentsService } from '../documents/documents.service';
 import { StorageService } from '../documents/storage.service';
 import { parseSheet } from '../imports/file-parser';
 import { applySchemes, metresBetween, type Scheme } from './schemes';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (max: number) => z.string().trim().max(max).nullable().optional();
 const code = z.string().trim().min(1).max(20);
 

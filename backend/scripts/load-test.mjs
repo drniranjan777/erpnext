@@ -4,7 +4,7 @@
  * endpoint against the 300 ms budget. Creates a throwaway "e2e-load-…" workspace (remove it
  * afterwards with `npm run purge:test-tenants -w database`).
  *
- *   node scripts/load-test.mjs [--users 50] [--seconds 30] [--budget 300] [--api http://localhost:4000/api/v1]
+ *   node scripts/load-test.mjs [--users 50] [--seconds 30] [--budget 300] [--set core|enterprise|all] [--api http://localhost:4000/api/v1]
  */
 import { randomBytes } from 'node:crypto';
 
@@ -16,6 +16,7 @@ const API = arg('api', process.env.API_URL ?? 'http://localhost:4000/api/v1');
 const USERS = Number(arg('users', 50));
 const SECONDS = Number(arg('seconds', 30));
 const BUDGET = Number(arg('budget', 300));
+const SET = arg('set', 'all');
 
 const id = randomBytes(3).toString('hex');
 async function call(method, path, token, body) {
@@ -40,7 +41,7 @@ for (let i = 0; i < 40; i++) {
 const entry = await call('POST', '/inventory/stock-entries', token, { purpose: 'opening_stock', toWarehouseId: whs.find((w) => w.code === 'MAIN').id, lines });
 await call('POST', `/inventory/stock-entries/${entry.body.id}/submit`, token, { version: entry.body.version });
 
-const ENDPOINTS = [
+const CORE = [
   '/auth/me',
   '/masters/items?limit=50',
   '/inventory/warehouses',
@@ -52,6 +53,26 @@ const ENDPOINTS = [
   '/manufacturing/shop-floor',
   '/documents/approvals/inbox',
 ];
+// Phases 12–15: agents, regulated packs, enterprise finance, projects, PLM, marketplace, POS.
+const ENTERPRISE = [
+  '/mobile/summary',
+  '/projects',
+  '/finance/treasury',
+  '/finance/intercompany/reconciliation',
+  '/esg/brsr',
+  '/esg/footprint',
+  '/compliance/materials',
+  '/plm/items',
+  '/doc-store/files',
+  '/apps',
+  '/automations',
+  '/pos/terminals',
+  '/textile/orders',
+  '/food/haccp',
+  '/hse/sds',
+  '/ai/inbox',
+];
+const ENDPOINTS = SET === 'core' ? CORE : SET === 'enterprise' ? ENTERPRISE : [...CORE, ...ENTERPRISE];
 
 // ---- run -----------------------------------------------------------------------------------
 const samples = new Map(ENDPOINTS.map((e) => [e, []]));

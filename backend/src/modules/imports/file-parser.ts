@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import ExcelJS from 'exceljs';
 
-export const MAX_IMPORT_ROWS = 5000;
+const MAX_IMPORT_ROWS = 5000;
 
 export interface ParsedSheet {
   /** Normalised header keys (lower_snake_case), in column order. */

@@ -1,14 +1,14 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { contractAttendance, contractors, contractWages, contractWorkers, minimumWages, type Transaction } from '@nextgen/database';
-import { and, asc, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../../common/auth-context';
 import { todayIST } from '../../../common/fiscal-year';
 import { DatabaseService } from '../../../database/database.service';
 import { daysBetween } from '../time/attendance-engine';
 import { wageCheck } from './compliance';
+import { many } from '../../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const amount = z.number().min(0).max(1e8);
 const text = (max: number) => z.string().trim().max(max).nullable().optional();
 const SKILLS = ['unskilled', 'semi_skilled', 'skilled', 'highly_skilled'] as const;

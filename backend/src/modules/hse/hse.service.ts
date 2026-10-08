@@ -1,14 +1,14 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { hazmatLimits, sdsDistributions, sdsDocuments, workPermits, type GasTest, type Transaction } from '@nextgen/database';
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
 import { ESignService } from '../gmp/esign.service';
 import { checklistFor, classify, conflicts, gasTestOk, H_STATEMENTS, P_STATEMENTS, PERMIT_TYPES, permitProblems, petroleumClass, PICTOGRAMS, SDS_SECTIONS, sdsProblems, storageCheck, type PermitType, type StockRow } from './hse-rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (n: number) => z.string().trim().max(n).nullable().optional();
 
 export const sdsSchema = z.object({

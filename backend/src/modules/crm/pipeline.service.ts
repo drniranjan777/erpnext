@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { crmOpportunities, crmStages, crmTargets, crmTerritories, crmWebForms, parties, users, type Transaction } from '@nextgen/database';
 import { randomBytes } from 'node:crypto';
-import { and, asc, eq, ne, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { nextCode } from '../../common/codes';
@@ -9,8 +9,8 @@ import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
 import { QuotationsService } from '../sales/quotations.service';
 import { opportunityNextAction, type ActivityFacts, type OpportunityFacts } from './insight';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Month as YYYY-MM');
 
 export const opportunitySchema = z.object({

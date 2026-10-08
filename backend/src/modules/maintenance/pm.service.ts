@@ -1,14 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { maintAssets, pmSchedules, type Transaction } from '@nextgen/database';
-import { eq, sql, type SQL } from 'drizzle-orm';
+import { maintAssets, pmSchedules } from '@nextgen/database';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
 import type { RequestMeta } from '../../common/request-meta';
 import { DatabaseService } from '../../database/database.service';
 import { MaintenanceOrdersService } from './orders.service';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const plusDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
 export const scheduleSchema = z

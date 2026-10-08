@@ -1,14 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { companies, type Transaction } from '@nextgen/database';
-import { asc, isNull, sql, type SQL } from 'drizzle-orm';
+import { asc, isNull, sql } from 'drizzle-orm';
 import type { AuthContext } from '../../../common/auth-context';
 import { DatabaseService } from '../../../database/database.service';
 import { TimeService } from '../time/time.service';
 import { ContractService } from './contract.service';
+import { many } from '../../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
-
-export const REGISTERS = {
+const REGISTERS = {
   'adult-workers': { title: 'Register of adult workers', law: 'Factories Act 1948, Form 12 · Shops and Establishments Act register of employment', period: 'none' },
   'muster-roll': { title: 'Muster roll', law: 'Factories Act 1948, Form 25', period: 'month' },
   'leave-register': { title: 'Register of leave with wages', law: 'Factories Act 1948, s.79 and Form 14', period: 'year' },

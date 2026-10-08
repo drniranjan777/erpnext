@@ -20,7 +20,7 @@ export type RegistrationType = 'regular' | 'composition' | 'unregistered' | 'con
 
 /** Union territories without a legislature charge UTGST instead of SGST. */
 export const UTGST_STATES = new Set(['04', '25', '26', '31', '35', '38', '97']);
-export const OVERSEAS_POS = '96';
+const OVERSEAS_POS = '96';
 
 /** State / UT name by GST code ("96" = outside India). */
 export const GST_STATE_NAME: Record<string, string> = { ...GST_STATES, '96': 'Other Countries' };

@@ -78,7 +78,7 @@ export function allergenStatement(contains: string[], mayContain: string[]) {
 // ---- labels -------------------------------------------------------------------------------------
 
 /** Reference daily values for %RDA on labels (FSS Labelling and Display Regulations, 2020). */
-export const RDA = { energyKcal: 2000, totalFat: 67, saturatedFat: 22, transFat: 2, addedSugars: 50, sodiumMg: 2000 } as const;
+const RDA = { energyKcal: 2000, totalFat: 67, saturatedFat: 22, transFat: 2, addedSugars: 50, sodiumMg: 2000 } as const;
 
 export function nutritionPanel(n: Nutrition, servingSizeG: number | null) {
   const r1 = (v: number) => Math.round(v * 10) / 10;

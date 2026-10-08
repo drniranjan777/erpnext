@@ -8,7 +8,7 @@ const qty = (label: string) =>
     .transform((v) => String(v).trim() || '0')
     .refine((v) => /^\d{1,14}(\.\d{1,4})?$/.test(v), `${label}: a number with up to 4 decimals`);
 
-export const grnLineSchema = z.object({
+const grnLineSchema = z.object({
   poLineId: z.uuid(),
   /** Quantity that arrived, in the PO line's unit. */
   receivedQty: qty('Received'),

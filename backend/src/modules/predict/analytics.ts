@@ -6,7 +6,7 @@
 const DAY = 86_400_000;
 const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * DAY).toISOString().slice(0, 10);
 
-export function median(v: number[]) {
+function median(v: number[]) {
   if (!v.length) return null;
   const s = [...v].sort((a, b) => a - b);
   const m = Math.floor(s.length / 2);

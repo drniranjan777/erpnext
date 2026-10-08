@@ -157,7 +157,7 @@ export interface MemberBooks {
 const sign = (n: AccountBalance['nature']) => (n === 'asset' || n === 'expense' ? 1 : -1);
 
 /** Report lines of Schedule III Division II (Ind AS). */
-export const LINE_LABELS: Record<string, string> = {
+const LINE_LABELS: Record<string, string> = {
   'bs.equity': 'Other equity',
   'bs.equity.share_capital': 'Equity share capital',
   'bs.equity.reserves': 'Other equity',

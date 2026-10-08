@@ -16,7 +16,7 @@ import {
   wmsTasks,
   type Transaction,
 } from '@nextgen/database';
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { nextCode } from '../../common/codes';
@@ -27,8 +27,8 @@ import { NIL_BATCH, wmsConfigs } from '../inventory/bins';
 import { StockEntriesService } from '../inventory/stock-entries.service';
 import { abcClasses, floorLife, MSL_HOURS, replenishQty, tankLitres } from './control';
 import { allocate } from './outbound';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (max: number) => z.string().trim().max(max).nullable().optional();
 const n4 = (v: number) => v.toFixed(4);
 const MSL_LEVELS = Object.keys(MSL_HOURS) as [string, ...string[]];

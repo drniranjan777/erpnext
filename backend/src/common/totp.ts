@@ -6,7 +6,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
  */
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-export const TOTP_PERIOD = 30;
+const TOTP_PERIOD = 30;
 
 export function base32Encode(buf: Buffer): string {
   let bits = 0;

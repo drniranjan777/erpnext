@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { crmActivities, crmLeads, crmOpportunities, crmTerritories, crmWebForms, parties, users, type Transaction } from '@nextgen/database';
-import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { nextCode } from '../../common/codes';
@@ -12,8 +12,8 @@ import { createPartySchema, PartiesService } from '../masters/parties.service';
 import { PipelineService } from './pipeline.service';
 import { phoneKey, readLeadRow, scoreLead, stateCodeOf } from './scoring';
 import { leadInsight, type ActivityFacts } from './insight';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (max: number) => z.string().trim().max(max).nullable().optional();
 export const SOURCES = ['web', 'indiamart', 'tradeindia', 'justdial', 'whatsapp', 'email', 'referral', 'walk_in', 'exhibition', 'other'] as const;
 

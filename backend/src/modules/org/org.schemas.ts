@@ -10,7 +10,7 @@ const optionalText = (max: number) =>
     .optional()
     .or(z.literal('').transform(() => undefined));
 
-export const addressSchema = z.object({
+const addressSchema = z.object({
   line1: optionalText(200),
   line2: optionalText(200),
   city: optionalText(100),

@@ -13,7 +13,7 @@ export type WidgetData =
 export interface Widget { key: string; title: string; description: string; area: string; size: 1 | 2 | 3; href: string; data: WidgetData | null; error?: string }
 export interface DashboardView { id: string | null; name: string; preset: string | null; refreshSeconds: number; mine: boolean; shared: boolean; isDefault: boolean; asOf: string; widgets: Widget[] }
 
-export function fmt(v: string, unit: Unit, compact = false) {
+function fmt(v: string, unit: Unit, compact = false) {
   const n = Number(v);
   if (unit === "percent") return `${n.toFixed(n >= 10 ? 1 : 2)}%`;
   if (unit === "money") {
@@ -29,7 +29,7 @@ const SPAN = { 1: "", 2: "sm:col-span-2", 3: "sm:col-span-2 xl:col-span-4" } as 
 const TONE = { good: "text-success", bad: "text-danger", neutral: "text-muted" } as const;
 
 /** One widget tile; `big` is the TV-mode type scale. */
-export function WidgetTile({ w, big = false }: { w: Widget; big?: boolean }) {
+function WidgetTile({ w, big = false }: { w: Widget; big?: boolean }) {
   return (
     <Card className={`flex flex-col p-4 ${SPAN[w.size]} ${big ? "p-6" : ""}`}>
       <div className="flex items-start justify-between gap-2">

@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnsupportedMediaTypeException } from '@nestjs/common';
 import { attachments, companies, employeeDocuments, employeeEvents, employeeFamily, employeeLetters, employees, letterTemplates, memberships, users, type Transaction } from '@nextgen/database';
-import { and, asc, desc, eq, ilike, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import type { Readable } from 'node:stream';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
@@ -13,8 +13,8 @@ import { DatabaseService } from '../../database/database.service';
 import { AuditService } from '../audit/audit.service';
 import { StorageService } from '../documents/storage.service';
 import { aadhaarValid, esicValid, ifscValid, maskPan, panValid, uanValid } from './ids';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const up = (v: string | null | undefined) => (v ? v.trim().toUpperCase() : v);
 const date = z.iso.date().nullable().optional();
 

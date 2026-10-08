@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { batchReviews, emLocations, emSamples, gmpSettings, lineClearances, type EmParameter, type Transaction } from '@nextgen/database';
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import type { RequestMeta } from '../../common/request-meta';
@@ -8,11 +8,11 @@ import { DatabaseService } from '../../database/database.service';
 import { DeviationsService } from '../qms/deviations.service';
 import { ESignService } from './esign.service';
 import { batchExceptions, EM_UNITS, emStatus, type BatchFacts } from './rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const password = z.string().min(1, 'Enter your password to sign').max(200);
 
-export const DEFAULT_CHECKLIST = [
+const DEFAULT_CHECKLIST = [
   'Previous product, materials and intermediates removed',
   'Previous batch documents and labels removed',
   'Equipment cleaned and status label shows "clean"',

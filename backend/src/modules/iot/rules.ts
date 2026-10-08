@@ -21,7 +21,7 @@ export interface RuleState {
 
 export type RuleEvent = { kind: 'raise'; at: Date; value: number } | { kind: 'clear'; at: Date; peak: number };
 
-export function breaches(r: RuleLimits, v: number): boolean {
+function breaches(r: RuleLimits, v: number): boolean {
   switch (r.op) {
     case 'above':
       return v > r.threshold;
@@ -35,7 +35,7 @@ export function breaches(r: RuleLimits, v: number): boolean {
 }
 
 /** The worse of two breaching values for this rule. */
-export function worse(r: RuleLimits, a: number, b: number): number {
+function worse(r: RuleLimits, a: number, b: number): number {
   if (r.op === 'above') return Math.max(a, b);
   if (r.op === 'below') return Math.min(a, b);
   if (r.op === 'outside') {

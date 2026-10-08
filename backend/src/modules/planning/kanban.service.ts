@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { items, kanbanCards, kanbanLoops, uoms, warehouses, type Transaction } from '@nextgen/database';
-import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
+import { items, kanbanCards, kanbanLoops, uoms, warehouses } from '@nextgen/database';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -11,8 +11,7 @@ import { StockEntriesService } from '../inventory/stock-entries.service';
 import { WorkOrdersService } from '../manufacturing/work-orders.service';
 import { RequisitionsService } from '../purchase/requisitions.service';
 import { addDays } from './mrp-engine';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../common/sql';
 
 const qty = z
   .union([z.string(), z.number()])

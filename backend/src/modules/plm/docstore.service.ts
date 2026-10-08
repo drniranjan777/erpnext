@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { dmsFiles, dmsFolders, dmsSignatures, dmsVersions, type Transaction } from '@nextgen/database';
-import { and, desc, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { Readable } from 'node:stream';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
@@ -13,8 +13,8 @@ import { StorageService } from '../documents/storage.service';
 import { ESignService } from '../gmp/esign.service';
 import { disposalProblem, extractText, retentionUntil } from './plm-rules';
 import { SandboxSigner, UnconfiguredSigner, type SigningProvider } from './signing';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const MAX_FILE = 25 * 1_048_576;
 
 export const folderSchema = z.object({ name: z.string().trim().min(1).max(120), parentId: z.uuid().nullable().optional(), retentionYears: z.number().int().min(0).max(100).nullable().optional() });

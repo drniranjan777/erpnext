@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { auditFindings, internalAudits, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { auditFindings, internalAudits } from '@nextgen/database';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -8,8 +8,7 @@ import type { RequestMeta } from '../../common/request-meta';
 import { optionalText } from '../../common/validators';
 import { DatabaseService } from '../../database/database.service';
 import { CapasService } from '../quality/capas.service';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../common/sql';
 
 export const auditSchema = z.object({
   title: z.string().trim().min(3).max(200),

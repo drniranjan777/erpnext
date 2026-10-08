@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, OnModuleInit } from '@nestjs/common';
 import { customerComplaints, documents, items, ncrs, parties, type Transaction } from '@nextgen/database';
-import { and, desc, eq, ilike, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, ilike, lt, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -11,9 +11,9 @@ import { DatabaseService } from '../../database/database.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
 import { CapasService } from './capas.service';
 import { NcrsService } from './ncrs.service';
+import { many } from '../../common/sql';
 
 const DOC_TYPE = 'customer_complaint' as const;
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 
 export const complaintSchema = z.object({
   customerId: z.uuid(),

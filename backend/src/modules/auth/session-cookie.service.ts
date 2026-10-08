@@ -7,7 +7,7 @@ import type { IssuedTokens } from './tokens.service';
 
 export const REFRESH_COOKIE = 'ngerp_rt';
 /** Refresh cookie is only sent to /api/v1/auth/* endpoints. */
-export const REFRESH_COOKIE_PATH = '/api/v1/auth';
+const REFRESH_COOKIE_PATH = '/api/v1/auth';
 
 /** Turns a login result into the HTTP response + refresh cookie. */
 @Injectable()

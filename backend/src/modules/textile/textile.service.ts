@@ -1,13 +1,13 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { buyerOrders, socialAudits, styleSamples, techPacks, type Transaction } from '@nextgen/database';
-import { eq, sql, type SQL } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
 import { DatabaseService } from '../../database/database.service';
 import { auditState, breakdownTotals, measurementCheck, MILESTONES, missingCertificates, tna } from './textile-rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (n: number) => z.string().trim().max(n).nullable().optional();
 const SAMPLE_TYPES = ['lab_dip', 'proto', 'fit', 'size_set', 'pp', 'top', 'shipment'] as const;
 

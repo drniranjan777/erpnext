@@ -49,9 +49,9 @@ export interface DayResult {
 }
 
 /** Factories Act s.51 / s.54: overtime beyond 9 hours a day. */
-export const DAILY_OT_AFTER = 9 * 60;
+const DAILY_OT_AFTER = 9 * 60;
 /** Factories Act s.51: 48 hours a week. */
-export const WEEKLY_HOURS = 48 * 60;
+const WEEKLY_HOURS = 48 * 60;
 /** Factories Act s.55: a rest interval is due once a spell exceeds 5 hours. */
 const BREAK_AFTER = 5 * 60;
 const DEFAULT_FULL = 450;
@@ -82,7 +82,7 @@ export function shiftOn(a: Assignment, date: string): string | null {
 }
 
 /** Shift start and end instants; an end at or before the start is on the next day. */
-export function shiftTimes(date: string, s: ShiftDef) {
+function shiftTimes(date: string, s: ShiftDef) {
   const start = at(date, s.startTime);
   const night = minutes(s.endTime) <= minutes(s.startTime);
   const end = at(night ? addDays(date, 1) : date, s.endTime);
@@ -94,7 +94,7 @@ export function shiftTimes(date: string, s: ShiftDef) {
  * ends (so a late night shift's out-punch is not taken as the next day's in-punch). Without a
  * shift, the IST calendar day.
  */
-export function punchWindow(date: string, s: ShiftDef | null) {
+function punchWindow(date: string, s: ShiftDef | null) {
   if (!s) return { from: at(date, '00:00'), to: at(addDays(date, 1), '00:00') };
   const { start, end } = shiftTimes(date, s);
   return { from: new Date(start.getTime() - 4 * 3_600_000), to: new Date(Math.min(end.getTime() + 8 * 3_600_000, start.getTime() + 20 * 3_600_000)) };

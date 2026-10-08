@@ -12,7 +12,7 @@ import { api, ApiError } from "@/lib/api";
 import { QMS, RISK_TONE, textarea, type Deviation } from "@/lib/qms";
 
 /** Same bands as the server: severity 5 or RPN ≥ 45 high, ≥ 18 medium. */
-export function riskLevel(s: number, o: number, d: number) {
+function riskLevel(s: number, o: number, d: number) {
   const rpn = s * o * d;
   return { rpn, level: (s >= 5 || rpn >= 45 ? "high" : rpn >= 18 ? "medium" : "low") as keyof typeof RISK_TONE };
 }

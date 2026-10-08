@@ -1,13 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { demandForecasts, items, type Transaction } from '@nextgen/database';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { demandForecasts, items } from '@nextgen/database';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
 import { DatabaseService } from '../../database/database.service';
 import { forecastSeries, months } from './forecast';
-
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
+import { many } from '../../common/sql';
 
 export const generateSchema = z.object({
   /** Months to forecast, from the current month. */
@@ -175,7 +174,7 @@ export class ForecastingService {
 }
 
 /** YYYY-MM shifted by n months. */
-export function shift(period: string, n: number) {
+function shift(period: string, n: number) {
   const [y, m] = period.split('-').map(Number);
   const d = new Date(Date.UTC(y, m - 1 + n, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;

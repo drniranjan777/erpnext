@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { appInstallations, connectorRecords, connectorRuns, GST_STATES, type Transaction } from '@nextgen/database';
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { appInstallations, connectorRecords, connectorRuns, GST_STATES } from '@nextgen/database';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
@@ -15,8 +15,8 @@ import { createPartySchema, PartiesService } from '../masters/parties.service';
 import { SalesOrdersService } from '../sales/orders.service';
 import { createOrderSchema } from '../sales/sales.schemas';
 import { CATALOGUE, connectorDef, fromIndiaMart, fromShopify, genericSignatureOk, sampleDirectory, sampleLeads, sampleOrders, sandboxAwb, sandboxPaymentLink, shopifySignatureOk, tallyMastersXml, type ExternalLead, type ExternalOrder } from './connectors';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const SYSTEM: RequestMeta = { ip: null, userAgent: 'connector', requestId: 'connector' };
 
 export const installSchema = z.object({ connector: z.string().min(2).max(40), mode: z.enum(['sandbox', 'live']).default('sandbox'), config: z.record(z.string(), z.string().max(500)).default({}), secrets: z.record(z.string(), z.string().max(10_000)).default({}) });
@@ -209,15 +209,16 @@ export class MarketplaceService {
     const stats = { received: orders.length, created: 0, skipped: 0, failed: 0 };
     const customerId = await this.channelCustomer(auth, connector, channel);
     for (const o of orders) {
-      const seen = await this.database.run(auth, (tx) => tx.select({ id: connectorRecords.id }).from(connectorRecords).where(and(eq(connectorRecords.connector, connector), eq(connectorRecords.entityType, 'sales_order'), eq(connectorRecords.externalId, o.id))));
-      if (seen.length) {
-        stats.skipped++;
-        continue;
-      }
       const codes = [...new Set(o.lines.map((l) => l.sku))];
       const items = codes.length ? await this.database.run(auth, (tx) => many<{ id: string; code: string }>(tx, sql`select id, code from items where code in ${codes}`)) : [];
       const unknown = codes.filter((c) => !items.some((i) => i.code.toLowerCase() === c.toLowerCase()));
+      const claim = await this.claim(auth, connector, 'sales_order', o.id, { name: o.name, customer: o.customer });
+      if (!claim) {
+        stats.skipped++;
+        continue;
+      }
       if (unknown.length) {
+        await this.unclaim(auth, claim);
         stats.failed++;
         log.push(`${o.name}: unknown SKU ${unknown.join(', ')}`);
         continue;
@@ -229,17 +230,34 @@ export class MarketplaceService {
           SYSTEM,
         )) as { id: string; number?: string };
         await this.database.run(auth, async (tx) => {
-          await tx.insert(connectorRecords).values({ tenantId: auth.tenantId, connector, externalId: o.id, entityType: 'sales_order', entityId: so.id, data: { name: o.name, customer: o.customer } });
+          await tx.update(connectorRecords).set({ entityId: so.id }).where(eq(connectorRecords.id, claim));
           await this.webhooks.emit(tx, auth.tenantId, 'connector.orders_imported', { connector, externalId: o.id, orderName: o.name, salesOrderId: so.id, customer: o.customer.name, lines: o.lines.length, amount: o.lines.reduce((a, l) => a + l.qty * l.price, 0) });
         });
         stats.created++;
         log.push(`${o.name} → draft sales order`);
       } catch (err) {
+        await this.unclaim(auth, claim);
         stats.failed++;
         log.push(`${o.name}: ${(err as Error).message}`);
       }
     }
     return { status: stats.failed ? (stats.created ? 'partial' : 'failed') : 'ok', stats, log };
+  }
+
+  /**
+   * Claims an external record before anything is created from it, so the same order or lead pushed
+   * twice at once (webhook retries) is imported once. Returns the claim id, or null if already taken.
+   */
+  private async claim(auth: AuthContext, connector: string, entityType: string, externalId: string, data: Record<string, unknown>) {
+    const [r] = await this.database.run(auth, (tx) =>
+      tx.insert(connectorRecords).values({ tenantId: auth.tenantId, connector, externalId, entityType, data }).onConflictDoNothing().returning({ id: connectorRecords.id }),
+    );
+    return r?.id ?? null;
+  }
+
+  /** Gives up a claim whose import failed, so a later run can try again. */
+  private unclaim(auth: AuthContext, id: string) {
+    return this.database.run(auth, (tx) => tx.delete(connectorRecords).where(and(eq(connectorRecords.id, id), isNull(connectorRecords.entityId))));
   }
 
   /** One consumer customer per sales channel, created on first use. */
@@ -256,20 +274,21 @@ export class MarketplaceService {
     const stats = { received: leads.length, created: 0, skipped: 0, failed: 0 };
     const log: string[] = [];
     for (const l of leads) {
-      const seen = await this.database.run(auth, (tx) => tx.select({ id: connectorRecords.id }).from(connectorRecords).where(and(eq(connectorRecords.connector, 'indiamart'), eq(connectorRecords.entityType, 'lead'), eq(connectorRecords.externalId, l.id))));
-      if (seen.length) {
+      const claim = await this.claim(auth, 'indiamart', 'lead', l.id, { name: l.name });
+      if (!claim) {
         stats.skipped++;
         continue;
       }
       try {
         const lead = (await this.leads.create(auth, leadSchema.parse({ name: l.name, company: l.company ?? null, email: l.email ?? null, phone: l.phone ?? null, city: l.city ?? null, source: 'indiamart', sourceRef: l.id, product: l.product ?? null, requirement: l.message ?? null }))) as { id: string };
         await this.database.run(auth, async (tx) => {
-          await tx.insert(connectorRecords).values({ tenantId: auth.tenantId, connector: 'indiamart', externalId: l.id, entityType: 'lead', entityId: lead.id, data: { name: l.name } });
+          await tx.update(connectorRecords).set({ entityId: lead.id }).where(eq(connectorRecords.id, claim));
           await this.webhooks.emit(tx, auth.tenantId, 'connector.leads_imported', { connector: 'indiamart', externalId: l.id, leadId: lead.id, name: l.name, company: l.company ?? null, product: l.product ?? null });
         });
         stats.created++;
         log.push(`${l.name}${l.company ? ` (${l.company})` : ''} → lead`);
       } catch (err) {
+        await this.unclaim(auth, claim);
         stats.failed++;
         log.push(`${l.name}: ${(err as Error).message}`);
       }

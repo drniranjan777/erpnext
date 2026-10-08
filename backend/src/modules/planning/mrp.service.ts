@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { itemPlanning, items, mrpExceptions, mrpItemPlans, mrpRuns, plannedOrders, type Transaction } from '@nextgen/database';
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -14,8 +14,8 @@ import { RequisitionsService } from '../purchase/requisitions.service';
 import { months } from './forecast';
 import { currentPeriod } from './forecasting.service';
 import { addDays, runMrp, type Demand, type LotSizing, type PlanItem, type Receipt, type Source } from './mrp-engine';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const num = (v: string | number | null | undefined) => (v === null || v === undefined ? 0 : Number(v));
 const q4 = (v: number) => (Math.round(v * 1e4) / 1e4).toFixed(4);
 
@@ -529,5 +529,4 @@ function merge(lines: StructureLine[]) {
   for (const l of lines) m.set(l.itemId, (m.get(l.itemId) ?? 0) + l.qtyPer);
   return [...m].map(([itemId, qtyPer]) => ({ itemId, qtyPer }));
 }
-
 

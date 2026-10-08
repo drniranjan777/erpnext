@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { provisionTenant, tenantBranding, type Transaction } from '@nextgen/database';
-import { eq, sql, type SQL } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { Resolver } from 'node:dns/promises';
 import { z } from 'zod';
@@ -9,8 +9,8 @@ import type { AuthContext } from '../../common/auth-context';
 import type { Env } from '../../config/env';
 import { DatabaseService } from '../../database/database.service';
 import { colourProblem, domainProblem, emailDomain, logoProblem, senderIdProblem, txtMatches, txtRecord } from './branding-rules';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const text = (n: number) => z.string().trim().max(n).nullable().optional();
 
 export const brandingSchema = z.object({
@@ -48,7 +48,7 @@ export const clientSchema = z.object({
 });
 
 /** Looks up TXT records; replaceable in tests. */
-export class DnsTxt {
+class DnsTxt {
   async lookup(host: string): Promise<string[][]> {
     const r = new Resolver({ timeout: 3000, tries: 1 });
     try {

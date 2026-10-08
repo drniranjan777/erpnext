@@ -11,8 +11,8 @@ import { DatabaseService } from '../../database/database.service';
 import { DocumentsService, type DocumentRow } from '../documents/documents.service';
 
 const DOC_TYPE = 'capa' as const;
-export const FISHBONE = ['man', 'machine', 'method', 'material', 'measurement', 'environment'] as const;
-export const EIGHT_D = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'] as const;
+const FISHBONE = ['man', 'machine', 'method', 'material', 'measurement', 'environment'] as const;
+const EIGHT_D = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'] as const;
 
 const action = z.object({
   kind: z.enum(['containment', 'corrective', 'preventive']).default('corrective'),

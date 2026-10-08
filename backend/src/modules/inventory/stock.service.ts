@@ -24,7 +24,7 @@ const MOVES_HELD_LOTS = new Set(['stock_count', 'quality_inspection', 'debit_not
 const REJECTED_BLOCKED = new Set(['delivery_note', 'sales_invoice', 'job_work_challan', 'blend']);
 
 /** Why a lot with this QC status cannot leave on this voucher, or null. */
-export function qcHold(status: string, voucherType: string, allowHeld = false) {
+function qcHold(status: string, voucherType: string, allowHeld = false) {
   if ((status === 'quarantine' || status === 'under_test') && !allowHeld && !MOVES_HELD_LOTS.has(voucherType)) return status === 'quarantine' ? 'in quarantine awaiting QC release' : 'under test and not released by QC';
   if (status === 'rejected' && REJECTED_BLOCKED.has(voucherType)) return 'rejected by QC';
   return null;

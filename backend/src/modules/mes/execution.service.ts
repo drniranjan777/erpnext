@@ -13,7 +13,7 @@ import {
   type RecipeParameter,
   type Transaction,
 } from '@nextgen/database';
-import { and, desc, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AuthContext } from '../../common/auth-context';
 import { todayIST } from '../../common/fiscal-year';
@@ -23,8 +23,8 @@ import { IotService } from '../iot/iot.service';
 import { ProductionService } from '../manufacturing/production.service';
 import { MesService } from './mes.service';
 import { blocked, checksDue, judge, startChecks, type StartContext } from './poka-yoke';
+import { many } from '../../common/sql';
 
-const many = async <T extends Record<string, unknown>>(tx: Transaction, q: SQL) => (await tx.execute<T>(q)).rows;
 const name = z.string().trim().min(1).max(120);
 const num = z.number().finite();
 const target = z

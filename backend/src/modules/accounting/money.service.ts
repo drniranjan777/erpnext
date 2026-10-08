@@ -17,7 +17,6 @@ const D = Decimal.from;
 const ZERO = D('0');
 export const MONEY_TYPES = ['receipt', 'payment', 'contra'] as const;
 export type MoneyKind = (typeof MONEY_TYPES)[number];
-const SYSTEM_META: RequestMeta = { ip: null, userAgent: 'system', requestId: 'accounting' };
 
 type Err = { path: string; message: string };
 function fail(errors: Err[]): never {

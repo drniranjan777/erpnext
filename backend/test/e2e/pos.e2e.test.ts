@@ -51,6 +51,13 @@ describe('point of sale', () => {
     expect(stock[0].stock).toBe(18);
     const r = await ok(await a.client.get(`/pos/sales/${s.id}/receipt`));
     expect(r).toMatchObject({ number: s.number, terminal: { code: 'T1', receiptFooter: 'Thank you for shopping with us' } });
+    // The same sale sent twice at the same moment (a retry after a network drop) posts one invoice.
+    const before = (await ok(await a.client.get('/sales/invoices?limit=100'))).items.length;
+    const twin = { clientRef: `pos-${Date.now()}-twin`, lines: [{ itemId: ctx.cushion.id, qty: 1 }], tenders: [{ mode: 'cash', amount: 560 }] };
+    const [x, y] = await Promise.all([a.client.post(`/pos/sessions/${ctx.shift.id}/sales`, twin), a.client.post(`/pos/sessions/${ctx.shift.id}/sales`, twin)]);
+    expect([x.status, y.status]).toEqual([201, 201]);
+    expect(x.body.id).toBe(y.body.id);
+    expect((await ok(await a.client.get('/sales/invoices?limit=100'))).items.length).toBe(before + 1);
     // A cash sale with change.
     await ok(await a.client.post(`/pos/sessions/${ctx.shift.id}/sales`, { clientRef: `pos-${Date.now()}-2`, lines: [{ itemId: ctx.cushion.id, qty: 1 }], tenders: [{ mode: 'cash', amount: 600 }] }), 201);
   });
@@ -63,20 +70,20 @@ describe('point of sale', () => {
     expect(cn.status).not.toBe('draft');
     expect((await a.client.post(`/pos/sessions/${ctx.shift.id}/sales/${ctx.sale.id}/return`, { clientRef: `ret-${Date.now()}-2`, lines: [{ itemId: ctx.chair.id, qty: 2 }], reason: 'Again' })).status).toBe(400);
     const live = await ok(await a.client.get(`/pos/sessions/${ctx.shift.id}`));
-    expect(live.sales).toHaveLength(3);
-    // Opening 2000 + cash in (2500 + 600) − change (52 + 40) − refund 4720 = 288.
-    const closed = await ok(await a.client.post(`/pos/sessions/${ctx.shift.id}/close`, { countedCash: 300 }));
-    expect(closed.zReport).toMatchObject({ sales: 2, salesAmount: 10448 + 560, returns: 1, returnsAmount: 4720, expectedCash: 288, countedCash: 300, difference: 12 });
+    expect(live.sales).toHaveLength(4);
+    // Opening 2000 + cash in (2500 + 560 + 600) − change (52 + 40) − refund 4720 = 848.
+    const closed = await ok(await a.client.post(`/pos/sessions/${ctx.shift.id}/close`, { countedCash: 850 }));
+    expect(closed.zReport).toMatchObject({ sales: 3, salesAmount: 10448 + 560 + 560, returns: 1, returnsAmount: 4720, expectedCash: 848, countedCash: 850, difference: 2 });
     expect(closed.zReport.byTender.card).toEqual({ in: 8000, out: 0 });
     expect((await a.client.post(`/pos/sessions/${ctx.shift.id}/sales`, { clientRef: `pos-${Date.now()}-3`, lines: [{ itemId: ctx.cushion.id, qty: 1 }], tenders: [{ mode: 'cash', amount: 560 }] })).status).toBe(409);
     const list = await ok(await a.client.get('/pos/sessions'));
-    expect(list[0]).toMatchObject({ status: 'closed', sales: 2 });
+    expect(list[0]).toMatchObject({ status: 'closed', sales: 3 });
   });
 
   it("gives the owner's phone its summary", async () => {
     const m = await ok(await a.client.get('/mobile/summary'));
     expect(m.today).toBeGreaterThan(0);
-    expect(m.posToday).toBe(10448 + 560 - 4720);
+    expect(m.posToday).toBe(10448 + 560 + 560 - 4720);
     expect(m).toHaveProperty('approvalsPending');
   });
 });
