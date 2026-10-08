@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit, Optional } from '@nestjs/common';
 import {
   membershipRoles,
   memberships,
@@ -15,6 +15,7 @@ import { DatabaseService } from '../../database/database.service';
 import { EntitlementsService } from '../billing/entitlements.service';
 import { JobsService, PermanentJobError } from '../jobs/jobs.service';
 import { eventDefinition, NOTIFICATION_EVENTS, type Channel, type EventData, type NotificationEvent, type Rendered } from './events';
+import { WhiteLabelService } from '../whitelabel/whitelabel.service';
 import { MailService } from './mail.service';
 import { WhatsAppService } from './whatsapp.service';
 
@@ -39,6 +40,7 @@ export class NotificationsService implements OnModuleInit {
     private readonly mail: MailService,
     private readonly whatsapp: WhatsAppService,
     private readonly entitlements: EntitlementsService,
+    @Optional() private readonly whiteLabel?: WhiteLabelService,
   ) {}
 
   onModuleInit() {
@@ -138,7 +140,7 @@ export class NotificationsService implements OnModuleInit {
     try {
       const result =
         p.channel === 'email'
-          ? await this.mail.send({ to: p.to, toName: p.toName, workspace: p.workspace, message: p.message })
+          ? await this.mail.send({ to: p.to, toName: p.toName, workspace: p.workspace, message: p.message, brand: await this.whiteLabel?.forMail(tenantId).catch(() => null) })
           : await this.whatsapp.send(p.to, p.message, this.mail.absoluteUrl(p.message.link));
       await this.database.run({ tenantId }, (tx) =>
         tx

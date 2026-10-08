@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Search } from "lucide-react";
 import { useState } from "react";
@@ -50,7 +51,7 @@ export default function AdminPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <PageHeader title="Platform admin" description="All customer workspaces. Changes are recorded in each workspace's audit trail." />
+      <PageHeader title="Platform admin" description="All customer workspaces. Changes are recorded in each workspace's audit trail." actions={<Link className="inline-flex h-9 items-center rounded-lg border border-border px-3 text-sm hover:bg-surface-muted" href="/admin/partners">Partners</Link>} />
       {data.isLoading && <LoadingBlock />}
       {data.error && <ErrorBlock error={data.error} />}
       {data.data && (

@@ -49,3 +49,4 @@ export * from './esg';
 export * from './enterprise';
 export * from './projects';
 export * from './plm';
+export * from './partners';

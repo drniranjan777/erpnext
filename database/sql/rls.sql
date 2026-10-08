@@ -344,3 +344,211 @@ REVOKE UPDATE, DELETE ON gst_api_logs FROM nextgen_app;
 -- Job and delivery history is append/update only from the app's point of view
 REVOKE DELETE ON jobs FROM nextgen_app;
 REVOKE DELETE ON notification_deliveries FROM nextgen_app;
+
+-- -----------------------------------------------------------------------------
+-- Partners (platform-wide, no tenant_id). The app has no direct access: partner
+-- users see their own partner, client workspaces and commissions through these
+-- functions; platform administrators manage partners through admin_* functions.
+-- -----------------------------------------------------------------------------
+ALTER TABLE partners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE partner_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE partner_commissions ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON partners, partner_members, partner_commissions FROM nextgen_app;
+
+CREATE OR REPLACE FUNCTION partner_of_current_user()
+  RETURNS TABLE (id uuid, code citext, name text, kind text, commission_pct double precision, certified boolean, status text, role text)
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+    SELECT p.id, p.code, p.name, p.kind, p.commission_pct, p.certified, p.status, m.role
+    FROM partner_members m JOIN partners p ON p.id = m.partner_id
+    WHERE m.user_id = app_current_user()
+    ORDER BY p.name
+  $$;
+
+CREATE OR REPLACE FUNCTION partner_clients()
+  RETURNS TABLE (id uuid, slug citext, name text, status tenant_status, plan_code text, partner_id uuid,
+                 subscription_status subscription_status, current_period_end timestamptz, created_at timestamptz, active_users bigint)
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+    SELECT t.id, t.slug, t.name, t.status, t.plan_code, t.partner_id, s.status, s.current_period_end, t.created_at,
+           (SELECT count(*) FROM memberships m WHERE m.tenant_id = t.id AND m.status = 'active')
+    FROM tenants t LEFT JOIN subscriptions s ON s.tenant_id = t.id
+    WHERE t.partner_id IN (SELECT pm.partner_id FROM partner_members pm WHERE pm.user_id = app_current_user())
+    ORDER BY t.created_at DESC
+  $$;
+
+CREATE OR REPLACE FUNCTION partner_commissions_mine()
+  RETURNS TABLE (id uuid, partner_id uuid, client text, invoice_number text, base_amount double precision, rate_pct double precision,
+                 amount double precision, status text, payout_ref text, accrued_at timestamptz, paid_at timestamptz)
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+    SELECT c.id, c.partner_id, t.name, c.invoice_number, c.base_amount, c.rate_pct, c.amount, c.status, c.payout_ref, c.accrued_at, c.paid_at
+    FROM partner_commissions c JOIN tenants t ON t.id = c.client_tenant_id
+    WHERE c.partner_id IN (SELECT pm.partner_id FROM partner_members pm WHERE pm.user_id = app_current_user())
+    ORDER BY c.accrued_at DESC
+  $$;
+
+-- True when the current user may create workspaces for this partner.
+CREATE OR REPLACE FUNCTION partner_can_provision(p_partner uuid)
+  RETURNS boolean
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+    SELECT EXISTS (SELECT 1 FROM partner_members m JOIN partners p ON p.id = m.partner_id
+                   WHERE m.partner_id = p_partner AND m.user_id = app_current_user() AND p.status = 'active')
+  $$;
+
+-- The workspace owner names (or clears) the partner managing the workspace.
+CREATE OR REPLACE FUNCTION tenant_set_partner(p_code text)
+  RETURNS text
+  LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+  DECLARE
+    v_partner partners%ROWTYPE;
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM memberships m WHERE m.tenant_id = app_current_tenant() AND m.user_id = app_current_user() AND m.is_owner AND m.status = 'active') THEN
+      RAISE EXCEPTION 'Only the workspace owner can choose the partner' USING ERRCODE = '42501';
+    END IF;
+    IF p_code IS NULL THEN
+      UPDATE tenants SET partner_id = NULL WHERE id = app_current_tenant();
+      RETURN NULL;
+    END IF;
+    SELECT * INTO v_partner FROM partners WHERE code = p_code AND status = 'active';
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'No active partner with this code' USING ERRCODE = 'P0002';
+    END IF;
+    UPDATE tenants SET partner_id = v_partner.id WHERE id = app_current_tenant();
+    RETURN v_partner.name;
+  END
+  $$;
+
+CREATE OR REPLACE FUNCTION tenant_partner()
+  RETURNS TABLE (code citext, name text, kind text, certified boolean, email text)
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+    SELECT p.code, p.name, p.kind, p.certified, p.email FROM tenants t JOIN partners p ON p.id = t.partner_id WHERE t.id = app_current_tenant()
+  $$;
+
+CREATE OR REPLACE FUNCTION admin_partners()
+  RETURNS TABLE (id uuid, code citext, name text, kind text, email text, gstin text, commission_pct double precision, certified boolean,
+                 status text, created_at timestamptz, clients bigint, members bigint, accrued double precision, paid double precision)
+  LANGUAGE plpgsql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+  BEGIN
+    PERFORM assert_platform_admin();
+    RETURN QUERY
+    SELECT p.id, p.code, p.name, p.kind, p.email, p.gstin, p.commission_pct, p.certified, p.status, p.created_at,
+           (SELECT count(*) FROM tenants t WHERE t.partner_id = p.id),
+           (SELECT count(*) FROM partner_members m WHERE m.partner_id = p.id),
+           (SELECT coalesce(sum(c.amount), 0) FROM partner_commissions c WHERE c.partner_id = p.id AND c.status = 'accrued'),
+           (SELECT coalesce(sum(c.amount), 0) FROM partner_commissions c WHERE c.partner_id = p.id AND c.status = 'paid')
+    FROM partners p ORDER BY p.name;
+  END
+  $$;
+
+CREATE OR REPLACE FUNCTION admin_save_partner(p_id uuid, p_code text, p_name text, p_kind text, p_email text, p_gstin text,
+                                              p_pct double precision, p_certified boolean, p_status text)
+  RETURNS uuid
+  LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+  DECLARE
+    v_id uuid;
+  BEGIN
+    PERFORM assert_platform_admin();
+    IF p_id IS NULL THEN
+      INSERT INTO partners (code, name, kind, email, gstin, commission_pct, certified, status)
+      VALUES (p_code, p_name, p_kind, p_email, p_gstin, p_pct, p_certified, p_status) RETURNING partners.id INTO v_id;
+    ELSE
+      UPDATE partners SET code = p_code, name = p_name, kind = p_kind, email = p_email, gstin = p_gstin, commission_pct = p_pct,
+                          certified = p_certified, status = p_status
+      WHERE partners.id = p_id RETURNING partners.id INTO v_id;
+    END IF;
+    RETURN v_id;
+  END
+  $$;
+
+CREATE OR REPLACE FUNCTION admin_add_partner_member(p_partner uuid, p_email text, p_role text)
+  RETURNS void
+  LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+  DECLARE
+    v_user uuid;
+  BEGIN
+    PERFORM assert_platform_admin();
+    SELECT u.id INTO v_user FROM users u WHERE lower(u.email) = lower(p_email);
+    IF v_user IS NULL THEN
+      RAISE EXCEPTION 'No user with this email: they must sign up first' USING ERRCODE = 'P0002';
+    END IF;
+    INSERT INTO partner_members (partner_id, user_id, role) VALUES (p_partner, v_user, p_role)
+    ON CONFLICT (partner_id, user_id) DO UPDATE SET role = EXCLUDED.role;
+  END
+  $$;
+
+-- Commission on every paid subscription invoice of a partner's client workspaces, once per invoice.
+CREATE OR REPLACE FUNCTION admin_accrue_commissions()
+  RETURNS integer
+  LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+  DECLARE
+    n integer;
+  BEGIN
+    PERFORM assert_platform_admin();
+    INSERT INTO partner_commissions (partner_id, client_tenant_id, invoice_id, invoice_number, base_amount, rate_pct, amount)
+    SELECT t.partner_id, i.tenant_id, i.id, i.number, i.taxable_amount, p.commission_pct, round(i.taxable_amount * p.commission_pct::numeric / 100, 2)
+    FROM saas_invoices i JOIN tenants t ON t.id = i.tenant_id JOIN partners p ON p.id = t.partner_id
+    WHERE i.status = 'paid' AND p.status = 'active' AND p.commission_pct > 0
+    ON CONFLICT (invoice_id) DO NOTHING;
+    GET DIAGNOSTICS n = ROW_COUNT;
+    RETURN n;
+  END
+  $$;
+
+CREATE OR REPLACE FUNCTION admin_pay_commissions(p_partner uuid, p_ref text)
+  RETURNS integer
+  LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+  DECLARE
+    n integer;
+  BEGIN
+    PERFORM assert_platform_admin();
+    UPDATE partner_commissions SET status = 'paid', paid_at = now(), payout_ref = p_ref WHERE partner_id = p_partner AND status = 'accrued';
+    GET DIAGNOSTICS n = ROW_COUNT;
+    RETURN n;
+  END
+  $$;
+
+-- Login page branding for a verified custom domain (no session yet).
+CREATE OR REPLACE FUNCTION branding_by_domain(p_host text)
+  RETURNS TABLE (tenant_slug citext, product_name text, logo text, primary_color text, accent_color text, support_email text)
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+    SELECT t.slug, b.product_name, b.logo, b.primary_color, b.accent_color, b.support_email
+    FROM tenant_branding b JOIN tenants t ON t.id = b.tenant_id
+    WHERE b.custom_domain = p_host AND b.domain_verified_at IS NOT NULL AND t.status IN ('trial', 'active')
+  $$;
+
+DO $$
+DECLARE
+  f text;
+BEGIN
+  FOREACH f IN ARRAY ARRAY['partner_of_current_user()', 'partner_clients()', 'partner_commissions_mine()', 'partner_can_provision(uuid)',
+                           'tenant_set_partner(text)', 'tenant_partner()', 'admin_partners()',
+                           'admin_save_partner(uuid, text, text, text, text, text, double precision, boolean, text)',
+                           'admin_add_partner_member(uuid, text, text)', 'admin_accrue_commissions()', 'admin_pay_commissions(uuid, text)',
+                           'branding_by_domain(text)']
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', f);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO nextgen_app', f);
+  END LOOP;
+END $$;

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 15.1–15.3 done |
+| **Status** | In progress: 15.1–15.4 done |
 | **Plan** | `docs/PHASE_PLAN.md`, Phase 15 |
 
 Phase 15 brings larger customers, partners and an ecosystem. Most of it is software built and tested here. Some parts are not code and stay with the business: the SOC 2 Type II report, ISO 27001 certification, partner certification, the first enterprise tenant, and store listings of native apps. The sprints below also say where an outside service needs credentials that do not exist in development; the integration is then built against a local sandbox adapter, the same way the GST network was in Phase 3.
@@ -60,3 +60,13 @@ Migration 0067 adds `plm_item_states`, `plm_eboms`, `cad_files`, `cad_file_versi
 **Document store.** Folders with a retention period; files with a document number, tags and versions (up to 25 MB). The text of the current version is kept for full-text search (Postgres text search with ranking and highlighted snippets) for text files and PDFs (text read from Tj / TJ operators, compressed streams inflated); scanned images and photos are not searchable without an OCR service. A file under legal hold cannot be disposed of; after its retention date it can be disposed of, which deletes the stored content and keeps the record and hashes.
 
 **Digital signatures.** The signer confirms with their password (an electronic signature in the Part 11 chain), then the signing provider signs the SHA-256 of the version. The sandbox provider signs with an HMAC key derived per workspace, and verification recomputes it and compares the stored file hash. Aadhaar eSign (through an ESP) and DSC tokens are behind the same interface but need credentials and certificates that are not available here, so they report that they are not set up. Only the current version can be signed.
+
+## 15.4 White-label and partners (done)
+
+Migration 0068 adds `tenant_branding` (per workspace), `partners`, `partner_members`, `partner_commissions` (platform-wide, no tenant_id) and `tenants.partner_id`. `rls.sql` enables row-level security on the partner tables, revokes all direct access from the app role, and adds security-definer functions: `partner_of_current_user`, `partner_clients`, `partner_commissions_mine`, `partner_can_provision`, `tenant_set_partner`, `tenant_partner`, `admin_partners`, `admin_save_partner`, `admin_add_partner_member`, `admin_accrue_commissions`, `admin_pay_commissions` (the admin ones assert the platform-admin flag) and `branding_by_domain`. `provisionTenant` can now create a workspace for an existing user and a partner. Code: `backend/src/modules/whitelabel/` (`branding-rules.ts` is pure and unit tested). Permission: `settings.branding.manage`. Pages: `/settings/branding`, `/partner`, `/admin/partners`.
+
+**Branding.** Product name, logo (PNG, JPEG or SVG data URL up to 200 KB; SVGs with scripts, event handlers or external links are refused), primary colour (white text on it must reach WCAG AA 4.5:1), support email. The app shell shows the brand's name, logo and colour; notification emails carry the product name and colour.
+
+**Sender identities and domain.** An email sender name and address: the address is used only once its domain is proven by a DNS TXT record (`_nextgen-verify.<domain>` = `nextgen-verify=<token>`); until then mail goes from our address with the sender name. The TRAI DLT SMS header (6 letters) and principal entity id are kept for the SMS provider. A custom web address (not one of our domains, used by one workspace only) is proven the same way plus a CNAME; changing it needs a new proof. The login page of a verified domain can look up its brand without a session (`GET /public/branding?host=`).
+
+**Partners.** Platform administrators keep partners (code, kind reseller / implementer / both, commission %, certified, active or suspended), add members by the email of an existing user, accrue commissions and record payouts. A partner member sees, in the partner portal, the partner's client workspaces (plan, subscription, users — not their data) and commissions, and creates client workspaces that they own and the partner manages. A workspace owner can also name a partner by its code, or remove it. Commission is the partner's rate on the taxable value of each paid subscription invoice of a client workspace, accrued once per invoice; payouts mark the accrued commissions paid with the transfer reference.

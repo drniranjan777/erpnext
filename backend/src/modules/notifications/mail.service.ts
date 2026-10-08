@@ -13,6 +13,8 @@ export interface OutgoingMail {
   workspace: string;
   message: Rendered;
   attachments?: { filename: string; content: Buffer; contentType: string }[];
+  /** The workspace's white-label brand and verified sender, when it has one. */
+  brand?: { productName?: string | null; color?: string | null; fromName?: string | null; fromAddress?: string | null } | null;
 }
 
 /** Branded, table-based HTML that renders in Gmail/Outlook. Values are HTML-escaped by Handlebars. */
@@ -21,14 +23,14 @@ const layout = Handlebars.compile(`<!doctype html>
 <body style="margin:0;background:#f6f7f9;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111827">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e3e6eb;border-radius:12px">
-<tr><td style="padding:20px 28px;border-bottom:1px solid #e3e6eb;font-weight:600;color:#1d4ed8">NextGen ERP · {{workspace}}</td></tr>
+<tr><td style="padding:20px 28px;border-bottom:1px solid #e3e6eb;font-weight:600;color:{{color}}">{{product}} · {{workspace}}</td></tr>
 <tr><td style="padding:28px">
 <h1 style="margin:0 0 12px;font-size:18px">{{title}}</h1>
 <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#374151">{{#if toName}}Hi {{toName}},<br><br>{{/if}}{{body}}</p>
-{{#if url}}<a href="{{url}}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600">{{action}}</a>
-<p style="margin:16px 0 0;font-size:12px;color:#5b6474">Or open: <a href="{{url}}" style="color:#1d4ed8;word-break:break-all">{{url}}</a></p>{{/if}}
+{{#if url}}<a href="{{url}}" style="display:inline-block;background:{{color}};color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600">{{action}}</a>
+<p style="margin:16px 0 0;font-size:12px;color:#5b6474">Or open: <a href="{{url}}" style="color:{{color}};word-break:break-all">{{url}}</a></p>{{/if}}
 </td></tr>
-<tr><td style="padding:16px 28px;border-top:1px solid #e3e6eb;font-size:11px;color:#5b6474">You received this because of your notification settings in NextGen ERP. Manage them under My account → Notifications.</td></tr>
+<tr><td style="padding:16px 28px;border-top:1px solid #e3e6eb;font-size:11px;color:#5b6474">You received this because of your notification settings in {{product}}. Manage them under My account → Notifications.</td></tr>
 </table></td></tr></table></body></html>`);
 
 /**
@@ -53,6 +55,11 @@ export class MailService {
     this.mailDir = resolve(config.get('MAIL_DIR', { infer: true }));
   }
 
+  /** The bare address of EMAIL_FROM (which may be "Name <address>"). */
+  private fromAddress() {
+    return /<([^>]+)>/.exec(this.from)?.[1] ?? this.from;
+  }
+
   get provider() {
     return this.mode === 'smtp' ? 'smtp' : 'file';
   }
@@ -64,10 +71,11 @@ export class MailService {
 
   async send(mail: OutgoingMail): Promise<{ messageId: string }> {
     const url = this.absoluteUrl(mail.message.link);
-    const html = layout({ ...mail.message, url, toName: mail.toName, workspace: mail.workspace });
-    const text = `${mail.toName ? `Hi ${mail.toName},\n\n` : ''}${mail.message.body}${url ? `\n\n${mail.message.action ?? 'Open'}: ${url}` : ''}\n\n- NextGen ERP · ${mail.workspace}`;
+    const product = mail.brand?.productName || 'NextGen ERP';
+    const html = layout({ ...mail.message, url, toName: mail.toName, workspace: mail.workspace, product, color: mail.brand?.color || '#1d4ed8' });
+    const text = `${mail.toName ? `Hi ${mail.toName},\n\n` : ''}${mail.message.body}${url ? `\n\n${mail.message.action ?? 'Open'}: ${url}` : ''}\n\n- ${product} · ${mail.workspace}`;
     const info = await this.transport.sendMail({
-      from: this.from,
+      from: mail.brand?.fromAddress ? { name: mail.brand.fromName || product, address: mail.brand.fromAddress } : mail.brand?.fromName ? { name: mail.brand.fromName, address: this.fromAddress() } : this.from,
       to: mail.toName ? { name: mail.toName, address: mail.to } : mail.to,
       subject: mail.message.title,
       text,

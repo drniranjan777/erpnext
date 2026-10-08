@@ -26,6 +26,8 @@ export const tenants = pgTable('tenants', {
   planCode: text('plan_code').notNull().default('trial'),
   trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
   settings: jsonb('settings').$type<Record<string, unknown>>().notNull().default({}),
+  /** The reseller or implementation partner managing this workspace (partners table). */
+  partnerId: uuid('partner_id'),
   ...timestamps(),
 });
 

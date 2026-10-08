@@ -235,11 +235,29 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
   );
 }
 
+/** The product name, logo and colour: the workspace's white-label brand when it has one. */
 function Brand() {
+  const b = useQuery({ queryKey: ["/branding"], queryFn: () => api<{ productName: string | null; logo: string | null; primaryColor: string | null }>("/branding"), staleTime: 300_000 });
+  const color = b.data?.primaryColor;
+  useEffect(() => {
+    if (!color) return;
+    const root = document.documentElement.style;
+    root.setProperty("--primary", color);
+    root.setProperty("--primary-hover", color);
+    return () => {
+      root.removeProperty("--primary");
+      root.removeProperty("--primary-hover");
+    };
+  }, [color]);
   return (
     <Link href="/dashboard" className="flex h-14 items-center gap-2 px-6 font-semibold">
-      <Factory className="size-5 text-primary" aria-hidden />
-      NextGen ERP
+      {b.data?.logo ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a small data: URL logo, nothing to optimise
+        <img src={b.data.logo} alt="" className="size-6 object-contain" />
+      ) : (
+        <Factory className="size-5 text-primary" aria-hidden />
+      )}
+      {b.data?.productName || "NextGen ERP"}
     </Link>
   );
 }

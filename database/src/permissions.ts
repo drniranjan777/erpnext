@@ -95,6 +95,7 @@ export const PERMISSIONS = {
   'docs.files.manage': 'Add and version files, set folders and retention, place legal holds and dispose of files',
   'docs.files.read': 'Search and read files in the document store',
   'docs.files.sign': 'Sign files digitally',
+  'settings.branding.manage': 'Set the workspace brand (name, logo, colours), sender identities and custom domain, and choose the implementation partner',
   'compliance.certificates.manage': 'Keep supplier, product and company certificates with their expiry',
   'ai.governance.manage': 'Set the AI policy (features, consent, PII masking, budget, models) and see AI usage and evaluations',
   'ai.agents.manage': 'Switch AI agents on or off, set their schedules and guardrails, and use the kill switch',

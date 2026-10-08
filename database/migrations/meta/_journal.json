@@ -477,6 +477,13 @@
       "when": 1791424146721,
       "tag": "0067_plm_dms",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1791426518375,
+      "tag": "0068_white_label_partners",
+      "breakpoints": true
     }
   ]
 }

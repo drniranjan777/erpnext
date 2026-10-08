@@ -8,6 +8,7 @@ import {
   HardHat,
   ShieldAlert,
   BadgeCheck,
+  Palette,
   FolderOpen,
   FileBox,
   ChartGantt,
@@ -542,6 +543,8 @@ export const NAVIGATION: NavSection[] = [
       { label: "API & webhooks", href: "/settings/integrations", icon: Plug, permissions: ["platform.integrations.manage"] },
       { label: "Data protection", href: "/settings/privacy", icon: Lock, permissions: ["platform.privacy.manage"] },
       { label: "Billing & plan", href: "/settings/billing", icon: CreditCard, permissions: ["platform.billing.manage"] },
+      { label: "Branding", href: "/settings/branding", icon: Palette, permissions: ["settings.branding.manage"] },
+      { label: "Partner portal", href: "/partner", icon: Handshake },
     ],
   },
 ];

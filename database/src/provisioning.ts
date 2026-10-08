@@ -19,9 +19,10 @@ import {
 } from './schema';
 
 export interface ProvisionTenantInput {
-  tenant: { slug: string; name: string; industry?: string | null; trialDays?: number };
+  tenant: { slug: string; name: string; industry?: string | null; trialDays?: number; partnerId?: string | null };
   company: { name: string; legalName?: string | null; gstin?: string | null; stateCode?: string | null };
-  owner: { email: string; fullName: string; passwordHash: string; mobile?: string | null };
+  /** A new user, or an existing user (a partner creating a client workspace) by id. */
+  owner: { email: string; fullName: string; passwordHash: string; mobile?: string | null } | { userId: string };
 }
 
 export interface ProvisionTenantResult {
@@ -43,7 +44,8 @@ export async function provisionTenant(tx: Transaction, input: ProvisionTenantInp
   const ids = await tx.execute<{ tenant_id: string; user_id: string }>(
     sql`select uuidv7()::text as tenant_id, uuidv7()::text as user_id`,
   );
-  const { tenant_id: tenantId, user_id: userId } = ids.rows[0];
+  const tenantId = ids.rows[0].tenant_id;
+  const userId = 'userId' in input.owner ? input.owner.userId : ids.rows[0].user_id;
   await tx.execute(
     sql`select set_config('app.tenant_id', ${tenantId}, true), set_config('app.user_id', ${userId}, true)`,
   );
@@ -58,6 +60,7 @@ export async function provisionTenant(tx: Transaction, input: ProvisionTenantInp
     status: 'trial',
     planCode: 'trial',
     trialEndsAt,
+    partnerId: input.tenant.partnerId ?? null,
   });
   await tx.insert(subscriptions).values({
     tenantId,
@@ -68,13 +71,14 @@ export async function provisionTenant(tx: Transaction, input: ProvisionTenantInp
     currentPeriodEnd: trialEndsAt,
   });
 
-  await tx.insert(users).values({
-    id: userId,
-    email: input.owner.email,
-    fullName: input.owner.fullName,
-    mobile: input.owner.mobile ?? null,
-    passwordHash: input.owner.passwordHash,
-  });
+  if (!('userId' in input.owner))
+    await tx.insert(users).values({
+      id: userId,
+      email: input.owner.email,
+      fullName: input.owner.fullName,
+      mobile: input.owner.mobile ?? null,
+      passwordHash: input.owner.passwordHash,
+    });
 
   const [membership] = await tx
     .insert(memberships)
