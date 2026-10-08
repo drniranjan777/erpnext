@@ -8,6 +8,8 @@ import {
   HardHat,
   ShieldAlert,
   BadgeCheck,
+  FolderOpen,
+  FileBox,
   ChartGantt,
   FolderKanban,
   Split,
@@ -248,6 +250,14 @@ export const NAVIGATION: NavSection[] = [
       { label: "HSE", href: "/hse", icon: HardHat, permissions: ["hse.register.read"] },
       { label: "Retain samples", href: "/quality/retain-samples", icon: FlaskRound, permissions: ["quality.inspections.read"] },
       { label: "Traceability", href: "/quality/traceability", icon: GitBranch, permissions: ["quality.inspections.read"] },
+    ],
+  },
+  {
+    title: "Engineering & documents",
+    items: [
+      { label: "Product lifecycle", href: "/plm", icon: GitBranch, permissions: ["plm.data.read"] },
+      { label: "CAD vault", href: "/plm/cad", icon: FileBox, permissions: ["plm.data.read"] },
+      { label: "Documents", href: "/documents", icon: FolderOpen, permissions: ["docs.files.read"] },
     ],
   },
   {

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: 15.1–15.2 done |
+| **Status** | In progress: 15.1–15.3 done |
 | **Plan** | `docs/PHASE_PLAN.md`, Phase 15 |
 
 Phase 15 brings larger customers, partners and an ecosystem. Most of it is software built and tested here. Some parts are not code and stay with the business: the SOC 2 Type II report, ISO 27001 certification, partner certification, the first enterprise tenant, and store listings of native apps. The sprints below also say where an outside service needs credentials that do not exist in development; the integration is then built against a local sandbox adapter, the same way the GST network was in Phase 3.
@@ -46,3 +46,17 @@ Migration 0066 adds `projects`, `project_wbs`, `project_milestones`, `project_co
 **Billing.** Milestones are shares of the contract value (together at most 100 %), with a due date. An achieved milestone is billed as a draft sales invoice on the project's billing item, which then follows the normal invoice flow. The project shows what was billed, revenue earned (contract value × earned value / budget), unbilled revenue and the margin on billing.
 
 **Earned value.** For each leaf element: planned value (budget × share of the planned period elapsed), earned value (budget × progress entered), actual cost; for the project: CPI, SPI, cost and schedule variance, estimate at completion (budget / CPI), estimate to complete and variance at completion.
+
+## 15.3 PLM-lite and document management (done)
+
+Migration 0067 adds `plm_item_states`, `plm_eboms`, `cad_files`, `cad_file_versions`, and the document store tables `dms_folders`, `dms_files`, `dms_versions`, `dms_signatures` (schema `plm.ts`; "dms" in these table names means document management, not the distributor module of Phase 10). Code: `backend/src/modules/plm/` (`plm-rules.ts` is pure and unit tested; `signing.ts` holds the signing providers). API: `/plm/*` and `/doc-store/*`. Permissions: `plm.items.manage`, `plm.cad.manage`, `plm.data.read`, `docs.files.manage`, `docs.files.read`, `docs.files.sign`. Pages: `/plm`, `/plm/eboms/:id`, `/plm/cad`, `/plm/cad/:id`, `/documents`.
+
+**Lifecycle.** Items put on a lifecycle move concept → design → prototype → released → phase-out → obsolete (with steps back for a redesign). Release is signed electronically and needs a released engineering BOM (for made items: finished, semi-finished, or with a BOM) and a released CAD file or drawing; an item cannot be made obsolete while open purchase or sales order lines use it. Phased-out items cannot be put on a purchase order, obsolete items on purchase orders, sales orders or sales invoices (checked when the document is submitted). Items never put on a lifecycle are treated as released.
+
+**Engineering BOM.** The design parts list per item and revision (find number, part, quantity, reference designators). A draft is released under signature, superseding the previous revision; released revisions are frozen. A released revision drafts a manufacturing BOM (operations are added in manufacturing). The comparison with the approved manufacturing BOM lists design parts missing in manufacturing, quantity differences, and manufacturing-only parts such as packaging.
+
+**CAD vault.** Each file has a number, title, item, metadata, the files it uses, a revision and a status. A new file starts checked out to its creator; only the person holding the check-out can check in a version (up to 100 MB, hashed with SHA-256). Metadata is read from DXF headers (AutoCAD version, units) and STEP headers (description, author, schema); SolidWorks and DWG files are stored with the metadata entered. A file is released under signature once checked in, and only after the files it uses are released. Checking out a released file starts the next revision (A → B … Z → AA). Where-used shows the files that use it.
+
+**Document store.** Folders with a retention period; files with a document number, tags and versions (up to 25 MB). The text of the current version is kept for full-text search (Postgres text search with ranking and highlighted snippets) for text files and PDFs (text read from Tj / TJ operators, compressed streams inflated); scanned images and photos are not searchable without an OCR service. A file under legal hold cannot be disposed of; after its retention date it can be disposed of, which deletes the stored content and keeps the record and hashes.
+
+**Digital signatures.** The signer confirms with their password (an electronic signature in the Part 11 chain), then the signing provider signs the SHA-256 of the version. The sandbox provider signs with an HMAC key derived per workspace, and verification recomputes it and compares the stored file hash. Aadhaar eSign (through an ESP) and DSC tokens are behind the same interface but need credentials and certificates that are not available here, so they report that they are not set up. Only the current version can be signed.
