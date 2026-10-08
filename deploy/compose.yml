@@ -1,0 +1,51 @@
+# Single-server / on-premise deployment with Docker Compose.
+# Secrets come from deploy/.env (not committed): copy deploy/.env.example and fill it in.
+#   docker compose -f deploy/compose.yml --env-file deploy/.env up -d --build
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_OWNER_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD}
+      POSTGRES_DB: nextgen
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_OWNER_USER} -d nextgen"]
+      interval: 10s
+      retries: 10
+
+  migrate:
+    build: { context: .., dockerfile: deploy/docker/backend.Dockerfile }
+    image: nextgen/backend:${TAG:-latest}
+    depends_on: { postgres: { condition: service_healthy } }
+    env_file: .env
+    working_dir: /app/database
+    command: ["npx", "tsx", "src/migrate.ts"]
+    restart: "no"
+
+  backend:
+    image: nextgen/backend:${TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    env_file: .env
+    volumes:
+      - storage:/data/storage
+    expose: ["4000"]
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/docker/frontend.Dockerfile
+      args: { BACKEND_URL: "http://backend:4000" }
+    image: nextgen/frontend:${TAG:-latest}
+    restart: unless-stopped
+    depends_on: [backend]
+    ports: ["${HTTP_PORT:-3000}:3000"]
+
+volumes:
+  pgdata:
+  storage:

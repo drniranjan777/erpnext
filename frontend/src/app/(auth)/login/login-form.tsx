@@ -2,8 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -127,6 +127,9 @@ export function LoginForm() {
       <p className="mt-1 text-sm text-muted">Welcome back. Enter your details to continue.</p>
 
       <form className="mt-8 space-y-4" noValidate onSubmit={form.handleSubmit((v) => submit(v))}>
+        <Suspense>
+          <SsoError />
+        </Suspense>
         {error && <Alert>{error}</Alert>}
         <Field label="Email" error={errors.email?.message}>
           {(p) => <Input {...p} type="email" autoComplete="email" autoFocus {...form.register("email")} />}
@@ -139,12 +142,43 @@ export function LoginForm() {
         </Button>
       </form>
 
+      <SsoSignIn />
+
       <p className="mt-6 text-center text-sm text-muted">
         New to NextGen ERP?{" "}
         <Link href="/signup" className="font-medium text-primary hover:underline">
           Start a free trial
         </Link>
       </p>
+    </div>
+  );
+}
+
+/** An error passed back by the single sign-on callback. */
+function SsoError() {
+  const err = useSearchParams().get("sso_error");
+  return err ? <Alert>{err}</Alert> : null;
+}
+
+/** Company sign-in through the workspace's identity provider (Microsoft, Google, Okta…). */
+function SsoSignIn() {
+  const [open, setOpen] = useState(false);
+  const [slug, setSlug] = useState("");
+  const ok = /^[a-z0-9-]{3,40}$/.test(slug);
+  return (
+    <div className="mt-4 border-t border-border pt-4 text-sm">
+      {open ? (
+        <div className="flex gap-2">
+          <Input aria-label="Workspace address" placeholder="your-workspace" value={slug} onChange={(e) => setSlug(e.target.value.trim().toLowerCase())} />
+          <a className={`inline-flex h-10 shrink-0 items-center rounded-lg px-4 font-medium text-primary-foreground ${ok ? "bg-primary hover:bg-primary-hover" : "pointer-events-none bg-primary/50"}`} href={ok ? `/api/v1/auth/sso/${slug}/start` : undefined} aria-disabled={!ok}>
+            Continue
+          </a>
+        </div>
+      ) : (
+        <Button type="button" variant="secondary" className="w-full" onClick={() => setOpen(true)}>
+          Sign in with SSO
+        </Button>
+      )}
     </div>
   );
 }

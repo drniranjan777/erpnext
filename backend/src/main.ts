@@ -25,6 +25,14 @@ async function bootstrap() {
   const config = app.get<ConfigService<Env, true>>(ConfigService);
 
   await app.register(fastifyCookie);
+  // SCIM clients send application/scim+json.
+  app.getHttpAdapter().getInstance().addContentTypeParser('application/scim+json', { parseAs: 'string' }, (_req, body, done) => {
+    try {
+      done(null, body ? JSON.parse(body as string) : {});
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  });
   // fileSize is 1 byte above the 10 MB attachment limit so StorageService rejects
   // oversize files instead of Fastify silently truncating them.
   await app.register(fastifyMultipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024 + 1, fields: 5 } });

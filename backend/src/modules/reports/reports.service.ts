@@ -90,7 +90,7 @@ export class ReportsService {
   async run(auth: AuthContext, key: string, input: Params) {
     const r = await this.find(auth, key);
     const params = resolveParams(r.params, input);
-    const res = await this.database.run(auth, (tx) => tx.execute<Record<string, unknown>>(sql`${r.query(params)} limit ${ROW_LIMIT + 1}`));
+    const res = await this.database.runRead(auth, (tx) => tx.execute<Record<string, unknown>>(sql`${r.query(params)} limit ${ROW_LIMIT + 1}`));
     let rows = res.rows.slice(0, ROW_LIMIT).map((row) => {
       const out: Record<string, unknown> = { ...row };
       for (const c of r.columns) {

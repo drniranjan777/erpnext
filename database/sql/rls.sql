@@ -569,3 +569,65 @@ CREATE OR REPLACE FUNCTION connector_installation(p_id uuid)
   $$;
 REVOKE ALL ON FUNCTION connector_installation(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION connector_installation(uuid) TO nextgen_app;
+
+-- -----------------------------------------------------------------------------
+-- SCIM requests carry only a bearer token: find its workspace by the token hash.
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION scim_token_lookup(p_hash text)
+  RETURNS TABLE (id uuid, tenant_id uuid, default_role_id uuid)
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+    SELECT s.id, s.tenant_id, s.default_role_id
+    FROM scim_tokens s JOIN tenants t ON t.id = s.tenant_id
+    WHERE s.token_hash = p_hash AND s.revoked_at IS NULL AND t.status IN ('trial', 'active')
+  $$;
+
+-- SCIM may rename a user only when every workspace the user belongs to is this one
+-- (an identity shared with other workspaces is not changed from here).
+CREATE OR REPLACE FUNCTION scim_set_user_name(p_user uuid, p_name text)
+  RETURNS boolean
+  LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+  BEGIN
+    IF EXISTS (SELECT 1 FROM memberships m WHERE m.user_id = p_user AND m.tenant_id <> app_current_tenant())
+       OR NOT EXISTS (SELECT 1 FROM memberships m WHERE m.user_id = p_user AND m.tenant_id = app_current_tenant()) THEN
+      RETURN false;
+    END IF;
+    UPDATE users SET full_name = p_name WHERE id = p_user;
+    RETURN true;
+  END
+  $$;
+
+-- The workspaces a user belongs to that require single sign-on (checked at password login).
+CREATE OR REPLACE FUNCTION sso_required_for(p_tenant uuid)
+  RETURNS boolean
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+    SELECT EXISTS (SELECT 1 FROM sso_settings s WHERE s.tenant_id = p_tenant AND s.enabled AND s.require_sso)
+  $$;
+
+-- Pre-authentication: the identity provider settings of a workspace by its slug.
+CREATE OR REPLACE FUNCTION sso_settings_by_slug(p_slug text)
+  RETURNS TABLE (tenant_id uuid, protocol text, enabled boolean, issuer text, client_id text, client_secret_encrypted text,
+                 allowed_domains text[], auto_provision boolean, default_role_id uuid, idp_entity_id text)
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public
+  AS $$
+    SELECT s.tenant_id, s.protocol, s.enabled, s.issuer, s.client_id, s.client_secret_encrypted, s.allowed_domains, s.auto_provision, s.default_role_id, s.idp_entity_id
+    FROM sso_settings s JOIN tenants t ON t.id = s.tenant_id
+    WHERE t.slug = p_slug AND t.status IN ('trial', 'active')
+  $$;
+
+DO $$
+DECLARE
+  f text;
+BEGIN
+  FOREACH f IN ARRAY ARRAY['scim_token_lookup(text)', 'scim_set_user_name(uuid, text)', 'sso_required_for(uuid)', 'sso_settings_by_slug(text)']
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', f);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO nextgen_app', f);
+  END LOOP;
+END $$;

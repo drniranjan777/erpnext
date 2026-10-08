@@ -1,0 +1,7 @@
+apiVersion: v2
+name: nextgen-erp
+description: NextGen ERP — API, worker and web app on Kubernetes (EKS or any conformant cluster)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords: [erp, manufacturing, gst]

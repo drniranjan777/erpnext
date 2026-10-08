@@ -142,6 +142,11 @@ export class AuthService {
     if (tenant.status === 'suspended' || tenant.status === 'archived') {
       throw new ForbiddenException('This workspace is not active. Contact your administrator.');
     }
+    // Workspaces that require single sign-on accept passwords only from their owners (break-glass).
+    const [sso] = await this.database.run({ tenantId: tenant.id, userId: user.id }, async (tx) =>
+      (await tx.execute<{ required: boolean; owner: boolean }>(sql`select sso_required_for(${tenant.id}) as required, coalesce((select is_owner from memberships where id = ${tenant.membershipId}), false) as owner`)).rows,
+    );
+    if (sso?.required && !sso.owner) throw new ForbiddenException('This workspace signs in with your company account: use "Sign in with SSO".');
 
     if (user.mfa_enabled) {
       // Password is right; the session is only issued after the second factor.

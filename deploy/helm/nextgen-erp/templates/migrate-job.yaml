@@ -1,0 +1,24 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "nextgen.name" . }}-migrate-{{ .Release.Revision }}
+  labels: {{- include "nextgen.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext: { runAsNonRoot: true }
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.backend }}:{{ .Values.image.tag }}"
+          workingDir: /app/database
+          command: ["npx", "tsx", "src/migrate.ts"]
+          envFrom:
+            - secretRef: { name: {{ .Values.existingSecret }} }
+{{- end }}

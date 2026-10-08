@@ -1,0 +1,47 @@
+# Default values. One release = one installation: shared multi-tenant SaaS, or a dedicated
+# (single-tenant) deployment for a customer with its own database and region.
+
+image:
+  backend: nextgen/backend
+  frontend: nextgen/frontend
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+appUrl: https://erp.example.in
+dataRegion: "ap-south-1 (Mumbai, India)"
+
+# Secret with DATABASE_URL, DATABASE_OWNER_URL, DATABASE_REPLICA_URL (optional), JWT_ACCESS_SECRET,
+# JWT_REFRESH_SECRET, DATA_ENCRYPTION_KEY, SMTP_URL, EMAIL_FROM, PLATFORM_ADMIN_EMAILS and any provider keys.
+# Create it with your secret manager (External Secrets, Sealed Secrets…); the chart never holds secrets.
+existingSecret: nextgen-erp-env
+
+backend:
+  replicas: 2
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: "2", memory: 1536Mi }
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 10, targetCPU: 70 }
+  # Files (attachments, CAD, documents): a ReadWriteMany volume, or set STORAGE_DIR to an S3 mount.
+  storage: { size: 50Gi, storageClass: "" , accessMode: ReadWriteMany }
+
+frontend:
+  replicas: 2
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 768Mi }
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 6, targetCPU: 70 }
+
+# Runs `migrate` before every install / upgrade (Helm hook).
+migrations:
+  enabled: true
+
+ingress:
+  enabled: true
+  className: nginx
+  host: erp.example.in
+  tlsSecret: nextgen-erp-tls
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 100m
+
+podDisruptionBudget:
+  minAvailable: 1

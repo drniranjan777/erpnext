@@ -10,6 +10,10 @@ const envSchema = z.object({
   /** Public URL of the web app (used in invitation links). */
   APP_URL: z.string().url().default('http://localhost:3000'),
   DATABASE_URL: z.string().url(),
+  /** Optional streaming replica for heavy reads (reports, dashboards); falls back to the primary. */
+  DATABASE_REPLICA_URL: z.string().optional().default(''),
+  /** Where this installation keeps data (shown to workspaces for data residency). */
+  DATA_REGION: z.string().default('ap-south-1 (Mumbai, India)'),
   /** Local file storage root for attachments (dev). Deployed envs will use S3. */
   STORAGE_DIR: z.string().default('./.storage'),
   /** Run the background job worker inside this process. */
