@@ -449,6 +449,13 @@
       "when": 1791415758937,
       "tag": "0063_food_safety_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1791417339706,
+      "tag": "0064_industry_packs",
+      "breakpoints": true
     }
   ]
 }

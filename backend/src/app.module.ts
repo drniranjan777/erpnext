@@ -53,6 +53,9 @@ import { PharmaModule } from './modules/pharma/pharma.module';
 import { ValidationModule } from './modules/validation/validation.module';
 import { AutoModule } from './modules/auto/auto.module';
 import { FoodModule } from './modules/food/food.module';
+import { HsePackModule } from './modules/hse/hse.module';
+import { TextileModule } from './modules/textile/textile.module';
+import { EsgModule } from './modules/esg/esg.module';
 import { PredictModule } from './modules/predict/predict.module';
 import { VoiceModule } from './modules/voice/voice.module';
 import { TmsModule } from './modules/tms/tms.module';
@@ -128,6 +131,9 @@ import { ProcessModule } from './modules/process/process.module';
     ValidationModule,
     AutoModule,
     FoodModule,
+    HsePackModule,
+    TextileModule,
+    EsgModule,
     AdminModule,
     PrivacyModule,
   ],

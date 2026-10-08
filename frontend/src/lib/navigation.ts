@@ -8,6 +8,11 @@ import {
   HardHat,
   ShieldAlert,
   BadgeCheck,
+  FileChartColumn,
+  Recycle,
+  Leaf,
+  Cpu,
+  Shirt,
   Award,
   Tag,
   Undo2,
@@ -326,6 +331,31 @@ export const NAVIGATION: NavSection[] = [
       { label: "Recalls & drills", href: "/food/recalls", icon: Undo2, permissions: ["food.reports.read"] },
       { label: "Labels & FSSAI", href: "/food/labels", icon: Tag, permissions: ["food.reports.read"] },
       { label: "Certificates", href: "/compliance/certificates", icon: Award, permissions: ["quality.inspections.read"] },
+    ],
+  },
+  {
+    title: "Chemical HSE",
+    items: [
+      { label: "Safety data sheets", href: "/hse/sds", icon: FlaskConical, permissions: ["hse.register.read"] },
+      { label: "Hazardous storage", href: "/hse/storage", icon: Warehouse, permissions: ["hse.register.read"] },
+      { label: "Permits to work", href: "/hse/permits", icon: HardHat, permissions: ["hse.register.read"] },
+    ],
+  },
+  {
+    title: "Textile export",
+    items: [
+      { label: "Buyer orders", href: "/textile/orders", icon: ClipboardList, permissions: ["textile.orders.read"] },
+      { label: "Tech packs", href: "/textile/tech-packs", icon: Shirt, permissions: ["textile.orders.read"] },
+      { label: "Social audits", href: "/textile/audits", icon: Users, permissions: ["textile.orders.read"] },
+    ],
+  },
+  {
+    title: "Sustainability",
+    items: [
+      { label: "Carbon footprint", href: "/esg", icon: Leaf, permissions: ["esg.reports.read"] },
+      { label: "EPR certificates", href: "/esg/epr", icon: Recycle, permissions: ["esg.reports.read"] },
+      { label: "BRSR-lite", href: "/esg/brsr", icon: FileChartColumn, permissions: ["esg.reports.read"] },
+      { label: "Materials compliance", href: "/compliance/materials", icon: Cpu, permissions: ["esg.reports.read"] },
     ],
   },
   {
