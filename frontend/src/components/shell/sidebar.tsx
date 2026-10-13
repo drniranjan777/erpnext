@@ -61,14 +61,14 @@ export function Sidebar({ pathname, can, hasModule, badges, collapsed = false, o
     : [];
 
   return (
-    <div className={cn("flex h-full flex-col bg-sidebar text-sidebar-foreground", collapsed ? "w-16" : "w-64")}>
-      <div className={cn("flex h-14 shrink-0 items-center gap-2", collapsed ? "justify-center" : "pr-3")}>
+    <div className={cn("flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground", collapsed ? "w-16" : "w-64")}>
+      <div className={cn("flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-border", collapsed ? "justify-center" : "pr-2")}>
         <Brand collapsed={collapsed} />
         {closeButton}
       </div>
 
       {!collapsed && (
-        <div className="px-3 pb-2">
+        <div className="px-3 pt-3 pb-1">
           <label className="relative block">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-sidebar-muted" aria-hidden />
             <input
@@ -80,10 +80,10 @@ export function Sidebar({ pathname, can, hasModule, badges, collapsed = false, o
               onKeyDown={(e) => e.key === "Escape" && setQ("")}
               placeholder="Search menu…"
               aria-label="Search the menu"
-              className="h-9 w-full rounded-md border border-sidebar-border bg-white/5 pr-8 pl-8 text-sm text-white placeholder:text-sidebar-muted focus:border-primary focus:outline-none"
+              className="h-8 w-full rounded-md border border-sidebar-border bg-surface pr-8 pl-8 text-[13px] text-sidebar-strong placeholder:text-sidebar-muted focus:border-primary focus:ring-2 focus:ring-ring/40 focus:outline-none"
             />
             {q && (
-              <button onClick={() => setQ("")} className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-0.5 text-sidebar-muted hover:text-white" aria-label="Clear menu search">
+              <button onClick={() => setQ("")} className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-0.5 text-sidebar-muted hover:text-sidebar-strong" aria-label="Clear menu search">
                 <X className="size-3.5" />
               </button>
             )}
@@ -91,7 +91,7 @@ export function Sidebar({ pathname, can, hasModule, badges, collapsed = false, o
         </div>
       )}
 
-      <nav ref={navRef} className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-3" aria-label="Main">
+      <nav ref={navRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 pt-2 pb-4" aria-label="Main">
         {term ? (
           <ul className="space-y-0.5 pt-1">
             {matches.map(({ item, where }) => (
@@ -114,39 +114,51 @@ export function Sidebar({ pathname, can, hasModule, badges, collapsed = false, o
                 </li>
               ))}
             </ul>
-            <div className="mx-2 my-3 border-t border-sidebar-border" />
             <ul className="space-y-0.5">
-              {groups.map((g) =>
-                collapsed ? (
-                  <li key={g.title}>
+              {groups.map((g, i) => {
+                const starts = g.category !== groups[i - 1]?.category;
+                return collapsed ? (
+                  <li key={g.title} className={cn(starts && "mt-2 border-t border-sidebar-border pt-2")}>
                     <RailGroup group={g} active={g.title === activeGroup} activeHref={activeHref} />
                   </li>
                 ) : (
                   <li key={g.title}>
+                    {starts && <p className="px-2.5 pt-5 pb-1.5 text-[11px] font-semibold tracking-[0.08em] text-sidebar-muted uppercase">{g.category}</p>}
                     <SidebarGroup group={g} open={open === g.title} containsActive={g.title === activeGroup} activeHref={activeHref} onToggle={() => setOpen(open === g.title ? null : g.title)} onNavigate={onNavigate} />
                   </li>
-                ),
-              )}
+                );
+              })}
             </ul>
           </>
         )}
       </nav>
 
-      <div className="shrink-0 border-t border-sidebar-border px-2 py-2">
-        <ul className="space-y-0.5">
-          {FOOTER.map((item) => (
-            <li key={item.href}>{collapsed ? <RailLink item={item} active={item.href === activeHref} /> : <MenuItem item={item} active={item.href === activeHref} onNavigate={onNavigate} />}</li>
-          ))}
-        </ul>
+      <div className={cn("flex shrink-0 border-t border-sidebar-border p-2", collapsed ? "flex-col items-center gap-1" : "items-center gap-1")}>
+        {FOOTER.map((item) => {
+          const Icon = item.icon;
+          const active = item.href === activeHref;
+          return collapsed ? (
+            <RailLink key={item.href} item={item} active={active} />
+          ) : (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              aria-current={active ? "page" : undefined}
+              className={cn("flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] transition-colors", active ? "bg-sidebar-active font-medium text-sidebar-active-foreground" : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-strong")}
+            >
+              <Icon className="size-4" aria-hidden /> {item.label}
+            </Link>
+          );
+        })}
         {onToggleCollapsed && (
           <button
             onClick={onToggleCollapsed}
-            className={cn("mt-1 flex h-9 w-full items-center gap-3 rounded-md px-3 text-sm text-sidebar-muted hover:bg-sidebar-hover hover:text-white", collapsed && "justify-center px-0")}
+            className={cn("flex size-8 items-center justify-center rounded-md text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-strong", !collapsed && "ml-auto")}
             aria-label={collapsed ? "Expand the menu" : "Collapse the menu"}
             title={collapsed ? "Expand the menu" : "Collapse the menu"}
           >
             {collapsed ? <ChevronsRight className="size-4" aria-hidden /> : <ChevronsLeft className="size-4" aria-hidden />}
-            {!collapsed && <span>Collapse</span>}
           </button>
         )}
       </div>
@@ -165,20 +177,20 @@ function SidebarGroup({ group, open, containsActive, activeHref, onToggle, onNav
         aria-expanded={open}
         aria-controls={id}
         className={cn(
-          "flex h-9 w-full items-center gap-3 rounded-md px-3 text-left text-[13px] font-semibold tracking-wide uppercase transition-colors hover:bg-sidebar-hover hover:text-white",
-          containsActive || open ? "text-white" : "text-sidebar-muted",
+          "flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-sm transition-colors hover:bg-sidebar-hover hover:text-sidebar-strong",
+          containsActive || open ? "font-medium text-sidebar-strong" : "text-sidebar-foreground",
         )}
       >
-        <Icon className={cn("size-4 shrink-0", containsActive && "text-primary")} aria-hidden />
+        <Icon className={cn("size-[18px] shrink-0", containsActive ? "text-sidebar-active-foreground" : "text-sidebar-muted")} strokeWidth={1.75} aria-hidden />
         <span className="flex-1 truncate">{group.title}</span>
-        <ChevronDown className={cn("size-4 shrink-0 transition-transform duration-200", open && "rotate-180")} aria-hidden />
+        <ChevronDown className={cn("size-3.5 shrink-0 text-sidebar-muted transition-transform duration-200", open && "rotate-180")} aria-hidden />
       </button>
       <div id={id} className={cn("grid transition-[grid-template-rows] duration-200 ease-out", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")} inert={!open}>
         <div className="overflow-hidden">
-          <div className="ml-5 border-l border-sidebar-border py-1 pl-2">
+          <div className="ml-[18px] border-l border-sidebar-border py-1 pl-2.5">
             {group.sections.map((s, i) => (
               <div key={s.title ?? i} className={cn(i > 0 && "mt-2")}>
-                {s.title && <p className="px-2 pt-1 pb-1 text-[11px] font-medium text-sidebar-muted">{s.title}</p>}
+                {s.title && <p className="px-2 pt-1.5 pb-1 text-[11px] font-medium text-sidebar-muted">{s.title}</p>}
                 <ul className="space-y-px">
                   {s.items.map((item) => (
                     <li key={item.href}>
@@ -199,19 +211,20 @@ function SidebarGroup({ group, open, containsActive, activeHref, onToggle, onNav
 function MenuItem({ item, active, badge = 0, onNavigate, small, strong, hint }: { item: NavItem; active: boolean; badge?: number; onNavigate?: () => void; small?: boolean; strong?: boolean; hint?: string }) {
   const Icon = item.icon;
   const className = cn(
-    "flex w-full items-center gap-2.5 rounded-md text-left transition-colors",
-    small ? "px-2 py-1.5 text-[13px]" : "h-9 px-3 text-sm",
-    strong && "font-medium",
-    active ? "bg-primary text-primary-foreground" : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-white",
+    "relative flex w-full items-center gap-2.5 rounded-md text-left transition-colors",
+    small ? "px-2 py-[5px] text-[13px]" : "h-9 px-2.5 text-sm",
+    strong && !active && "text-sidebar-strong",
+    active ? "bg-sidebar-active font-medium text-sidebar-active-foreground" : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-strong",
   );
   const body = (
     <>
-      <Icon className={cn("shrink-0", small ? "size-3.5" : "size-4", !active && "opacity-80")} aria-hidden />
+      {active && small && <span className="absolute top-1.5 bottom-1.5 -left-[11px] w-0.5 rounded-full bg-sidebar-active-foreground" aria-hidden />}
+      {!small && <Icon className={cn("size-[18px] shrink-0", !active && "text-sidebar-muted")} strokeWidth={1.75} aria-hidden />}
       <span className="min-w-0 flex-1">
         <span className="block truncate">{item.label}</span>
-        {hint && <span className={cn("block truncate text-[11px]", active ? "text-primary-foreground/80" : "text-sidebar-muted")}>{hint}</span>}
+        {hint && <span className={cn("block truncate text-[11px]", active ? "text-sidebar-active-foreground/80" : "text-sidebar-muted")}>{hint}</span>}
       </span>
-      {badge > 0 && <span className="rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none font-semibold text-white tabular-nums">{badge}</span>}
+      {badge > 0 && <span className="min-w-5 rounded-full bg-danger px-1.5 py-0.5 text-center text-[11px] leading-none font-semibold text-white tabular-nums">{badge}</span>}
     </>
   );
   if (item.opensCopilot) {
@@ -245,9 +258,9 @@ function RailLink({ item, active, badge = 0 }: { item: NavItem; active: boolean;
         href={item.href}
         aria-label={item.label}
         aria-current={active ? "page" : undefined}
-        className={cn("relative mx-auto flex size-10 items-center justify-center rounded-md transition-colors", active ? "bg-primary text-primary-foreground" : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-white")}
+        className={cn("relative mx-auto flex size-10 items-center justify-center rounded-md transition-colors", active ? "bg-sidebar-active text-sidebar-active-foreground" : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-strong")}
       >
-        <Icon className="size-[18px]" aria-hidden />
+        <Icon className="size-[18px]" strokeWidth={1.75} aria-hidden />
         {badge > 0 && <span className="absolute top-1 right-1 size-2 rounded-full bg-danger" aria-hidden />}
       </Link>
     </Flyout>
@@ -279,8 +292,8 @@ function RailGroup({ group, active, activeHref }: { group: NavGroup; active: boo
         </div>
       ))}
     >
-      <button aria-label={group.title} className={cn("mx-auto flex size-10 items-center justify-center rounded-md transition-colors", active ? "bg-sidebar-hover text-primary" : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-white")}>
-        <Icon className="size-[18px]" aria-hidden />
+      <button aria-label={group.title} className={cn("mx-auto flex size-10 items-center justify-center rounded-md transition-colors", active ? "bg-sidebar-active text-sidebar-active-foreground" : "text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-strong")}>
+        <Icon className="size-[18px]" strokeWidth={1.75} aria-hidden />
       </button>
     </Flyout>
   );
@@ -344,13 +357,13 @@ function Brand({ collapsed }: { collapsed: boolean }) {
   }, [color]);
   const name = b.data?.productName || "NextGen ERP";
   return (
-    <Link href="/dashboard" className={cn("flex min-w-0 flex-1 items-center gap-2.5 font-semibold text-white", collapsed ? "justify-center" : "px-4")} title={name}>
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+    <Link href="/dashboard" className={cn("flex min-w-0 flex-1 items-center gap-2.5 text-[15px] font-semibold tracking-tight text-sidebar-strong", collapsed ? "justify-center" : "px-4")} title={name}>
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
         {b.data?.logo ? (
           // eslint-disable-next-line @next/next/no-img-element -- a small data: URL logo, nothing to optimise
-          <img src={b.data.logo} alt="" className="size-6 rounded-sm bg-white object-contain p-0.5" />
+          <img src={b.data.logo} alt="" className="size-5 rounded-sm bg-white object-contain p-0.5" />
         ) : (
-          <Factory className="size-[18px]" aria-hidden />
+          <Factory className="size-4" aria-hidden />
         )}
       </span>
       {!collapsed && <span className="truncate">{name}</span>}

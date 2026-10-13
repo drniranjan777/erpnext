@@ -24,12 +24,15 @@
   --danger: #b91c1c;
   --danger-soft: #fdecec;
   --ring: #93b4ff;
-  /* Navigation rail: a deep navy that works under any brand colour. */
-  --sidebar: #0f1a2b;
-  --sidebar-foreground: #c9d2df;
-  --sidebar-muted: #7f8ba0;
-  --sidebar-hover: #18263b;
-  --sidebar-border: #1e2c42;
+  /* Navigation: a quiet neutral panel; the brand colour appears only on the current page. */
+  --sidebar: #fbfbfc;
+  --sidebar-foreground: #414a59;
+  --sidebar-strong: #141a24;
+  --sidebar-muted: #7b8494;
+  --sidebar-hover: #eff1f4;
+  --sidebar-border: #e6e8ec;
+  --sidebar-active: color-mix(in srgb, var(--primary) 12%, transparent);
+  --sidebar-active-foreground: var(--primary);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -51,11 +54,14 @@
     --danger: #f87171;
     --danger-soft: #2f1616;
     --ring: #3b5bb5;
-    --sidebar: #0a111b;
-    --sidebar-foreground: #c9d2df;
-    --sidebar-muted: #7a869a;
-    --sidebar-hover: #142033;
-    --sidebar-border: #1a2638;
+    --sidebar: #11161d;
+    --sidebar-foreground: #c0c8d4;
+    --sidebar-strong: #f1f3f6;
+    --sidebar-muted: #8791a1;
+    --sidebar-hover: #1a212b;
+    --sidebar-border: #232b36;
+    --sidebar-active: color-mix(in srgb, var(--primary) 12%, transparent);
+    --sidebar-active-foreground: var(--primary);
   }
 }
 
@@ -77,11 +83,14 @@
   --danger: #f87171;
   --danger-soft: #2f1616;
   --ring: #3b5bb5;
-  --sidebar: #0a111b;
-  --sidebar-foreground: #c9d2df;
-  --sidebar-muted: #7a869a;
-  --sidebar-hover: #142033;
-  --sidebar-border: #1a2638;
+  --sidebar: #11161d;
+  --sidebar-foreground: #c0c8d4;
+  --sidebar-strong: #f1f3f6;
+  --sidebar-muted: #8791a1;
+  --sidebar-hover: #1a212b;
+  --sidebar-border: #232b36;
+  --sidebar-active: color-mix(in srgb, var(--primary) 12%, transparent);
+  --sidebar-active-foreground: var(--primary);
 }
 
 @theme inline {
@@ -104,6 +113,9 @@
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-strong: var(--sidebar-strong);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-hover: var(--sidebar-hover);
   --color-sidebar-border: var(--sidebar-border);

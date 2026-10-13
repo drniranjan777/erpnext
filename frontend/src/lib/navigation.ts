@@ -207,6 +207,8 @@ export interface NavSection {
 /** A top-level module in the sidebar: a heading that expands to its screens. */
 export interface NavGroup {
   title: string;
+  /** Caption the group sits under in the sidebar; consecutive groups share it. */
+  category: string;
   icon: LucideIcon;
   /** Optional module of the whole group. */
   module?: string;
@@ -228,6 +230,7 @@ export const FOOTER: NavItem[] = [
 export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Master data",
+    category: "Operations",
     icon: Database,
     sections: [
       {
@@ -246,6 +249,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Sales",
+    category: "Operations",
     icon: ShoppingCart,
     sections: [
       {
@@ -270,6 +274,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "CRM",
+    category: "Operations",
     icon: Radar,
     module: "crm",
     sections: [
@@ -287,6 +292,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Purchase",
+    category: "Operations",
     icon: ShoppingBag,
     sections: [
       {
@@ -313,6 +319,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Inventory",
+    category: "Operations",
     icon: Boxes,
     sections: [
       {
@@ -327,6 +334,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Warehouse",
+    category: "Operations",
     icon: Warehouse,
     module: "wms",
     sections: [
@@ -366,6 +374,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Manufacturing",
+    category: "Production",
     icon: Factory,
     module: "manufacturing",
     sections: [
@@ -400,6 +409,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Planning",
+    category: "Production",
     icon: CalendarRange,
     module: "manufacturing",
     sections: [
@@ -416,6 +426,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Shop floor & IoT",
+    category: "Production",
     icon: Activity,
     module: "mes_iot",
     sections: [
@@ -454,6 +465,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Quality",
+    category: "Production",
     icon: ShieldCheck,
     module: "quality",
     sections: [
@@ -490,6 +502,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Maintenance",
+    category: "Production",
     icon: Wrench,
     module: "maintenance",
     sections: [
@@ -507,6 +520,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Logistics",
+    category: "Supply chain & service",
     icon: Truck,
     sections: [
       {
@@ -532,6 +546,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Service",
+    category: "Supply chain & service",
     icon: Headset,
     module: "service",
     sections: [
@@ -549,6 +564,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Projects & documents",
+    category: "Supply chain & service",
     icon: FolderKanban,
     sections: [
       {
@@ -564,6 +580,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Finance",
+    category: "Finance",
     icon: Landmark,
     sections: [
       {
@@ -611,6 +628,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Tax & GST",
+    category: "Finance",
     icon: ReceiptIndianRupee,
     sections: [
       {
@@ -630,6 +648,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "People",
+    category: "People",
     icon: UsersRound,
     module: "hr",
     sections: [
@@ -682,6 +701,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Industry compliance",
+    category: "Compliance",
     icon: BadgeCheck,
     sections: [
       {
@@ -753,6 +773,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Reports & AI",
+    category: "Insights",
     icon: BarChart3,
     sections: [
       {
@@ -779,6 +800,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Administration",
+    category: "System",
     icon: UserCog,
     sections: [
       {
@@ -797,6 +819,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Configuration",
+    category: "System",
     icon: Settings,
     sections: [
       {

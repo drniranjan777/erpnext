@@ -101,7 +101,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             {...sidebarProps}
             onNavigate={() => setMenuOpen(false)}
             closeButton={
-              <button className="rounded-lg p-2 text-sidebar-muted hover:bg-sidebar-hover hover:text-white" onClick={() => setMenuOpen(false)} aria-label="Close menu">
+              <button className="rounded-lg p-2 text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-strong" onClick={() => setMenuOpen(false)} aria-label="Close menu">
                 <X className="size-5" />
               </button>
             }
