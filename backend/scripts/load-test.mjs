@@ -27,7 +27,7 @@ async function call(method, path, token, body) {
 
 // ---- a small workspace with something to read ---------------------------------------------
 const password = `Pw-${randomBytes(9).toString('base64url')}9a`;
-const signup = await call('POST', '/auth/signup', null, { workspaceName: `Load ${id}`, slug: `e2e-load-${id}`, companyName: `Load ${id} Pvt Ltd`, industry: 'engineering', fullName: 'Load Tester', email: `e2e-load-${id}@test.local`, password });
+const signup = await call('POST', '/auth/signup', null, { workspaceName: `Load ${id}`, slug: `e2e-load-${id}`, companyName: `Load ${id} Pvt Ltd`, industry: 'other', fullName: 'Load Tester', email: `e2e-load-${id}@test.local`, password });
 if (signup.status !== 201) throw new Error(`signup failed: ${signup.status} ${JSON.stringify(signup.body)}`);
 const token = signup.body.accessToken;
 const uoms = (await call('GET', '/masters/uoms', token)).body;

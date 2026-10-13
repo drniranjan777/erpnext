@@ -13,6 +13,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { SubscriptionGuard } from './modules/billing/subscription.guard';
+import { ModulesGuard } from './modules/billing/modules.guard';
 import { CustomizationModule } from './modules/customization/customization.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { HealthController } from './modules/health/health.controller';
@@ -156,6 +157,7 @@ import { ProcessModule } from './modules/process/process.module';
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_GUARD, useClass: SubscriptionGuard },
+    { provide: APP_GUARD, useClass: ModulesGuard },
     { provide: APP_FILTER, useClass: ProblemDetailsFilter },
   ],
 })

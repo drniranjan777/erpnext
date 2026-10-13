@@ -33,7 +33,7 @@ interface Item {
 /** Ctrl/Cmd+K: jump to any page, create things, or find documents by number or title. Mount only while open. */
 export function CommandPalette({ onClose }: { onClose: () => void }) {
   const router = useRouter();
-  const { can, me } = useAuth();
+  const { can, me, hasModule } = useAuth();
   const [q, setQ] = useState("");
   const [debounced, setDebounced] = useState("");
   const [active, setActive] = useState(0);
@@ -51,7 +51,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
 
   const items = useMemo<Item[]>(() => {
     const term = q.trim().toLowerCase();
-    const pages: Item[] = NAV_ITEMS.filter(({ item: i }) => !i.comingInPhase && (!i.permissions || i.permissions.some(can))).map(({ item: i, group }) => {
+    const pages: Item[] = NAV_ITEMS.filter(({ item: i, module }) => !i.comingInPhase && hasModule(module) && (!i.permissions || i.permissions.some(can))).map(({ item: i, group }) => {
       const Icon = i.icon;
       return { id: `nav:${i.href}`, label: i.label, hint: i.opensCopilot ? "Open" : group ?? "Go to", href: i.href, icon: <Icon className="size-4" /> };
     });
@@ -72,7 +72,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         status: d.status,
       }));
     return [...hits, ...matches].slice(0, 14);
-  }, [q, docs.data, can, me?.isPlatformAdmin]);
+  }, [q, docs.data, can, hasModule, me?.isPlatformAdmin]);
 
   const go = (item: Item | undefined) => {
     if (!item) return;

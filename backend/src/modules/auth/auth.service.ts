@@ -237,6 +237,7 @@ export class AuthService {
       tenant,
       permissions: [...permissions].sort(),
       plan: { code: e.planCode, name: e.planName, state: e.state, readOnly: e.readOnly, trialEndsAt: e.trialEndsAt, periodEnd: e.periodEnd, features: e.features },
+      modules: e.modules,
       isPlatformAdmin: this.platformAdmins.includes(user.email.toLowerCase()),
     };
   }

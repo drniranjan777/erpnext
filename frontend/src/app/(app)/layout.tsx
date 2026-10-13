@@ -20,7 +20,7 @@ import { industryLabel } from "@/lib/industries";
 const COLLAPSED_KEY = "nav-collapsed";
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
-  const { status, me, logout, can } = useAuth();
+  const { status, me, logout, can, hasModule } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -81,7 +81,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
     );
   }
 
-  const sidebarProps = { pathname, can, badges };
+  const sidebarProps = { pathname, can, hasModule, badges };
 
   return (
     <div className="flex min-h-screen">
@@ -137,7 +137,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           <button onClick={() => setPaletteOpen(true)} className="rounded-lg p-2 text-muted hover:bg-surface-muted md:hidden" aria-label="Search">
             <Search className="size-5" />
           </button>
-          <CreateMenu can={can} />
+          <CreateMenu can={can} hasModule={hasModule} />
           {me.isPlatformAdmin && (
             <Link href="/admin" className="hidden rounded-lg p-2 text-muted hover:bg-surface-muted hover:text-foreground sm:block" title="Platform admin" aria-label="Platform admin">
               <Shield className="size-5" />
@@ -173,8 +173,8 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         )}
         <main id="main" tabIndex={-1} className="flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8">{children}</main>
         {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
-        <Copilot />
-        <VoiceButton />
+        {hasModule("ai") && <Copilot />}
+        {hasModule("ai") && <VoiceButton />}
       </div>
     </div>
   );

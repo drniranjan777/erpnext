@@ -192,11 +192,15 @@ export interface NavItem {
   opensCopilot?: boolean;
   /** Live counter shown next to the label. */
   badge?: "approvals";
+  /** Optional module the screen belongs to; hidden when the workspace has it switched off. */
+  module?: string;
 }
 
 export interface NavSection {
   /** Sub-heading inside a group; omit for the first or only section. */
   title?: string;
+  /** Optional module of every item in the section. */
+  module?: string;
   items: NavItem[];
 }
 
@@ -204,6 +208,8 @@ export interface NavSection {
 export interface NavGroup {
   title: string;
   icon: LucideIcon;
+  /** Optional module of the whole group. */
+  module?: string;
   sections: NavSection[];
 }
 
@@ -256,8 +262,8 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         title: "Channels",
         items: [
-          { label: "Point of sale", href: "/pos", icon: ReceiptText, permissions: ["pos.sales.use"] },
-          { label: "Customer portal", href: "/sales/portal", icon: Globe, permissions: ["portal.orders.manage", "portal.users.manage"] },
+          { label: "Point of sale", href: "/pos", icon: ReceiptText, module: "pos", permissions: ["pos.sales.use"] },
+          { label: "Customer portal", href: "/sales/portal", icon: Globe, module: "portal", permissions: ["portal.orders.manage", "portal.users.manage"] },
         ],
       },
     ],
@@ -265,6 +271,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "CRM",
     icon: Radar,
+    module: "crm",
     sections: [
       {
         items: [
@@ -321,6 +328,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Warehouse",
     icon: Warehouse,
+    module: "wms",
     sections: [
       {
         items: [
@@ -359,6 +367,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Manufacturing",
     icon: Factory,
+    module: "manufacturing",
     sections: [
       {
         items: [
@@ -379,6 +388,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         title: "Process industries",
+        module: "process",
         items: [
           { label: "Formulas", href: "/process/formulas", icon: FlaskConical, permissions: ["manufacturing.engineering.read"] },
           { label: "Packing", href: "/process/packing", icon: PackageOpen, permissions: ["manufacturing.production.read"] },
@@ -391,6 +401,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Planning",
     icon: CalendarRange,
+    module: "manufacturing",
     sections: [
       {
         items: [
@@ -406,6 +417,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Shop floor & IoT",
     icon: Activity,
+    module: "mes_iot",
     sections: [
       {
         items: [
@@ -443,6 +455,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Quality",
     icon: ShieldCheck,
+    module: "quality",
     sections: [
       {
         items: [
@@ -478,6 +491,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Maintenance",
     icon: Wrench,
+    module: "maintenance",
     sections: [
       {
         items: [
@@ -497,6 +511,7 @@ export const NAV_GROUPS: NavGroup[] = [
     sections: [
       {
         title: "Transport",
+        module: "logistics",
         items: [
           { label: "Trips", href: "/tms", icon: Truck, permissions: ["sales.deliveries.read"] },
           { label: "Freight bills", href: "/tms/freight", icon: ReceiptIndianRupee, permissions: ["tms.freight.manage"] },
@@ -505,6 +520,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         title: "Distribution",
+        module: "distribution",
         items: [
           { label: "Network", href: "/dms", icon: Network, permissions: ["dms.network.read"] },
           { label: "Secondary sales", href: "/dms/sales", icon: Store, permissions: ["dms.network.read"] },
@@ -517,6 +533,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Service",
     icon: Headset,
+    module: "service",
     sections: [
       {
         items: [
@@ -536,10 +553,10 @@ export const NAV_GROUPS: NavGroup[] = [
     sections: [
       {
         items: [
-          { label: "Projects", href: "/projects", icon: FolderKanban, permissions: ["projects.reports.read"] },
-          { label: "Resource load", href: "/projects/resources", icon: ChartGantt, permissions: ["projects.reports.read"] },
-          { label: "Product lifecycle", href: "/plm", icon: GitBranch, permissions: ["plm.data.read"] },
-          { label: "CAD vault", href: "/plm/cad", icon: FileBox, permissions: ["plm.data.read"] },
+          { label: "Projects", href: "/projects", icon: FolderKanban, module: "projects", permissions: ["projects.reports.read"] },
+          { label: "Resource load", href: "/projects/resources", icon: ChartGantt, module: "projects", permissions: ["projects.reports.read"] },
+          { label: "Product lifecycle", href: "/plm", icon: GitBranch, module: "projects", permissions: ["plm.data.read"] },
+          { label: "CAD vault", href: "/plm/cad", icon: FileBox, module: "projects", permissions: ["plm.data.read"] },
           { label: "Documents", href: "/documents", icon: FolderOpen, permissions: ["docs.files.read"] },
         ],
       },
@@ -614,6 +631,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "People",
     icon: UsersRound,
+    module: "hr",
     sections: [
       {
         title: "Self service",
@@ -668,6 +686,7 @@ export const NAV_GROUPS: NavGroup[] = [
     sections: [
       {
         title: "GMP & pharma",
+        module: "pharma",
         items: [
           { label: "GMP controls", href: "/gmp", icon: ShieldCheck, permissions: ["quality.inspections.read"] },
           { label: "Line clearance", href: "/gmp/line-clearance", icon: ClipboardCheck, permissions: ["quality.inspections.read"] },
@@ -681,6 +700,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         title: "Food safety",
+        module: "food",
         items: [
           { label: "HACCP", href: "/food/haccp", icon: Salad, permissions: ["food.reports.read"] },
           { label: "Allergens", href: "/food/allergens", icon: Wheat, permissions: ["food.reports.read"] },
@@ -691,6 +711,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         title: "Health, safety & environment",
+        module: "hse",
         items: [
           { label: "HSE register", href: "/hse", icon: HardHat, permissions: ["hse.register.read"] },
           { label: "Safety data sheets", href: "/hse/sds", icon: FlaskConical, permissions: ["hse.register.read"] },
@@ -700,6 +721,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         title: "Sustainability",
+        module: "esg",
         items: [
           { label: "Carbon footprint", href: "/esg", icon: Leaf, permissions: ["esg.reports.read"] },
           { label: "EPR certificates", href: "/esg/epr", icon: Recycle, permissions: ["esg.reports.read"] },
@@ -709,6 +731,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         title: "Automotive",
+        module: "automotive",
         items: [
           { label: "APQP", href: "/auto/apqp", icon: Milestone, permissions: ["auto.quality.read"] },
           { label: "PPAP", href: "/auto/ppap", icon: FileStack, permissions: ["auto.quality.read"] },
@@ -719,6 +742,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         title: "Textile export",
+        module: "textile",
         items: [
           { label: "Buyer orders", href: "/textile/orders", icon: ClipboardList, permissions: ["textile.orders.read"] },
           { label: "Tech packs", href: "/textile/tech-packs", icon: Shirt, permissions: ["textile.orders.read"] },
@@ -740,6 +764,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         title: "AI",
+        module: "ai",
         items: [
           { label: "AI Copilot", href: "#copilot", icon: Sparkles, opensCopilot: true },
           { label: "AI Inbox", href: "/ai/inbox", icon: Inbox, permissions: ["ai.inbox.use"] },
@@ -784,6 +809,7 @@ export const NAV_GROUPS: NavGroup[] = [
           { label: "Automations", href: "/settings/automations", icon: Workflow, permissions: ["automation.rules.manage"] },
           { label: "API & webhooks", href: "/settings/integrations", icon: Plug, permissions: ["platform.integrations.manage"] },
           { label: "App marketplace", href: "/settings/apps", icon: Store, permissions: ["apps.connectors.read"] },
+          { label: "Modules", href: "/settings/modules", icon: Puzzle, permissions: ["platform.settings.manage"] },
           { label: "Partner portal", href: "/partner", icon: Handshake },
         ],
       },
@@ -792,10 +818,10 @@ export const NAV_GROUPS: NavGroup[] = [
 ];
 
 /** Every destination, for search and breadcrumbs. */
-export const NAV_ITEMS: { item: NavItem; group: string | null; section: string | null }[] = [
-  ...PINNED.map((item) => ({ item, group: null, section: null })),
-  ...NAV_GROUPS.flatMap((g) => g.sections.flatMap((s) => s.items.map((item) => ({ item, group: g.title, section: s.title ?? null })))),
-  ...FOOTER.map((item) => ({ item, group: null, section: null })),
+export const NAV_ITEMS: { item: NavItem; group: string | null; section: string | null; module: string | null }[] = [
+  ...PINNED.map((item) => ({ item, group: null, section: null, module: null })),
+  ...NAV_GROUPS.flatMap((g) => g.sections.flatMap((s) => s.items.map((item) => ({ item, group: g.title, section: s.title ?? null, module: item.module ?? s.module ?? g.module ?? null })))),
+  ...FOOTER.map((item) => ({ item, group: null, section: null, module: null })),
 ];
 
 /** The menu entry a path belongs to: the longest href that is the path or a parent of it. */

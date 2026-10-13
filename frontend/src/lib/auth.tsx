@@ -8,6 +8,8 @@ export interface Me {
   user: { id: string; email: string; fullName: string; mobile: string | null; locale: string; mfaEnabled: boolean };
   tenant: { id: string; slug: string; name: string; status: string; industry: string | null; trialEndsAt: string | null };
   permissions: string[];
+  /** Optional modules switched on for the workspace (by industry, adjusted in Settings). */
+  modules: string[];
   plan: {
     code: string;
     name: string;
@@ -63,6 +65,8 @@ interface AuthState {
   /** Re-fetches /auth/me (after profile or permission changes). */
   refreshMe(): Promise<void>;
   can(permission: string): boolean;
+  /** Whether an optional module is switched on; `null`/`undefined` (core screens) is always true. */
+  hasModule(module: string | null | undefined): boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -164,6 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       refreshMe: loadMe,
       can: (permission) => me?.permissions.includes(permission) ?? false,
+      hasModule: (module) => !module || (me?.modules?.includes(module) ?? true),
     }),
     [status, me, login, verifyMfa, signup, acceptInvitation, logout, loadMe],
   );

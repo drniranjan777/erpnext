@@ -3,6 +3,7 @@ import {
   apiKeys,
   attachments,
   companies,
+  enabledModules,
   FEATURES,
   invitations,
   isPlanCode,
@@ -12,6 +13,7 @@ import {
   tenants,
   webhookEndpoints,
   type Feature,
+  type ModuleKey,
   type PlanCode,
   type PlanLimits,
   type Transaction,
@@ -32,6 +34,8 @@ export interface Entitlements {
   cancelAtPeriodEnd: boolean;
   features: Feature[];
   limits: PlanLimits;
+  /** Optional ERP modules switched on: the industry's defaults adjusted by the workspace. */
+  modules: ModuleKey[];
 }
 
 export type LimitedResource = keyof PlanLimits;
@@ -78,7 +82,7 @@ export class EntitlementsService {
 
   async compute(tx: Transaction, tenantId: string): Promise<Entitlements> {
     const [t] = await tx
-      .select({ status: tenants.status, planCode: tenants.planCode, trialEndsAt: tenants.trialEndsAt, settings: tenants.settings })
+      .select({ status: tenants.status, planCode: tenants.planCode, trialEndsAt: tenants.trialEndsAt, settings: tenants.settings, industry: tenants.industry })
       .from(tenants)
       .where(eq(tenants.id, tenantId));
     const [s] = await tx.select().from(subscriptions).where(eq(subscriptions.tenantId, tenantId));
@@ -104,6 +108,7 @@ export class EntitlementsService {
       cancelAtPeriodEnd: s?.cancelAtPeriodEnd ?? false,
       features,
       limits: plan.limits,
+      modules: enabledModules(t?.industry, (t?.settings as { modules?: Record<string, boolean> } | undefined)?.modules),
     };
   }
 

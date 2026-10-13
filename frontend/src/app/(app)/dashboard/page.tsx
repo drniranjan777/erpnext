@@ -132,13 +132,13 @@ function greeting() {
   return h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
 }
 
-const ACTIONS: { label: string; href: string; icon: LucideIcon; permission: string }[] = [
+const ACTIONS: { label: string; href: string; icon: LucideIcon; permission: string; module?: string }[] = [
   { label: "New invoice", href: "/sales/invoices/new", icon: ReceiptText, permission: "sales.invoices.manage" },
   { label: "Sales order", href: "/sales/orders/new", icon: ShoppingCart, permission: "sales.orders.manage" },
   { label: "Purchase order", href: "/purchase/orders/new", icon: Truck, permission: "purchase.orders.manage" },
   { label: "Goods receipt", href: "/purchase/receipts/new", icon: FilePlus2, permission: "purchase.receipts.manage" },
   { label: "Stock entry", href: "/inventory/stock-entries/new", icon: ArrowLeftRight, permission: "inventory.entries.manage" },
-  { label: "Work order", href: "/manufacturing/work-orders/new", icon: Factory, permission: "manufacturing.production.manage" },
+  { label: "Work order", href: "/manufacturing/work-orders/new", icon: Factory, permission: "manufacturing.production.manage", module: "manufacturing" },
   { label: "Receipt", href: "/accounting/receipts/new", icon: ArrowDownToLine, permission: "accounting.money.manage" },
   { label: "Add item", href: "/masters/items/new", icon: Package, permission: "masters.items.manage" },
   { label: "Add party", href: "/masters/parties/new", icon: Contact, permission: "masters.parties.manage" },
@@ -146,8 +146,8 @@ const ACTIONS: { label: string; href: string; icon: LucideIcon; permission: stri
 
 /** One-click shortcuts to the documents this user creates most. */
 function QuickActions() {
-  const { can } = useAuth();
-  const actions = ACTIONS.filter((a) => can(a.permission));
+  const { can, hasModule } = useAuth();
+  const actions = ACTIONS.filter((a) => can(a.permission) && hasModule(a.module));
   if (!actions.length) return null;
   return (
     <Card>

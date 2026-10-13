@@ -71,7 +71,7 @@ function usePopover() {
   return { open, setOpen, ref };
 }
 
-const CREATE: { group: string; items: { label: string; href: string; permission: string }[] }[] = [
+const CREATE: { group: string; items: { label: string; href: string; permission: string; module?: string }[] }[] = [
   {
     group: "Sales",
     items: [
@@ -94,7 +94,7 @@ const CREATE: { group: string; items: { label: string; href: string; permission:
     group: "Stock & production",
     items: [
       { label: "Stock entry", href: "/inventory/stock-entries/new", permission: "inventory.entries.manage" },
-      { label: "Work order", href: "/manufacturing/work-orders/new", permission: "manufacturing.production.manage" },
+      { label: "Work order", href: "/manufacturing/work-orders/new", permission: "manufacturing.production.manage", module: "manufacturing" },
     ],
   },
   {
@@ -115,9 +115,9 @@ const CREATE: { group: string; items: { label: string; href: string; permission:
 ];
 
 /** "Create" button: new documents and records the user may create. */
-export function CreateMenu({ can }: { can: (p: string) => boolean }) {
+export function CreateMenu({ can, hasModule }: { can: (p: string) => boolean; hasModule: (m: string | null | undefined) => boolean }) {
   const { open, setOpen, ref } = usePopover();
-  const groups = CREATE.map((g) => ({ ...g, items: g.items.filter((i) => can(i.permission)) })).filter((g) => g.items.length);
+  const groups = CREATE.map((g) => ({ ...g, items: g.items.filter((i) => can(i.permission) && hasModule(i.module)) })).filter((g) => g.items.length);
   if (!groups.length) return null;
   return (
     <div ref={ref} className="relative">

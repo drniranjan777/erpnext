@@ -2,6 +2,7 @@ export * from './client';
 export * from './doc-types';
 export * from './permissions';
 export * from './plans';
+export * from './modules';
 export * from './provisioning';
 export * from './india';
 export * from './testing';

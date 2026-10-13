@@ -12,6 +12,8 @@ import { FOOTER, NAV_GROUPS, PINNED, findNav, type NavGroup, type NavItem } from
 interface SidebarProps {
   pathname: string;
   can: (permission: string) => boolean;
+  /** Whether an optional module is switched on for the workspace. */
+  hasModule: (module: string | null | undefined) => boolean;
   badges: Record<string, number>;
   /** Icon-only rail (desktop). */
   collapsed?: boolean;
@@ -25,16 +27,18 @@ interface SidebarProps {
 const visible = (can: SidebarProps["can"]) => (i: NavItem) => !i.permissions || i.permissions.some(can);
 
 /** Groups and sections trimmed to what the user may open; empty groups disappear. */
-function allowedGroups(can: SidebarProps["can"]): NavGroup[] {
-  return NAV_GROUPS.map((g) => ({ ...g, sections: g.sections.map((s) => ({ ...s, items: s.items.filter(visible(can)) })).filter((s) => s.items.length) })).filter((g) => g.sections.length);
+function allowedGroups(can: SidebarProps["can"], hasModule: SidebarProps["hasModule"]): NavGroup[] {
+  return NAV_GROUPS.filter((g) => hasModule(g.module))
+    .map((g) => ({ ...g, sections: g.sections.filter((s) => hasModule(s.module)).map((s) => ({ ...s, items: s.items.filter((i) => hasModule(i.module) && visible(can)(i)) })).filter((s) => s.items.length) }))
+    .filter((g) => g.sections.length);
 }
 
 /**
  * The main navigation: pinned destinations, then one heading per module that expands to its
  * screens. One module is open at a time; the module holding the current page opens itself.
  */
-export function Sidebar({ pathname, can, badges, collapsed = false, onToggleCollapsed, onNavigate, closeButton }: SidebarProps) {
-  const groups = useMemo(() => allowedGroups(can), [can]);
+export function Sidebar({ pathname, can, hasModule, badges, collapsed = false, onToggleCollapsed, onNavigate, closeButton }: SidebarProps) {
+  const groups = useMemo(() => allowedGroups(can, hasModule), [can, hasModule]);
   const current = findNav(pathname);
   const activeHref = current?.item.href;
   const activeGroup = current?.group ?? null;

@@ -32,7 +32,7 @@ const must = async (p, label) => {
 };
 
 const password = `Pw-${randomBytes(9).toString('base64url')}9a`;
-const signup = await fetch(`${API}/auth/signup`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ workspaceName: `WLoad ${id}`, slug: `e2e-wload-${id}`, companyName: `WLoad ${id} Pvt Ltd`, industry: 'engineering', fullName: 'Write Tester', email: `e2e-wload-${id}@test.local`, password }) });
+const signup = await fetch(`${API}/auth/signup`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ workspaceName: `WLoad ${id}`, slug: `e2e-wload-${id}`, companyName: `WLoad ${id} Pvt Ltd`, industry: 'other', fullName: 'Write Tester', email: `e2e-wload-${id}@test.local`, password }) });
 token = (await signup.json()).accessToken;
 const nos = (await call('GET', '/masters/uoms')).body.find((u) => u.code === 'NOS').id;
 const wh = (await call('GET', '/inventory/warehouses')).body.find((w) => w.code === 'MAIN').id;

@@ -60,7 +60,8 @@ export class Client {
 }
 
 /** Signs up a brand-new workspace and returns its owner client. */
-export async function signupWorkspace(label: string) {
+/** `industry` and `allModules: false` leave the workspace with its industry's default modules. */
+export async function signupWorkspace(label: string, opts: { industry?: string; allModules?: boolean } = {}) {
   const client = new Client();
   const password = strongPassword();
   const email = `e2e-${label}-${RUN_ID}@test.local`;
@@ -68,12 +69,18 @@ export async function signupWorkspace(label: string) {
     workspaceName: `E2E ${label} ${RUN_ID}`,
     slug: `e2e-${label}-${RUN_ID}`,
     companyName: `E2E ${label} Pvt Ltd`,
-    industry: 'engineering',
+    industry: opts.industry ?? 'engineering',
     fullName: `Owner ${label}`,
     email,
     password,
   });
   if (res.status !== 201) throw new Error(`signup failed: ${res.status} ${JSON.stringify(res.body)}`);
+  if (opts.allModules === false) return { client, email, password, tenantId: res.body.tenant.id as string, slug: res.body.tenant.slug as string };
+  // Tests cover every module, whatever the industry would switch on by default.
+  const mods = await client.get('/workspace/modules');
+  const all = Object.fromEntries((mods.body.modules as { key: string }[]).map((m) => [m.key, true]));
+  const on = await client.request('PUT', '/workspace/modules', { modules: all });
+  if (on.status !== 200) throw new Error(`enabling modules failed: ${on.status} ${JSON.stringify(on.body)}`);
   return { client, email, password, tenantId: res.body.tenant.id as string, slug: res.body.tenant.slug as string };
 }
 
